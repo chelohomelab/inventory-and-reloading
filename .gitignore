@@ -1,0 +1,20 @@
+# Uploaded user files — never commit these
+static/uploads/*
+!static/uploads/.gitkeep
+
+# SQLite database
+*.db
+*.db-shm
+*.db-wal
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Environment / secrets
+.env
+.env.*
+
+# OS junk
+.DS_Store
+Thumbs.db

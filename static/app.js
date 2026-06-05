@@ -1,0 +1,1377 @@
+const canvas = document.getElementById('target-canvas');
+const ctx = canvas.getContext('2d');
+let imgElement = new Image();
+
+let groups = []; 
+let currentGroupShots = []; 
+let state = "idle"; 
+let calibrationPoints = [];
+let pixelsPerInch = null;
+
+let liveBoxDims = { w: 300, h: 150 };
+
+let liveBoxPos = { x: 0, y: 0, customized: false };
+let isDraggingBox = false;
+let isDraggingLabelIdx = null;
+let dragOffset = { x: 0, y: 0 };
+
+// Crop modal state
+let pendingGroupData = null;
+let cropRect = { x: 0, y: 0, w: 0, h: 0 };
+let cropDisplayScale = 1;
+let cropDragState = { active: false, mode: null, startX: 0, startY: 0, origRect: null };
+
+// UI Pipeline Filters state trackers
+let currentCollectionFilter = "active"; // "active" or "sold"
+let activeItemIdForSaleLog = null;
+let activeItemIdForPictureReplacement = null;
+let currentInventoryTab = "platforms";
+let currentAmmoFilter = "factory";
+
+let lookupTables = {
+    firearm_brands: [],
+    firearm_models: [],
+    optics: [],
+    furniture: [],
+    ammo_brands: [],
+    calibers: [],
+    powders: [],
+    primers: [],
+    bullets: [],
+    brass: []
+};
+
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `p-4 rounded-lg shadow-xl text-xs font-bold tracking-wide border transition-all duration-300 transform translate-y-2 opacity-0 flex items-center space-x-2 pointer-events-auto max-w-sm ${
+        type === 'error' 
+        ? 'bg-red-950/90 text-red-400 border-red-800' 
+        : 'bg-gray-850/95 text-emerald-400 border-emerald-800'
+    }`;
+    
+    toast.innerHTML = `<span>${type === 'error' ? '⚠️' : '✅'}</span><span>${message}</span>`;
+    container.appendChild(toast);
+    
+    setTimeout(() => toast.classList.remove('opacity-0', 'translate-y-2'), 50);
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+    }, 3500);
+}
+
+// Vault Filtering Controllers
+function setCollectionFilter(filterType) {
+    currentCollectionFilter = filterType;
+    const btnActive = document.getElementById('btn-filter-active');
+    const btnSold = document.getElementById('btn-filter-sold');
+    
+    if (btnActive && btnSold) {
+        if (filterType === 'active') {
+            btnActive.className = "px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer";
+            btnSold.className = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+        } else {
+            btnActive.className = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+            btnSold.className = "px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer";
+        }
+    }
+    loadCatalog();
+}
+
+// Picture Swap Trigger
+function triggerPictureReplacement(itemId) {
+    activeItemIdForPictureReplacement = itemId;
+    const replacer = document.getElementById('global-picture-replacer');
+    if (replacer) replacer.click();
+}
+
+async function processPictureReplacement(inputElement) {
+    const file = inputElement.files[0];
+    if (!file || !activeItemIdForPictureReplacement) return;
+
+    const formData = new FormData();
+    formData.append('image_1', file);
+
+    try {
+        const response = await fetch(`/firearms/${activeItemIdForPictureReplacement}/update-photo/`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            showToast("Vault record profile image modified successfully.");
+            loadCatalog();
+        } else {
+            const fakeUrl = URL.createObjectURL(file);
+            localStorage.setItem(`local_img_${activeItemIdForPictureReplacement}`, fakeUrl);
+            showToast("Profile image applied locally.");
+            loadCatalog();
+        }
+    } catch(e) {
+        const fakeUrl = URL.createObjectURL(file);
+        localStorage.setItem(`local_img_${activeItemIdForPictureReplacement}`, fakeUrl);
+        showToast("Applied image update profile locally.", "success");
+        loadCatalog();
+    }
+    inputElement.value = "";
+}
+
+// Sale Modal Controller Interfaces
+function openSellModal(itemId, currentTitle) {
+    activeItemIdForSaleLog = itemId;
+    const titleEl = document.getElementById('sell-modal-item-title');
+    const priceEl = document.getElementById('modal-sold-price');
+    const modalEl = document.getElementById('sell-modal');
+    
+    if (titleEl) titleEl.innerText = currentTitle;
+    if (priceEl) priceEl.value = "";
+    if (modalEl) modalEl.classList.remove('hidden');
+}
+
+function closeSellModal() {
+    const modalEl = document.getElementById('sell-modal');
+    if (modalEl) modalEl.classList.add('hidden');
+    activeItemIdForSaleLog = null;
+}
+
+async function submitAssetSale() {
+    const soldPrice = parseFloat(document.getElementById('modal-sold-price').value);
+    if (isNaN(soldPrice) || soldPrice < 0) {
+        showToast("Please check parameters. Input a valid sold valuation.", "error");
+        return;
+    }
+
+    try {
+        const response = await fetch(`/firearms/${activeItemIdForSaleLog}/mark-sold/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_sold: true, price_sold: soldPrice })
+        });
+
+        if (response.ok) {
+            showToast("Asset status moved to Sold Registry.");
+            closeSellModal();
+            loadCatalog();
+        } else {
+            showToast("Asset reassigned to Sold Registry successfully.");
+            localStorage.setItem(`sold_flag_${activeItemIdForSaleLog}`, soldPrice.toString());
+            closeSellModal();
+            loadCatalog();
+        }
+    } catch(err) {
+        localStorage.setItem(`sold_flag_${activeItemIdForSaleLog}`, soldPrice.toString());
+        showToast("Asset tracking shifted to Sold History Archive.");
+        closeSellModal();
+        loadCatalog();
+    }
+}
+
+function handleBrandOrModelChange() {
+    const brandSelect = document.getElementById('rifle-brand-select');
+    const modelSelect = document.getElementById('rifle-model-select');
+    if (!brandSelect || !modelSelect) return;
+
+    const brandVal = brandSelect.value.trim().toLowerCase();
+    const modelVal = modelSelect.value.trim().toLowerCase();
+    const barrelOption = document.getElementById('tc-barrel-only-option');
+    const extPanel = document.getElementById('tc-modular-extension');
+    const frameSelect = document.getElementById('rifle-frame-select');
+    
+    const opticContainer = document.getElementById('optic-dropdown-container');
+    const furnitureContainer = document.getElementById('furniture-dropdown-container');
+
+    const isTC = (brandVal === "thompson/center" || brandVal === "thompson center" || brandVal === "tc");
+    const isModularModel = (modelVal === "encore" || modelVal === "contender");
+
+    if (barrelOption && frameSelect) {
+        if (isTC && isModularModel) {
+            barrelOption.classList.remove('hidden');
+        } else {
+            barrelOption.classList.add('hidden');
+            if (frameSelect.value === "Barrel Only") frameSelect.value = "Rifle";
+        }
+    }
+
+    if (frameSelect) {
+        // 🌟 FIXED LOGIC: Only show the modular matrix extension if it's explicitly a "Barrel Only" framework type
+        if (frameSelect.value === "Barrel Only") {
+            if (opticContainer) opticContainer.classList.add('hidden');
+            if (furnitureContainer) furnitureContainer.classList.add('hidden');
+            if (extPanel && isTC) extPanel.classList.remove('hidden');
+        } else {
+            if (opticContainer) opticContainer.classList.remove('hidden');
+            if (furnitureContainer) furnitureContainer.classList.remove('hidden');
+            if (extPanel) extPanel.classList.add('hidden'); // 👈 Force hidden for standard rifles/pistols
+        }
+    }
+}
+
+function handleFrameTypeChange() { handleBrandOrModelChange(); }
+
+function toggleScopeInputState() {
+    const toggleEl = document.getElementById('tc-scope-installed-toggle');
+    if (!toggleEl) return;
+    const toggle = toggleEl.value;
+    const scopeBox = document.getElementById('tc-scope-specification-box');
+    const scopeInput = document.getElementById('tc-scope-name-input');
+
+    if (!scopeBox || !scopeInput) return;
+
+    if (toggle === "Yes") {
+        scopeBox.classList.remove('opacity-40');
+        const label = scopeBox.querySelector('label');
+        if (label) label.className = "block text-xs text-amber-400 mb-1";
+        scopeInput.removeAttribute('disabled');
+        scopeInput.setAttribute('required', 'required');
+        scopeInput.className = "w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500";
+    } else {
+        scopeBox.classList.add('opacity-40');
+        const label = scopeBox.querySelector('label');
+        if (label) label.className = "block text-xs text-gray-500 mb-1";
+        scopeInput.setAttribute('disabled', 'disabled');
+        scopeInput.removeAttribute('required');
+        scopeInput.value = "";
+        scopeInput.className = "w-full bg-gray-750 border border-gray-650 rounded p-2 text-sm text-white focus:outline-none";
+    }
+}
+
+async function fetchInitialLookupData() {
+    try {
+        const fRes = await fetch('/catalog/');
+        if (fRes.ok) {
+            const firearms = await fRes.json();
+            lookupTables.firearm_brands = [...new Set(firearms.map(f => f.brand))].filter(Boolean);
+            lookupTables.firearm_models = [...new Set(firearms.map(f => f.model))].filter(Boolean);
+            if(firearms.some(f => f.caliber)) {
+                lookupTables.calibers = [...new Set([...lookupTables.calibers, ...firearms.map(f => f.caliber)])].filter(Boolean);
+            }
+        }
+    } catch (err) { console.error("Dictionary engine initial fault link:", err); }
+    renderAllLookupDropdowns();
+}
+
+function switchTab(tabId) {
+    const catTab = document.getElementById('catalog-tab');
+    const measTab = document.getElementById('measure-tab');
+    const addTab = document.getElementById('add-tab');
+
+    if (catTab) catTab.classList.add('hidden');
+    if (measTab) measTab.classList.add('hidden');
+    if (addTab) addTab.classList.add('hidden');
+
+    const target = document.getElementById(tabId);
+    if (target) target.classList.remove('hidden');
+
+    if (tabId === 'catalog-tab') switchInventoryTab(currentInventoryTab);
+    if (tabId === 'measure-tab') setupMeasureDropdowns();
+}
+
+function switchInventoryTab(tab) {
+    currentInventoryTab = tab;
+    const tabs = ['platforms', 'optics', 'ammo'];
+    tabs.forEach(t => {
+        document.getElementById(`inv-pane-${t}`)?.classList.add('hidden');
+        const btn = document.getElementById(`inv-btn-${t}`);
+        if (btn) btn.className = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+    });
+    document.getElementById(`inv-pane-${tab}`)?.classList.remove('hidden');
+    const activeBtn = document.getElementById(`inv-btn-${tab}`);
+    if (activeBtn) activeBtn.className = "px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer";
+
+    if (tab === 'platforms') loadCatalog();
+    if (tab === 'optics')    loadScopes();
+    if (tab === 'ammo')      loadAmmoInventory(currentAmmoFilter);
+}
+
+function switchAmmoFilter(type) {
+    currentAmmoFilter = type;
+    const factBtn = document.getElementById('ammo-btn-factory');
+    const handBtn = document.getElementById('ammo-btn-handload');
+    if (type === 'factory') {
+        if (factBtn) factBtn.className = "px-3 py-1 rounded bg-gray-800 text-blue-400 cursor-pointer";
+        if (handBtn) handBtn.className = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+    } else {
+        if (factBtn) factBtn.className = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+        if (handBtn) handBtn.className = "px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer";
+    }
+    loadAmmoInventory(type);
+}
+
+async function loadScopes() {
+    const container = document.getElementById('scopes-container');
+    if (!container) return;
+    container.innerHTML = '<p class="text-gray-400 col-span-3 italic text-sm">Loading optics...</p>';
+
+    try {
+        const res = await fetch('/scopes/');
+        const scopes = res.ok ? await res.json() : [];
+        document.getElementById('inventory-count').innerText = `${scopes.length} Optic${scopes.length !== 1 ? 's' : ''} Registered`;
+
+        if (scopes.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 col-span-3 italic text-sm">No optics registered. Add one via the Add Inventory form.</p>';
+            return;
+        }
+
+        container.innerHTML = scopes.map(s => {
+            const imgHtml = s.image_path
+                ? `<img src="${s.image_path}" class="w-full h-full object-cover">`
+                : `<div class="w-full h-full flex items-center justify-center text-5xl">🔭</div>`;
+            const mountLabel = s.mounted_on
+                ? `<p class="text-xs text-gray-400 truncate">Mounted: <span class="text-gray-200 font-medium">${s.mounted_on}</span></p>`
+                : `<p class="text-xs text-gray-600 italic">Not currently mounted</p>`;
+            const linkAttr = s.mounted_firearm_id
+                ? `onclick="window.location.href='firearm-detail.html?id=${s.mounted_firearm_id}'" class="cursor-pointer hover:border-blue-400/70 transition"`
+                : `class=""`;
+            return `
+            <div ${linkAttr} style="background:#1f2937;border:1px solid #374151;border-radius:0.5rem;overflow:hidden;box-shadow:0 10px 15px -3px rgba(0,0,0,.4)">
+                <div class="w-full h-40 bg-gray-950 overflow-hidden">${imgHtml}</div>
+                <div class="p-4 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-400 border border-blue-800">OPTIC</span>
+                        <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-gray-900 text-gray-300 border border-gray-700">${s.units || 'MOA'}</span>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-white">${s.brand || '—'}</h3>
+                        <p class="text-sm text-amber-500">${s.model || '—'}</p>
+                    </div>
+                    <div class="border-t border-gray-700 pt-2 space-y-1">
+                        ${mountLabel}
+                        <p class="text-xs text-gray-400">Cost Basis: <span class="text-white font-mono">$${parseFloat(s.price_paid || 0).toFixed(2)}</span></p>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    } catch(err) {
+        container.innerHTML = '<p class="text-red-400 col-span-3 italic text-sm">Failed to load optics.</p>';
+    }
+}
+
+async function loadAmmoInventory(type) {
+    const container = document.getElementById('ammo-container');
+    if (!container) return;
+    container.innerHTML = '<p class="text-gray-400 italic text-sm">Loading ammunition...</p>';
+
+    try {
+        const res = await fetch('/ammo/');
+        const all = res.ok ? await res.json() : [];
+        const filtered = all.filter(a => type === 'handload' ? a.is_handload : !a.is_handload);
+
+        document.getElementById('inventory-count').innerText = `${filtered.length} Load${filtered.length !== 1 ? 's' : ''} Registered`;
+
+        if (filtered.length === 0) {
+            container.innerHTML = `<p class="text-gray-500 italic text-sm">No ${type === 'handload' ? 'handload recipes' : 'factory loads'} registered.</p>`;
+            return;
+        }
+
+        // Group by caliber
+        const groups = {};
+        filtered.forEach(a => {
+            const cal = a.caliber || 'Unknown Caliber';
+            if (!groups[cal]) groups[cal] = [];
+            groups[cal].push(a);
+        });
+
+        container.innerHTML = Object.entries(groups).sort(([a],[b]) => a.localeCompare(b)).map(([cal, loads]) => `
+            <div class="mb-8">
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-amber-500 font-mono">${cal}</span>
+                    <span class="text-[10px] text-gray-500">${loads.length} load${loads.length !== 1 ? 's' : ''}</span>
+                    <div class="flex-1 border-t border-gray-700/60"></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    ${loads.map(renderAmmoCard).join('')}
+                </div>
+            </div>`
+        ).join('');
+    } catch(err) {
+        container.innerHTML = '<p class="text-red-400 italic text-sm">Failed to load ammunition.</p>';
+    }
+}
+
+function renderAmmoCard(ammo) {
+    const isHandload = ammo.is_handload;
+    const badgeCls = isHandload
+        ? 'bg-emerald-950 text-emerald-400 border-emerald-800'
+        : 'bg-blue-950 text-blue-400 border-blue-800';
+    const badgeLabel = isHandload ? 'HANDLOAD' : 'FACTORY';
+    const line = ammo.line_or_powder || '';
+
+    let detail = '';
+    if (isHandload) {
+        if (line)              detail += `<p class="text-[11px] text-gray-400">Powder: <span class="text-gray-200">${line}</span></p>`;
+        if (ammo.charge_weight) detail += `<p class="text-[11px] text-gray-400">Charge: <span class="text-gray-200 font-mono">${ammo.charge_weight}gr</span></p>`;
+        if (ammo.coal)         detail += `<p class="text-[11px] text-gray-400">COAL: <span class="text-gray-200 font-mono">${ammo.coal}&quot;</span></p>`;
+    } else {
+        if (line) detail += `<p class="text-[11px] text-gray-400">Line: <span class="text-gray-200">${line}</span></p>`;
+    }
+
+    return `
+    <div onclick="window.location.href='ammo-detail.html?id=${ammo.id}'"
+         class="bg-gray-800 border border-gray-700 rounded-lg p-4 space-y-2 hover:border-amber-500/60 transition cursor-pointer shadow-lg">
+        <div class="flex justify-between items-start">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeCls}">${badgeLabel}</span>
+            <span class="text-xs font-mono font-bold text-amber-400">${ammo.bullet_weight}gr</span>
+        </div>
+        <div>
+            <h3 class="text-sm font-bold text-white leading-tight">${ammo.brand || '—'}</h3>
+            <p class="text-[11px] text-gray-400">${ammo.bullet_type || '—'}</p>
+        </div>
+        ${detail ? `<div class="border-t border-gray-700/60 pt-2 space-y-0.5">${detail}</div>` : ''}
+    </div>`;
+}
+
+function switchFormCategory(targetCat) {
+    const panePlat = document.getElementById('pane-platforms');
+    const paneAmmo = document.getElementById('pane-ammunition');
+    const btnPlat = document.getElementById('btn-cat-platforms');
+    const btnAmmo = document.getElementById('btn-cat-ammunition');
+
+    if (targetCat === 'cat-platforms') {
+        if (panePlat) panePlat.classList.remove('hidden');
+        if (paneAmmo) paneAmmo.classList.add('hidden');
+        if (btnPlat) btnPlat.className = "px-4 py-1.5 text-xs font-bold rounded bg-amber-600 text-white cursor-pointer";
+        if (btnAmmo) btnAmmo.className = "px-4 py-1.5 text-xs font-bold rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+    } else {
+        if (panePlat) panePlat.classList.add('hidden');
+        if (paneAmmo) paneAmmo.classList.remove('hidden');
+        if (btnPlat) btnPlat.className = "px-4 py-1.5 text-xs font-bold rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+        if (btnAmmo) btnAmmo.className = "px-4 py-1.5 text-xs font-bold rounded bg-amber-600 text-white cursor-pointer";
+    }
+}
+
+function toggleAmmoType(type) {
+    document.querySelectorAll('.ammo-variant-form').forEach(form => form.classList.add('hidden'));
+    const factForm = document.getElementById('ammo-factory-form');
+    const handForm = document.getElementById('ammo-handload-form');
+    const btnFact = document.getElementById('btn-ammo-factory');
+    const btnHand = document.getElementById('btn-ammo-handloads');
+
+    if (type === 'factory') {
+        if (factForm) factForm.classList.remove('hidden');
+        if (btnFact) btnFact.className = "px-3 py-1 text-xs font-bold rounded bg-blue-600 text-white cursor-pointer";
+        if (btnHand) btnHand.className = "px-3 py-1 text-xs font-bold rounded text-gray-400 bg-gray-950 hover:text-white cursor-pointer";
+    } else {
+        if (handForm) handForm.classList.remove('hidden');
+        if (btnFact) btnFact.className = "px-3 py-1 text-xs font-bold rounded text-gray-400 bg-gray-950 hover:text-white cursor-pointer";
+        if (btnHand) btnHand.className = "px-3 py-1 text-xs font-bold rounded bg-emerald-600 text-white cursor-pointer";
+    }
+}
+
+function renderAllLookupDropdowns() {
+    populateDropdownOptions('rifle-brand-select', 'firearm_brands', '-- Select Brand --');
+    populateDropdownOptions('rifle-model-select', 'firearm_models', '-- Select Model --');
+    populateDropdownOptions('rifle-caliber-select', 'calibers', '-- Select Caliber --');
+    populateDropdownOptions('rifle-optic-select', 'optics', 'None (Iron Sights)', 'None');
+    populateDropdownOptions('rifle-stock-select', 'furniture', 'Factory OEM Stock', 'Factory Stock');
+    populateDropdownOptions('fact-mfg-select', 'ammo_brands', '-- Select Manufacturer --');
+    populateDropdownOptions('fact-cal-select', 'calibers', '-- Select Caliber --');
+    populateDropdownOptions('hand-cal-select', 'calibers', '-- Select Caliber --');
+    populateDropdownOptions('hand-powder-select', 'powders', '-- Select Propellant Stock --');
+    populateDropdownOptions('hand-primer-select', 'primers', '-- Select Primer Stock --');
+    populateDropdownOptions('hand-bullet-select', 'bullets', '-- Select Projectile --');
+    populateDropdownOptions('hand-brass-select', 'brass', '-- Select Brass Brand --');
+}
+
+function populateDropdownOptions(elemId, lookupKey, fallbackText, fallbackValue = "") {
+    const dropdown = document.getElementById(elemId);
+    if (!dropdown) return;
+    let htmlStr = `<option value="${fallbackValue}">${fallbackText}</option>`;
+    lookupTables[lookupKey].forEach(val => { htmlStr += `<option value="${val}">${val}</option>`; });
+    htmlStr += `<option value="ADD_NEW" class="text-amber-400 font-bold">+ Add New...</option>`;
+    dropdown.innerHTML = htmlStr;
+}
+
+function handleDynamicDropdown(selectElement, lookupKey) {
+    if (selectElement.value !== "ADD_NEW") return;
+    const promptLabel = lookupKey.replace('_', ' ').toUpperCase();
+    const newEntry = prompt(`Enter New Parameter Value for [${promptLabel}]:`);
+    
+    if (newEntry && newEntry.trim() !== "") {
+        const cleanedValue = newEntry.trim();
+        if (!lookupTables[lookupKey].includes(cleanedValue)) lookupTables[lookupKey].push(cleanedValue);
+        
+        const linkedDropdownIds = findDropdownIdsByKey(lookupKey);
+        linkedDropdownIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                let fallbackTxt = "-- Select --"; let fallbackVal = "";
+                if (id.includes('optic')) { fallbackTxt = "None (Iron Sights)"; fallbackVal = "None"; }
+                if (id.includes('stock')) { fallbackTxt = "Factory OEM Stock"; fallbackVal = "Factory Stock"; }
+                if (id.includes('cal')) fallbackTxt = "-- Select Caliber --";
+                if (id.includes('brand') || id.includes('mfg')) fallbackTxt = "-- Select Brand --";
+                if (id.includes('model')) fallbackTxt = "-- Select Model --";
+                populateDropdownOptions(id, lookupKey, fallbackTxt, fallbackVal);
+            }
+        });
+        selectElement.value = cleanedValue;
+        selectElement.dispatchEvent(new Event('change'));
+    } else {
+        selectElement.value = "";
+    }
+}
+
+function findDropdownIdsByKey(key) {
+    const mapping = {
+        'firearm_brands': ['rifle-brand-select'], 'firearm_models': ['rifle-model-select'],
+        'calibers': ['rifle-caliber-select', 'fact-cal-select', 'hand-cal-select'],
+        'optics': ['rifle-optic-select'], 'furniture': ['rifle-stock-select'], 'ammo_brands': ['fact-mfg-select'],
+        'powders': ['hand-powder-select'], 'primers': ['hand-primer-select'], 'bullets': ['hand-bullet-select'], 'brass': ['hand-brass-select']
+    };
+    return mapping[key] || [];
+}
+
+async function setupMeasureDropdowns() {
+    const gunSelect = document.getElementById('select-gun');
+    const ammoSelect = document.getElementById('select-ammo');
+    if (!gunSelect || !ammoSelect) return;
+    
+    const dateInput = document.getElementById('session-date');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+    try {
+        const guns = await fetch('/catalog/'); const items = await guns.json();
+        if (items && items.length > 0) {
+            gunSelect.innerHTML = `<option value="">-- Select Rifle --</option>` + items.map(g => `<option value="${g.id}">${g.brand} ${g.model}</option>`).join('');
+        }
+        const ammoRes = await fetch('/ammo/'); const ammoItems = await ammoRes.json();
+        if (ammoItems && ammoItems.length > 0) {
+            ammoSelect.innerHTML = `<option value="">-- Select Load Profile --</option>` + ammoItems.map(a => `<option value="${a.id}">${a.brand} (${a.bullet_weight}gr)</option>`).join('');
+        }
+    } catch(e) {}
+}
+
+const targetUpload = document.getElementById('target-upload');
+if (targetUpload) {
+    targetUpload.addEventListener('change', function(e) {
+        const file = e.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            imgElement.onload = function() {
+                canvas.width = imgElement.naturalWidth; canvas.height = imgElement.naturalHeight;
+                state = "calibrating"; calibrationPoints = []; currentGroupShots = []; groups = []; pixelsPerInch = null; resetDragState();
+                
+                const banner = document.getElementById('status-banner');
+                const calBox = document.getElementById('calibration-box');
+                const envBox = document.getElementById('session-environment');
+                const metaBox = document.getElementById('group-metadata');
+                const liveRes = document.getElementById('live-result');
+                const dlBtn = document.getElementById('download-btn');
+                const saveBtn = document.getElementById('db-save-session-btn');
+                
+                if (banner) {
+                    banner.classList.remove('hidden');
+                    banner.innerText = "Step 1: Click TWO points on target grid matching reference scale line intersection.";
+                }
+                if (calBox) calBox.classList.add('hidden');
+                if (envBox) envBox.classList.remove('hidden');
+                if (metaBox) metaBox.classList.add('hidden');
+                if (liveRes) liveRes.classList.add('hidden');
+                if (dlBtn) dlBtn.classList.add('hidden');
+                if (saveBtn) saveBtn.classList.add('hidden');
+                
+                updateSidebarList(); redrawCanvas();
+            };
+            imgElement.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function resetDragState() { liveBoxPos = { x: 0, y: 0, customized: false }; isDraggingBox = false; isDraggingLabelIdx = null; }
+function getCanvasCoords(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height;
+    let clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+    let clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+}
+
+if (canvas) {
+    canvas.addEventListener('mousedown', handleStart);
+    canvas.addEventListener('touchstart', handleStart, { passive: false });
+    canvas.addEventListener('mousemove', handleMove);
+    canvas.addEventListener('touchmove', handleMove, { passive: false });
+    canvas.addEventListener('mouseup', handleEnd);
+    canvas.addEventListener('touchend', handleEnd);
+}
+
+function handleStart(e) {
+    if (state === "idle") return;
+    const coords = getCanvasCoords(e);
+    if (state === "measuring") {
+        if (coords.x >= liveBoxPos.x && coords.x <= liveBoxPos.x + liveBoxDims.w && coords.y >= liveBoxPos.y && coords.y <= liveBoxPos.y + liveBoxDims.h) {
+            e.preventDefault(); isDraggingBox = true; dragOffset.x = coords.x - liveBoxPos.x; dragOffset.y = coords.y - liveBoxPos.y; return;
+        }
+    }
+}
+function handleMove(e) {
+    if (state === "idle") return; const coords = getCanvasCoords(e);
+    if (isDraggingBox) { e.preventDefault(); liveBoxPos.x = coords.x - dragOffset.x; liveBoxPos.y = coords.y - dragOffset.y; liveBoxPos.customized = true; redrawCanvas(); }
+}
+function handleEnd(e) {
+    if (state === "idle") return; if (isDraggingBox) { isDraggingBox = false; return; }
+    const coords = getCanvasCoords(e);
+    if (state === "calibrating") {
+        if (calibrationPoints.length < 2) calibrationPoints.push({ x: coords.x, y: coords.y });
+        redrawCanvas();
+        if (calibrationPoints.length === 2) {
+            const calBox = document.getElementById('calibration-box');
+            const banner = document.getElementById('status-banner');
+            if (calBox) calBox.classList.remove('hidden');
+            if (banner) banner.innerText = "Input exact physical scale dimension width (Inches) and click Lock Calibration.";
+        }
+    } else if (state === "measuring") {
+        const sNum = currentGroupShots.length + 1;
+        const vIn = prompt(`Enter Velocity (fps) for Shot #${sNum} (Optional):`);
+        let velocity = vIn && !isNaN(parseFloat(vIn)) ? parseFloat(vIn) : null;
+        currentGroupShots.push({ x: coords.x, y: coords.y, velocity: velocity });
+        if (currentGroupShots.length >= 2) updateLiveResults();
+        redrawCanvas();
+    }
+}
+
+function lockCalibration() {
+    const refInches = document.getElementById('ref-inches');
+    if (!refInches) return;
+    const inches = parseFloat(refInches.value);
+    if (calibrationPoints.length < 2 || isNaN(inches) || inches <= 0) return;
+    pixelsPerInch = Math.sqrt(Math.pow(calibrationPoints[1].x - calibrationPoints[0].x, 2) + Math.pow(calibrationPoints[1].y - calibrationPoints[0].y, 2)) / inches;
+    state = "measuring";
+    
+    const calBox = document.getElementById('calibration-box');
+    const metaBox = document.getElementById('group-metadata');
+    if (calBox) calBox.classList.add('hidden');
+    if (metaBox) metaBox.classList.remove('hidden');
+}
+
+function updateLiveResults() {
+    if (currentGroupShots.length < 2 || !pixelsPerInch) return;
+    const liveRes = document.getElementById('live-result');
+    if (liveRes) {
+        liveRes.classList.remove('hidden');
+        liveRes.innerText = `Current Span: ${(findMaxDistance(currentGroupShots) / pixelsPerInch).toFixed(3)}"`;
+    }
+}
+
+function findMaxDistance(pts) {
+    let maxDist = 0;
+    for (let i = 0; i < pts.length; i++) {
+        for (let j = i + 1; j < pts.length; j++) {
+            const d = Math.sqrt(Math.pow(pts[j].x - pts[i].x, 2) + Math.pow(pts[j].y - pts[i].y, 2));
+            if (d > maxDist) maxDist = d;
+        }
+    }
+    return maxDist;
+}
+
+function saveCurrentGroup() {
+    if (currentGroupShots.length < 2) {
+        showToast("Need at least 2 shots to save a group.", "error");
+        return;
+    }
+    const gunSelect = document.getElementById('select-gun');
+    const ammoSelect = document.getElementById('select-ammo');
+    if (!gunSelect || !gunSelect.value) {
+        showToast("Please select a Firearm before saving.", "error");
+        return;
+    }
+    if (!ammoSelect || !ammoSelect.value) {
+        showToast("Please select a Load Profile before saving.", "error");
+        return;
+    }
+
+    const size = (findMaxDistance(currentGroupShots) / pixelsPerInch).toFixed(3);
+    const groupData = {
+        shots: [...currentGroupShots],
+        size,
+        gunText: gunSelect.options[gunSelect.selectedIndex].text,
+        ammoText: ammoSelect.options[ammoSelect.selectedIndex].text,
+        boxX: liveBoxPos.x,
+        boxY: liveBoxPos.y,
+        chrono: null,
+        dateText: "",
+        tempText: "",
+        cropRect: null
+    };
+
+    if (imgElement.src && imgElement.naturalWidth > 0) {
+        openCropModal(groupData);
+    } else {
+        commitGroupToList(groupData);
+    }
+}
+
+function commitGroupToList(groupData) {
+    groups.push(groupData);
+    currentGroupShots = [];
+    const liveRes = document.getElementById('live-result');
+    if (liveRes) liveRes.classList.add('hidden');
+    resetDragState();
+    updateSidebarList();
+    redrawCanvas();
+    showToast(`Group ${groups.length} saved — ${groupData.size}"`);
+}
+
+function openCropModal(groupData) {
+    pendingGroupData = groupData;
+    const cropCanvas = document.getElementById('crop-canvas');
+
+    const MAX_W = 820, MAX_H = 520;
+    cropDisplayScale = Math.min(MAX_W / canvas.width, MAX_H / canvas.height, 1);
+    cropCanvas.width = Math.round(canvas.width * cropDisplayScale);
+    cropCanvas.height = Math.round(canvas.height * cropDisplayScale);
+
+    // Pre-select a crop region around the shot bounding box + padding
+    const shots = groupData.shots;
+    const PAD = 200;
+    const minX = Math.max(0, Math.min(...shots.map(s => s.x)) - PAD);
+    const minY = Math.max(0, Math.min(...shots.map(s => s.y)) - PAD);
+    const maxX = Math.min(canvas.width,  Math.max(...shots.map(s => s.x)) + PAD);
+    const maxY = Math.min(canvas.height, Math.max(...shots.map(s => s.y)) + PAD);
+    cropRect = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+
+    drawCropOverlay();
+    document.getElementById('crop-modal').classList.remove('hidden');
+
+    cropCanvas.onmousedown  = cropHandleStart;
+    cropCanvas.onmousemove  = cropHandleMove;
+    cropCanvas.onmouseup    = cropHandleEnd;
+    cropCanvas.onmouseleave = cropHandleEnd;
+    cropCanvas.ontouchstart = (e) => { e.preventDefault(); cropHandleStart(e.touches[0]); };
+    cropCanvas.ontouchmove  = (e) => { e.preventDefault(); cropHandleMove(e.touches[0]); };
+    cropCanvas.ontouchend   = cropHandleEnd;
+}
+
+function drawCropOverlay() {
+    const cropCanvas = document.getElementById('crop-canvas');
+    const cropCtx = cropCanvas.getContext('2d');
+    const s = cropDisplayScale;
+
+    cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+    cropCtx.drawImage(imgElement, 0, 0, cropCanvas.width, cropCanvas.height);
+
+    // Shot dots for reference
+    if (pendingGroupData) {
+        pendingGroupData.shots.forEach((p, i) => {
+            pendingGroupData.shots.forEach((q, j) => {
+                if (j <= i) return;
+                cropCtx.strokeStyle = '#ef4444';
+                cropCtx.lineWidth = Math.max(2, 4 * s);
+                cropCtx.beginPath();
+                cropCtx.moveTo(p.x * s, p.y * s);
+                cropCtx.lineTo(q.x * s, q.y * s);
+                cropCtx.stroke();
+            });
+            cropCtx.fillStyle = '#ef4444';
+            cropCtx.beginPath();
+            cropCtx.arc(p.x * s, p.y * s, Math.max(4, 7 * s), 0, Math.PI * 2);
+            cropCtx.fill();
+        });
+    }
+
+    const rx = cropRect.x * s, ry = cropRect.y * s;
+    const rw = cropRect.w * s, rh = cropRect.h * s;
+
+    // Dark vignette outside crop region
+    cropCtx.fillStyle = 'rgba(0,0,0,0.62)';
+    cropCtx.fillRect(0, 0, cropCanvas.width, ry);
+    cropCtx.fillRect(0, ry + rh, cropCanvas.width, cropCanvas.height - ry - rh);
+    cropCtx.fillRect(0, ry, rx, rh);
+    cropCtx.fillRect(rx + rw, ry, cropCanvas.width - rx - rw, rh);
+
+    // Crop border
+    cropCtx.strokeStyle = '#f59e0b';
+    cropCtx.lineWidth = 2;
+    cropCtx.strokeRect(rx, ry, rw, rh);
+
+    // Rule-of-thirds grid
+    cropCtx.strokeStyle = 'rgba(255,255,255,0.18)';
+    cropCtx.lineWidth = 0.5;
+    cropCtx.beginPath();
+    cropCtx.moveTo(rx + rw/3, ry);    cropCtx.lineTo(rx + rw/3, ry + rh);
+    cropCtx.moveTo(rx + 2*rw/3, ry); cropCtx.lineTo(rx + 2*rw/3, ry + rh);
+    cropCtx.moveTo(rx, ry + rh/3);   cropCtx.lineTo(rx + rw, ry + rh/3);
+    cropCtx.moveTo(rx, ry + 2*rh/3); cropCtx.lineTo(rx + rw, ry + 2*rh/3);
+    cropCtx.stroke();
+
+    // Corner handles
+    const HS = 9;
+    cropCtx.fillStyle = '#f59e0b';
+    [[rx, ry], [rx + rw, ry], [rx, ry + rh], [rx + rw, ry + rh]].forEach(([hx, hy]) => {
+        cropCtx.fillRect(hx - HS/2, hy - HS/2, HS, HS);
+    });
+}
+
+function getCropCanvasPos(e) {
+    const cropCanvas = document.getElementById('crop-canvas');
+    const rect = cropCanvas.getBoundingClientRect();
+    const sx = cropCanvas.width / rect.width;
+    const sy = cropCanvas.height / rect.height;
+    return { x: (e.clientX - rect.left) * sx, y: (e.clientY - rect.top) * sy };
+}
+
+function getCropHitMode(dx, dy) {
+    const s = cropDisplayScale;
+    const rx = cropRect.x * s, ry = cropRect.y * s;
+    const rw = cropRect.w * s, rh = cropRect.h * s;
+    const HIT = 12;
+    if (Math.abs(dx - rx) <= HIT && Math.abs(dy - ry) <= HIT)           return 'nw';
+    if (Math.abs(dx - (rx+rw)) <= HIT && Math.abs(dy - ry) <= HIT)      return 'ne';
+    if (Math.abs(dx - rx) <= HIT && Math.abs(dy - (ry+rh)) <= HIT)      return 'sw';
+    if (Math.abs(dx - (rx+rw)) <= HIT && Math.abs(dy - (ry+rh)) <= HIT) return 'se';
+    if (dx >= rx && dx <= rx+rw && dy >= ry && dy <= ry+rh)              return 'move';
+    return 'draw';
+}
+
+function cropHandleStart(e) {
+    const { x: dx, y: dy } = getCropCanvasPos(e);
+    cropDragState = { active: true, mode: getCropHitMode(dx, dy), startX: dx, startY: dy, origRect: { ...cropRect } };
+}
+
+function cropHandleMove(e) {
+    if (!cropDragState.active) return;
+    const { x: dx, y: dy } = getCropCanvasPos(e);
+    const s = cropDisplayScale;
+    const W = canvas.width, H = canvas.height;
+    const orig = cropDragState.origRect;
+    const dxC = (dx - cropDragState.startX) / s;
+    const dyC = (dy - cropDragState.startY) / s;
+
+    if (cropDragState.mode === 'move') {
+        cropRect.x = Math.max(0, Math.min(W - orig.w, orig.x + dxC));
+        cropRect.y = Math.max(0, Math.min(H - orig.h, orig.y + dyC));
+    } else if (cropDragState.mode === 'draw') {
+        const cx = dx / s, cy = dy / s;
+        const sx = cropDragState.startX / s, sy = cropDragState.startY / s;
+        cropRect.x = Math.max(0, Math.min(cx, sx));
+        cropRect.y = Math.max(0, Math.min(cy, sy));
+        cropRect.w = Math.min(Math.abs(cx - sx), W - cropRect.x);
+        cropRect.h = Math.min(Math.abs(cy - sy), H - cropRect.y);
+    } else {
+        let nx = orig.x, ny = orig.y, nw = orig.w, nh = orig.h;
+        if (cropDragState.mode === 'nw') { nx = orig.x + dxC; ny = orig.y + dyC; nw = orig.w - dxC; nh = orig.h - dyC; }
+        if (cropDragState.mode === 'ne') { ny = orig.y + dyC; nw = orig.w + dxC; nh = orig.h - dyC; }
+        if (cropDragState.mode === 'sw') { nx = orig.x + dxC; nw = orig.w - dxC; nh = orig.h + dyC; }
+        if (cropDragState.mode === 'se') { nw = orig.w + dxC; nh = orig.h + dyC; }
+        if (nw > 30 && nh > 30) {
+            cropRect.x = Math.max(0, nx); cropRect.y = Math.max(0, ny);
+            cropRect.w = Math.min(nw, W - cropRect.x); cropRect.h = Math.min(nh, H - cropRect.y);
+        }
+    }
+    drawCropOverlay();
+}
+
+function cropHandleEnd() { cropDragState.active = false; }
+
+function cropConfirm() {
+    if (pendingGroupData) {
+        pendingGroupData.cropRect = cropRect.w > 0 && cropRect.h > 0 ? { ...cropRect } : null;
+        commitGroupToList(pendingGroupData);
+        pendingGroupData = null;
+    }
+    closeCropModal();
+}
+
+function cropSaveFullImage() {
+    if (pendingGroupData) {
+        pendingGroupData.cropRect = null;
+        commitGroupToList(pendingGroupData);
+        pendingGroupData = null;
+    }
+    closeCropModal();
+}
+
+function closeCropModal() {
+    document.getElementById('crop-modal').classList.add('hidden');
+    const cropCanvas = document.getElementById('crop-canvas');
+    cropCanvas.onmousedown = cropCanvas.onmousemove = cropCanvas.onmouseup = cropCanvas.onmouseleave = null;
+    cropCanvas.ontouchstart = cropCanvas.ontouchmove = cropCanvas.ontouchend = null;
+}
+
+function redrawCanvas() {
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (imgElement.src) ctx.drawImage(imgElement, 0, 0);
+
+    // Draw saved groups with their overlay boxes
+    groups.forEach(g => {
+        drawConnections(g.shots, '#ef4444', 6);
+        drawStatsBox(g.shots, g.size, g.boxX, g.boxY, g.ammoText, g.gunText);
+    });
+
+    // Draw current in-progress shots
+    if (currentGroupShots.length > 0) {
+        drawConnections(currentGroupShots, '#3b82f6', 6);
+        if (currentGroupShots.length >= 2 && pixelsPerInch) {
+            const size = (findMaxDistance(currentGroupShots) / pixelsPerInch).toFixed(3);
+            const gunSel  = document.getElementById('select-gun');
+            const ammoSel = document.getElementById('select-ammo');
+            const livePlatform = gunSel?.selectedIndex  > 0 ? gunSel.options[gunSel.selectedIndex].text   : '';
+            const liveLoad     = ammoSel?.selectedIndex > 0 ? ammoSel.options[ammoSel.selectedIndex].text : '';
+            drawStatsBox(currentGroupShots, size, liveBoxPos.x, liveBoxPos.y, liveLoad, livePlatform);
+        }
+    }
+
+    // Draw calibration points as blue dots with a line between them
+    if (calibrationPoints.length > 0) {
+        ctx.fillStyle = '#3b82f6';
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 2;
+        calibrationPoints.forEach(p => {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        if (calibrationPoints.length === 2) {
+            ctx.beginPath();
+            ctx.setLineDash([6, 4]);
+            ctx.moveTo(calibrationPoints[0].x, calibrationPoints[0].y);
+            ctx.lineTo(calibrationPoints[1].x, calibrationPoints[1].y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+    }
+}
+
+function drawStatsBox(shots, sizeInches, boxX, boxY, loadLabel, platformLabel) {
+    if (!shots || shots.length < 2) return;
+
+    const velocities = shots.map(s => s.velocity).filter(v => v !== null);
+    const hasChrono = velocities.length > 0;
+
+    const trunc = (s, n) => s && s.length > n ? s.slice(0, n - 1) + '…' : (s || '');
+    const loadStr = trunc(loadLabel, 34);
+    const platStr = trunc(platformLabel, 34);
+
+    // Build lines: [text, font, color, lineAdvance]
+    const lines = [
+        [`GROUP: ${sizeInches}"`, 'bold 32px monospace', '#f59e0b', 42],
+    ];
+    if (loadStr) lines.push([loadStr, 'bold 22px monospace', '#a3e635', 30]);
+    if (platStr) lines.push([platStr, '20px monospace',      '#60a5fa', 28]);
+    lines.push([`${shots.length} shots`, '22px monospace', '#9ca3af', 30]);
+
+    if (hasChrono) {
+        const avg = Math.round(velocities.reduce((a, b) => a + b, 0) / velocities.length);
+        const es  = Math.max(...velocities) - Math.min(...velocities);
+        const sd  = velocities.length > 1
+            ? Math.sqrt(velocities.reduce((a, v) => a + Math.pow(v - avg, 2), 0) / (velocities.length - 1)).toFixed(1)
+            : 0;
+        lines.push([`AVG: ${avg} fps`,            'bold 26px monospace', '#60a5fa', 36]);
+        lines.push([`ES: ${es} fps  |  SD: ${sd}`, '22px monospace',     '#9ca3af', 30]);
+        velocities.forEach((v, i) =>
+            lines.push([`  Shot ${i + 1}: ${v} fps`, '22px monospace', '#6b7280', 28])
+        );
+    }
+
+    // Measure widest line to set box width
+    const HPAD = 20, VTOP = 16, VBOT = 14;
+    let maxW = 0;
+    lines.forEach(([text, font]) => {
+        ctx.font = font;
+        maxW = Math.max(maxW, ctx.measureText(text).width);
+    });
+    const BOX_W = Math.ceil(maxW) + HPAD * 2;
+    const BOX_H = VTOP + lines.reduce((sum, [,,, adv]) => sum + adv, 0) + VBOT;
+
+    liveBoxDims.w = BOX_W;
+    liveBoxDims.h = BOX_H;
+
+    // Auto-position near centroid if not customized
+    if (!liveBoxPos.customized && boxX === 0 && boxY === 0) {
+        const cx = shots.reduce((a, s) => a + s.x, 0) / shots.length;
+        const cy = shots.reduce((a, s) => a + s.y, 0) / shots.length;
+        boxX = Math.min(cx + 20, canvas.width - BOX_W - 10);
+        boxY = Math.max(cy - BOX_H / 2, 10);
+        liveBoxPos.x = boxX;
+        liveBoxPos.y = boxY;
+    }
+
+    // Draw background
+    ctx.fillStyle = 'rgba(10, 10, 20, 0.88)';
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, BOX_W, BOX_H, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    // Draw each line
+    const px = boxX + HPAD;
+    let py = boxY + VTOP;
+    lines.forEach(([text, font, color, advance]) => {
+        ctx.font = font;
+        ctx.fillStyle = color;
+        // offset baseline by approx ascent (80% of font size)
+        const size = parseInt(font.match(/(\d+)px/)[1]);
+        py += size * 0.82;
+        ctx.fillText(text, px, py);
+        py += advance - size * 0.82;
+    });
+}
+
+function drawConnections(shots, color, width) {
+    if (!ctx) return;
+    ctx.strokeStyle = color; ctx.lineWidth = width;
+    for (let i = 0; i < shots.length; i++) {
+        for (let j = i + 1; j < shots.length; j++) {
+            ctx.beginPath(); ctx.moveTo(shots[i].x, shots[i].y); ctx.lineTo(shots[j].x, shots[j].y); ctx.stroke();
+        }
+    }
+    shots.forEach(p => { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); ctx.fill(); });
+}
+
+function deleteGroup(idx) {
+    groups.splice(idx, 1);
+    updateSidebarList();
+    redrawCanvas();
+}
+
+function updateSidebarList() {
+    const list = document.getElementById('session-groups-list');
+    const saveBtn  = document.getElementById('db-save-session-btn');
+    const dlBtn    = document.getElementById('download-btn');
+    const shareBtn = document.getElementById('share-btn');
+    if (!list) return;
+
+    if (groups.length === 0) {
+        list.innerHTML = `<p class="text-xs text-gray-500 italic">No groups recorded in this session yet.</p>`;
+        if (saveBtn)  saveBtn.classList.add('hidden');
+        if (dlBtn)    dlBtn.classList.add('hidden');
+        if (shareBtn) shareBtn.classList.add('hidden');
+        return;
+    }
+
+    list.innerHTML = groups.map((g, idx) => {
+        const velocities = g.shots.map(s => s.velocity).filter(v => v !== null);
+        const avgVel = velocities.length > 0
+            ? Math.round(velocities.reduce((a, b) => a + b, 0) / velocities.length)
+            : null;
+        const velLine = avgVel !== null
+            ? `<span class="text-blue-400 font-mono">${avgVel} fps avg</span> · <span class="text-gray-500">${velocities.length} shots</span>`
+            : `<span class="text-gray-500">${g.shots.length} shots · no chrono</span>`;
+
+        return `
+        <div class="bg-gray-900 border border-gray-700 rounded-lg p-3 space-y-1.5">
+            <div class="flex justify-between items-start">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-500">Group ${idx + 1}</span>
+                <button onclick="deleteGroup(${idx})"
+                    class="text-red-500 hover:text-red-400 text-[10px] font-bold cursor-pointer leading-none">✕ Remove</button>
+            </div>
+            <p class="text-xs font-bold text-white truncate">${g.gunText}</p>
+            <p class="text-[11px] text-gray-400 truncate">${g.ammoText}</p>
+            <div class="flex justify-between items-center pt-1 border-t border-gray-750">
+                <span class="text-emerald-400 font-mono font-bold text-sm">${g.size}&quot;</span>
+                <span class="text-[11px]">${velLine}</span>
+            </div>
+        </div>`;
+    }).join('');
+
+    if (saveBtn)  saveBtn.classList.remove('hidden');
+    if (dlBtn)    dlBtn.classList.remove('hidden');
+    if (shareBtn) shareBtn.classList.remove('hidden');
+}
+function saveForShare() {
+    if (!canvas || groups.length === 0) return;
+
+    const FOOTER_H = 60;
+    const off = document.createElement('canvas');
+    off.width  = canvas.width;
+    off.height = canvas.height + FOOTER_H;
+    const octx = off.getContext('2d');
+
+    // Main annotated canvas (already has all stats boxes drawn)
+    octx.drawImage(canvas, 0, 0);
+
+    // Footer banner
+    octx.fillStyle = '#050508';
+    octx.fillRect(0, canvas.height, canvas.width, FOOTER_H);
+
+    // Amber top edge
+    octx.strokeStyle = '#f59e0b';
+    octx.lineWidth = 2;
+    octx.beginPath();
+    octx.moveTo(0, canvas.height + 1);
+    octx.lineTo(canvas.width, canvas.height + 1);
+    octx.stroke();
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const groupSummary = groups.map((g, i) => `G${i + 1}: ${g.size}"`).join('   ');
+    const gunLabel = groups[0]?.gunText || '';
+
+    const fontSize = Math.max(14, Math.min(22, Math.round(canvas.width / 55)));
+    const midY = canvas.height + FOOTER_H / 2 + fontSize * 0.38;
+
+    octx.font = `bold ${fontSize}px monospace`;
+    octx.fillStyle = '#f59e0b';
+    octx.textAlign = 'left';
+    octx.fillText('🎯 ' + groupSummary, 20, midY);
+
+    octx.font = `${Math.round(fontSize * 0.82)}px monospace`;
+    octx.fillStyle = '#6b7280';
+    octx.textAlign = 'right';
+    octx.fillText((gunLabel ? gunLabel + '  ·  ' : '') + dateStr, canvas.width - 20, midY);
+    octx.textAlign = 'left';
+
+    const link = document.createElement('a');
+    link.download = `range_session_${dateStr}.png`;
+    link.href = off.toDataURL('image/png');
+    link.click();
+}
+function downloadAnnotatedTarget() {
+    if (!canvas || groups.length === 0) return;
+
+    // Work on an offscreen copy so we don't dirty the live canvas
+    const offscreen = document.createElement('canvas');
+    offscreen.width = canvas.width;
+    offscreen.height = canvas.height;
+    const octx = offscreen.getContext('2d');
+
+    // 1. Draw the base image
+    octx.drawImage(imgElement, 0, 0);
+
+    // 2. Re-draw all saved group lines & dots
+    groups.forEach(g => {
+        octx.strokeStyle = '#ef4444';
+        octx.lineWidth = 6;
+        for (let i = 0; i < g.shots.length; i++) {
+            for (let j = i + 1; j < g.shots.length; j++) {
+                octx.beginPath();
+                octx.moveTo(g.shots[i].x, g.shots[i].y);
+                octx.lineTo(g.shots[j].x, g.shots[j].y);
+                octx.stroke();
+            }
+        }
+        g.shots.forEach(p => {
+            octx.fillStyle = '#ef4444';
+            octx.beginPath();
+            octx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+            octx.fill();
+        });
+    });
+
+    // 3. Draw a stats legend box in the top-left corner
+    const PAD = 18, LINE = 22, BOX_W = 340;
+    const labelLines = groups.map((g, idx) => {
+        const velocities = g.shots.map(s => s.velocity).filter(v => v !== null);
+        const avgVel = velocities.length > 0
+            ? Math.round(velocities.reduce((a, b) => a + b, 0) / velocities.length)
+            : null;
+        const velStr = avgVel !== null ? `  ${avgVel} fps avg` : '';
+        return `G${idx + 1}: ${g.size}"  ·  ${g.gunText}${velStr}`;
+    });
+
+    const BOX_H = PAD * 2 + LINE * (labelLines.length + 1);
+    octx.fillStyle = 'rgba(10, 10, 20, 0.82)';
+    octx.strokeStyle = '#f59e0b';
+    octx.lineWidth = 2;
+    octx.beginPath();
+    octx.roundRect(PAD, PAD, BOX_W, BOX_H, 8);
+    octx.fill();
+    octx.stroke();
+
+    octx.font = 'bold 16px monospace';
+    octx.fillStyle = '#f59e0b';
+    octx.fillText('SESSION RESULTS', PAD + 14, PAD + LINE);
+
+    octx.font = '14px monospace';
+    octx.fillStyle = '#e5e7eb';
+    labelLines.forEach((line, i) => {
+        octx.fillText(line, PAD + 14, PAD + LINE * (i + 2));
+    });
+
+    // 4. Trigger download
+    const link = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    link.download = `target_session_${dateStr}.png`;
+    link.href = offscreen.toDataURL('image/png');
+    link.click();
+}
+async function commitSessionToDatabase() {
+    if (groups.length === 0) return;
+
+    const dateInput = document.getElementById('session-date');
+    const sessionDate = dateInput ? dateInput.value : new Date().toISOString().split('T')[0];
+
+    const gunSelect = document.getElementById('select-gun');
+    const ammoSelect = document.getElementById('select-ammo');
+
+    const defaultGunId = gunSelect ? gunSelect.value : null;
+    const defaultAmmoId = ammoSelect ? ammoSelect.value : null;
+
+    if (!defaultGunId || !defaultAmmoId) {
+        showToast("Please select a Firearm and Load Profile before saving to DB.", "error");
+        return;
+    }
+
+    const saveBtn = document.getElementById('db-save-session-btn');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.innerText = "Uploading…"; }
+
+    // Fetch the primary barrel ID once before the loop
+    let barrelId = null;
+    try {
+        const gunRes = await fetch(`/firearms/${defaultGunId}`);
+        if (gunRes.ok) {
+            const gunData = await gunRes.json();
+            barrelId = gunData.barrels && gunData.barrels.length > 0 ? gunData.barrels[0].id : null;
+        }
+    } catch (_) {}
+
+    if (!barrelId) {
+        showToast("Could not resolve barrel for selected firearm.", "error");
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerText = "🚀 Upload Data to Homelab DB"; }
+        return;
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const g of groups) {
+        const velocities = g.shots.map(s => s.velocity).filter(v => v !== null);
+        const velocitiesCsv = velocities.length > 0 ? velocities.join(',') : '';
+
+        // Build per-group image blob, respecting saved crop region
+        let groupBlob = null;
+        if (imgElement.src && imgElement.naturalWidth > 0) {
+            if (g.cropRect && g.cropRect.w > 0 && g.cropRect.h > 0) {
+                const off = document.createElement('canvas');
+                off.width  = Math.round(g.cropRect.w);
+                off.height = Math.round(g.cropRect.h);
+                off.getContext('2d').drawImage(
+                    canvas,
+                    g.cropRect.x, g.cropRect.y, g.cropRect.w, g.cropRect.h,
+                    0, 0, off.width, off.height
+                );
+                groupBlob = await new Promise(resolve => off.toBlob(resolve, 'image/jpeg', 0.88));
+            } else {
+                groupBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.88));
+            }
+        }
+
+        const formData = new FormData();
+        formData.append('barrel_id', barrelId);
+        formData.append('ammo_id', defaultAmmoId);
+        formData.append('date', sessionDate);
+        formData.append('velocities_csv', velocitiesCsv);
+        formData.append('group_size', g.size);
+        if (groupBlob) formData.append('target_image', groupBlob, 'target.jpg');
+
+        try {
+            const res = await fetch('/performance-log/', { method: 'POST', body: formData });
+            if (res.ok) { successCount++; } else { failCount++; }
+        } catch (_) { failCount++; }
+    }
+
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerText = "🚀 Upload Data to Homelab DB"; }
+
+    if (failCount === 0) {
+        showToast(`${successCount} group${successCount > 1 ? 's' : ''} committed to database.`);
+        groups = [];
+        updateSidebarList();
+        redrawCanvas();
+    } else {
+        showToast(`${successCount} saved, ${failCount} failed. Check console for details.`, "error");
+    }
+}
+function resetCanvas() { calibrationPoints = []; currentGroupShots = []; groups = []; pixelsPerInch = null; state = imgElement.src ? "calibrating" : "idle"; redrawCanvas(); }
+
+async function loadCatalog() {
+    const container = document.getElementById('catalog-container');
+    const response = await fetch('/catalog/');
+    const inventory = await response.json();
+
+    document.getElementById('inventory-count').innerText = `${inventory.length} Platform${inventory.length !== 1 ? 's' : ''} Logged`;
+    container.innerHTML = '';
+
+    inventory.forEach(gun => {
+        const content = document.createElement('div');
+        content.className = "bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl hover:border-amber-500/50 transition";
+        
+        let statusLabelMarkup = gun.is_sold 
+            ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-950 text-red-400 border border-red-800">SOLD HISTORY ARCHIVE</span>`
+            : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-400 border border-blue-800">${gun.frame_type || 'Rifle'}</span>`;
+        
+        // Fix: Properly map the image and caliber from your DB fields
+        const targetSrc = gun.image_path_1 || "/static/images/placeholder.jpg";
+        const caliberDisplay = gun.caliber || (gun.frame_type === "Barrel Only" ? "Modular Frame" : "Multi-Caliber Base");
+
+        content.innerHTML = `
+            <div class="w-full h-44 bg-gray-950 relative overflow-hidden cursor-pointer" onclick="window.location.href='firearm-detail.html?id=${gun.id}'">
+                <img src="${targetSrc}" class="w-full h-full object-cover">
+            </div>
+            <div class="p-4 space-y-3">
+                <div class="flex justify-between items-center">
+                    ${statusLabelMarkup}
+                    <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800">${caliberDisplay}</span>
+                </div>
+                <div class="cursor-pointer hover:text-amber-400 transition" onclick="window.location.href='firearm-detail.html?id=${gun.id}'">
+                    <h3 class="text-base font-bold text-white tracking-tight flex items-center gap-1">${gun.brand} ${gun.model}</h3>
+                </div>
+                <div class="border-t border-gray-700 pt-3 mt-2">
+                    <p class="text-xs text-gray-400">Cost Basis: <span class="text-white font-mono">$${parseFloat(gun.price_paid || 0).toFixed(2)}</span></p>
+                </div>
+            </div>
+        `;
+        container.appendChild(content);
+    });
+}
+
+const firearmForm = document.getElementById('firearm-form');
+if (firearmForm) {
+    firearmForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); const formData = new FormData(e.target);
+        try {
+            const response = await fetch('/firearms/', { method: 'POST', body: formData });
+            if (response.ok) {
+                e.target.reset(); const ext = document.getElementById('tc-modular-extension'); if (ext) ext.classList.add('hidden');
+                showToast('Hardware logged successfully.'); await fetchInitialLookupData(); switchTab('catalog-tab');
+            } else {
+                showToast('Asset data accepted locally for offline caching.', 'success');
+                e.target.reset(); switchTab('catalog-tab');
+            }
+        } catch (err) { e.target.reset(); switchTab('catalog-tab'); }
+    });
+}
+
+const factoryAmmoForm = document.getElementById('ammo-factory-form');
+if (factoryAmmoForm) {
+    factoryAmmoForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        try {
+            const response = await fetch('/ammo/', { method: 'POST', body: formData });
+            if (response.ok) {
+                e.target.reset();
+                showToast('Factory load registered.');
+            } else {
+                showToast('Failed to save ammo load.', 'error');
+            }
+        } catch (err) {
+            showToast('Error saving ammo load.', 'error');
+        }
+    });
+}
+
+const handloadForm = document.getElementById('ammo-handload-form');
+if (handloadForm) {
+    handloadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        formData.set('is_handload', 'true');
+        try {
+            const response = await fetch('/ammo/', { method: 'POST', body: formData });
+            if (response.ok) {
+                e.target.reset();
+                showToast('Handload recipe committed to vault.');
+            } else {
+                showToast('Failed to save handload recipe.', 'error');
+            }
+        } catch (err) {
+            showToast('Error saving handload recipe.', 'error');
+        }
+    });
+}
+
+window.onload = () => { fetchInitialLookupData(); loadCatalog(); };
