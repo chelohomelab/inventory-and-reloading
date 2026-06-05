@@ -91,6 +91,40 @@ class Barrel(Base):
     accessories = relationship("Accessory", foreign_keys=[Accessory.barrel_id])
     shot_strings = relationship("ShotString", back_populates="barrel")
 
+# --- RELOADING COMPONENT INVENTORY ---
+
+class PowderInventory(Base):
+    __tablename__ = "powder_inventory"
+    id = Column(Integer, primary_key=True, index=True)
+    brand = Column(String)
+    name = Column(String)               # e.g., "H4350", "Varget"
+    weight_lbs = Column(Float, default=0.0)  # pounds on hand
+    price_paid = Column(Float, default=0.0)
+    notes = Column(String, nullable=True)
+
+class PrimerInventory(Base):
+    __tablename__ = "primer_inventory"
+    id = Column(Integer, primary_key=True, index=True)
+    brand = Column(String)
+    primer_type = Column(String)        # "Large Rifle", "Small Rifle Magnum", etc.
+    quantity = Column(Integer, default=0)
+    price_paid = Column(Float, default=0.0)   # per 1000
+    notes = Column(String, nullable=True)
+
+class BulletInventory(Base):
+    __tablename__ = "bullet_inventory"
+    id = Column(Integer, primary_key=True, index=True)
+    brand = Column(String)
+    product_line = Column(String, nullable=True)  # "ELD-M", "MatchKing", "Hybrid"
+    caliber = Column(String)
+    weight_gr = Column(Float)
+    bullet_type = Column(String, nullable=True)   # "BTHP", "Hybrid", "FMJ"
+    bc_g1 = Column(Float, nullable=True)
+    bc_g7 = Column(Float, nullable=True)
+    quantity = Column(Integer, default=0)
+    price_paid = Column(Float, default=0.0)       # per box/unit price
+    notes = Column(String, nullable=True)
+
 # --- AMMUNITION & PERFORMANCE LOGS ---
 class Ammo(Base):
     __tablename__ = "ammo"

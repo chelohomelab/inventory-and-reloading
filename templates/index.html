@@ -51,6 +51,7 @@
                         <button id="inv-btn-platforms" onclick="switchInventoryTab('platforms')" class="px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer">🔫 Platforms</button>
                         <button id="inv-btn-optics" onclick="switchInventoryTab('optics')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔭 Optics</button>
                         <button id="inv-btn-ammo" onclick="switchInventoryTab('ammo')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🧪 Ammunition</button>
+                        <button id="inv-btn-components" onclick="switchInventoryTab('components')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔩 Components</button>
                     </div>
                 </div>
                 <span id="inventory-count" class="text-xs bg-gray-800 text-gray-400 font-mono px-2.5 py-1 rounded border border-gray-700 self-start sm:self-auto">0 Assets Logged</span>
@@ -120,6 +121,20 @@
                 </div>
                 <div id="ammo-container">
                     <p class="text-gray-400 italic">Loading ammunition...</p>
+                </div>
+            </div>
+
+            <!-- Components pane -->
+            <div id="inv-pane-components" class="hidden">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
+                        <button id="comp-btn-powders" onclick="switchComponentFilter('powders')" class="px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer">🧪 Powders</button>
+                        <button id="comp-btn-primers" onclick="switchComponentFilter('primers')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔥 Primers</button>
+                        <button id="comp-btn-bullets" onclick="switchComponentFilter('bullets')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🎯 Bullets</button>
+                    </div>
+                </div>
+                <div id="components-container">
+                    <p class="text-gray-400 italic">Loading components...</p>
                 </div>
             </div>
         </section>
@@ -219,7 +234,8 @@
                 <h2 class="text-2xl font-bold">Add Inventory Vault Registration</h2>
                 <div class="flex flex-wrap gap-1 bg-gray-950 p-1 rounded-md border border-gray-800">
                     <button onclick="switchFormCategory('cat-platforms')" id="btn-cat-platforms" class="px-4 py-1.5 text-xs font-bold rounded bg-amber-600 text-white cursor-pointer">Rifles & Optics</button>
-                    <button onclick="switchFormCategory('cat-ammunition')" id="btn-cat-ammunition" class="px-4 py-1.5 text-xs font-bold rounded text-gray-400 hover:text-gray-200 cursor-pointer">Ammunition & Components</button>
+                    <button onclick="switchFormCategory('cat-ammunition')" id="btn-cat-ammunition" class="px-4 py-1.5 text-xs font-bold rounded text-gray-400 hover:text-gray-200 cursor-pointer">Ammunition</button>
+                    <button onclick="switchFormCategory('cat-components')" id="btn-cat-components" class="px-4 py-1.5 text-xs font-bold rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔩 Components</button>
                 </div>
             </div>
 
@@ -546,6 +562,140 @@
                     </div>
 
                     <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded text-sm hover:bg-emerald-500 transition shadow-md cursor-pointer">Commit Recipe to Bench Vault</button>
+                </form>
+            </div>
+
+            <!-- Components pane -->
+            <div id="pane-components" class="hidden space-y-4">
+                <div class="flex flex-wrap gap-1 bg-gray-950 p-1 rounded-md border border-gray-800 w-fit">
+                    <button onclick="switchAddComponent('add-powder')" id="btn-add-powder" class="px-3 py-1.5 text-xs font-bold rounded bg-emerald-600 text-white cursor-pointer">🧪 Powder</button>
+                    <button onclick="switchAddComponent('add-primer')" id="btn-add-primer" class="px-3 py-1.5 text-xs font-bold rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔥 Primer</button>
+                    <button onclick="switchAddComponent('add-bullet-comp')" id="btn-add-bullet-comp" class="px-3 py-1.5 text-xs font-bold rounded text-gray-400 hover:text-gray-200 cursor-pointer">🎯 Bullet</button>
+                </div>
+
+                <!-- Powder form -->
+                <form id="powder-form" class="add-component-form bg-gray-800 p-6 rounded-lg border border-emerald-500/30 space-y-4 shadow-xl">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-emerald-400">🧪 Log Powder Inventory</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Brand</label>
+                            <input type="text" name="brand" placeholder="e.g., Hodgdon, Alliant, Vihtavuori" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Product Name</label>
+                            <input type="text" name="name" placeholder="e.g., H4350, Varget, N165" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Weight on Hand (lbs)</label>
+                            <input type="number" step="0.01" name="weight_lbs" placeholder="e.g., 1.0, 8.0" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Price Paid ($)</label>
+                            <input type="number" step="0.01" name="price" placeholder="e.g., 32.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Notes</label>
+                            <input type="text" name="notes" placeholder="Optional notes" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded text-sm hover:bg-emerald-500 transition shadow-md cursor-pointer">Log Powder</button>
+                </form>
+
+                <!-- Primer form -->
+                <form id="primer-form" class="add-component-form hidden bg-gray-800 p-6 rounded-lg border border-orange-500/30 space-y-4 shadow-xl">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-orange-400">🔥 Log Primer Inventory</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Brand</label>
+                            <input type="text" name="brand" placeholder="e.g., Federal, CCI, Winchester" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Primer Type</label>
+                            <select name="primer_type" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                                <option value="">-- Select Type --</option>
+                                <option>Large Rifle</option>
+                                <option>Large Rifle Magnum</option>
+                                <option>Small Rifle</option>
+                                <option>Small Rifle Magnum</option>
+                                <option>Large Pistol</option>
+                                <option>Large Pistol Magnum</option>
+                                <option>Small Pistol</option>
+                                <option>Small Pistol Magnum</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Quantity on Hand</label>
+                            <input type="number" name="quantity" placeholder="e.g., 1000" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Price per 1000 ($)</label>
+                            <input type="number" step="0.01" name="price" placeholder="e.g., 89.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Notes</label>
+                            <input type="text" name="notes" placeholder="Optional notes" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-orange-600 text-white font-bold py-2.5 rounded text-sm hover:bg-orange-500 transition shadow-md cursor-pointer">Log Primers</button>
+                </form>
+
+                <!-- Bullet component form -->
+                <form id="bullet-comp-form" class="add-component-form hidden bg-gray-800 p-6 rounded-lg border border-blue-500/30 space-y-4 shadow-xl">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-blue-400">🎯 Log Bullet Inventory</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Brand</label>
+                            <input type="text" name="brand" placeholder="e.g., Hornady, Sierra, Berger" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Product Line</label>
+                            <input type="text" name="product_line" placeholder="e.g., ELD-M, MatchKing, Hybrid" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Caliber</label>
+                            <select name="caliber" id="bullet-comp-cal-select" onchange="handleDynamicDropdown(this, 'calibers')" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                                <option value="">-- Select Caliber --</option>
+                                <option value="ADD_NEW" class="text-amber-400 font-bold">+ Add New...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Weight (grains)</label>
+                            <input type="number" step="0.1" name="weight_gr" placeholder="e.g., 140" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Bullet Type</label>
+                            <input type="text" name="bullet_type" placeholder="e.g., BTHP, Hybrid, FMJ" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Quantity on Hand</label>
+                            <input type="number" name="quantity" placeholder="e.g., 500" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">G1 BC</label>
+                            <input type="number" step="0.001" name="bc_g1" placeholder="e.g., 0.620" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">G7 BC</label>
+                            <input type="number" step="0.001" name="bc_g7" placeholder="e.g., 0.310" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Price per Box ($)</label>
+                            <input type="number" step="0.01" name="price" placeholder="e.g., 42.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Notes</label>
+                            <input type="text" name="notes" placeholder="Optional notes" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded text-sm hover:bg-blue-500 transition shadow-md cursor-pointer">Log Bullets</button>
                 </form>
             </div>
         </section>

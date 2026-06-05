@@ -608,6 +608,147 @@ def delete_ammo(ammo_id: int, db: Session = Depends(get_db)):
     return {"deleted": ammo_id}
 
 
+# ── Reloading Components ───────────────────────────────────────────────────────
+
+def _powder_dict(p: models.PowderInventory) -> dict:
+    return {"id": p.id, "brand": p.brand, "name": p.name,
+            "weight_lbs": p.weight_lbs, "price_paid": p.price_paid, "notes": p.notes}
+
+def _primer_dict(p: models.PrimerInventory) -> dict:
+    return {"id": p.id, "brand": p.brand, "primer_type": p.primer_type,
+            "quantity": p.quantity, "price_paid": p.price_paid, "notes": p.notes}
+
+def _bullet_dict(b: models.BulletInventory) -> dict:
+    return {"id": b.id, "brand": b.brand, "product_line": b.product_line,
+            "caliber": b.caliber, "weight_gr": b.weight_gr, "bullet_type": b.bullet_type,
+            "bc_g1": b.bc_g1, "bc_g7": b.bc_g7,
+            "quantity": b.quantity, "price_paid": b.price_paid, "notes": b.notes}
+
+
+@app.get("/components/powders/")
+def list_powders(db: Session = Depends(get_db)):
+    return [_powder_dict(p) for p in db.query(models.PowderInventory).all()]
+
+@app.post("/components/powders/")
+async def add_powder(
+    brand: str = Form(...), name: str = Form(...),
+    weight_lbs: float = Form(0.0), price: float = Form(0.0),
+    notes: str = Form(None), db: Session = Depends(get_db)
+):
+    p = models.PowderInventory(brand=brand, name=name, weight_lbs=weight_lbs,
+                               price_paid=price, notes=notes)
+    db.add(p); db.commit(); db.refresh(p)
+    return _powder_dict(p)
+
+class PowderPatch(BaseModel):
+    brand: Optional[str] = None
+    name: Optional[str] = None
+    weight_lbs: Optional[float] = None
+    price_paid: Optional[float] = None
+    notes: Optional[str] = None
+
+@app.patch("/components/powders/{item_id}")
+def patch_powder(item_id: int, payload: PowderPatch, db: Session = Depends(get_db)):
+    p = db.query(models.PowderInventory).filter(models.PowderInventory.id == item_id).first()
+    if not p: raise HTTPException(status_code=404, detail="Not found")
+    for k, v in payload.dict(exclude_none=True).items(): setattr(p, k, v)
+    db.commit(); db.refresh(p)
+    return _powder_dict(p)
+
+@app.delete("/components/powders/{item_id}")
+def delete_powder(item_id: int, db: Session = Depends(get_db)):
+    p = db.query(models.PowderInventory).filter(models.PowderInventory.id == item_id).first()
+    if not p: raise HTTPException(status_code=404, detail="Not found")
+    db.delete(p); db.commit()
+    return {"deleted": item_id}
+
+
+@app.get("/components/primers/")
+def list_primers(db: Session = Depends(get_db)):
+    return [_primer_dict(p) for p in db.query(models.PrimerInventory).all()]
+
+@app.post("/components/primers/")
+async def add_primer(
+    brand: str = Form(...), primer_type: str = Form(...),
+    quantity: int = Form(0), price: float = Form(0.0),
+    notes: str = Form(None), db: Session = Depends(get_db)
+):
+    p = models.PrimerInventory(brand=brand, primer_type=primer_type,
+                               quantity=quantity, price_paid=price, notes=notes)
+    db.add(p); db.commit(); db.refresh(p)
+    return _primer_dict(p)
+
+class PrimerPatch(BaseModel):
+    brand: Optional[str] = None
+    primer_type: Optional[str] = None
+    quantity: Optional[int] = None
+    price_paid: Optional[float] = None
+    notes: Optional[str] = None
+
+@app.patch("/components/primers/{item_id}")
+def patch_primer(item_id: int, payload: PrimerPatch, db: Session = Depends(get_db)):
+    p = db.query(models.PrimerInventory).filter(models.PrimerInventory.id == item_id).first()
+    if not p: raise HTTPException(status_code=404, detail="Not found")
+    for k, v in payload.dict(exclude_none=True).items(): setattr(p, k, v)
+    db.commit(); db.refresh(p)
+    return _primer_dict(p)
+
+@app.delete("/components/primers/{item_id}")
+def delete_primer(item_id: int, db: Session = Depends(get_db)):
+    p = db.query(models.PrimerInventory).filter(models.PrimerInventory.id == item_id).first()
+    if not p: raise HTTPException(status_code=404, detail="Not found")
+    db.delete(p); db.commit()
+    return {"deleted": item_id}
+
+
+@app.get("/components/bullets/")
+def list_bullet_components(db: Session = Depends(get_db)):
+    return [_bullet_dict(b) for b in db.query(models.BulletInventory).all()]
+
+@app.post("/components/bullets/")
+async def add_bullet_component(
+    brand: str = Form(...), caliber: str = Form(...),
+    weight_gr: float = Form(...), product_line: str = Form(None),
+    bullet_type: str = Form(None), bc_g1: float = Form(None),
+    bc_g7: float = Form(None), quantity: int = Form(0),
+    price: float = Form(0.0), notes: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    b = models.BulletInventory(brand=brand, product_line=product_line, caliber=caliber,
+                               weight_gr=weight_gr, bullet_type=bullet_type,
+                               bc_g1=bc_g1, bc_g7=bc_g7,
+                               quantity=quantity, price_paid=price, notes=notes)
+    db.add(b); db.commit(); db.refresh(b)
+    return _bullet_dict(b)
+
+class BulletComponentPatch(BaseModel):
+    brand: Optional[str] = None
+    product_line: Optional[str] = None
+    caliber: Optional[str] = None
+    weight_gr: Optional[float] = None
+    bullet_type: Optional[str] = None
+    bc_g1: Optional[float] = None
+    bc_g7: Optional[float] = None
+    quantity: Optional[int] = None
+    price_paid: Optional[float] = None
+    notes: Optional[str] = None
+
+@app.patch("/components/bullets/{item_id}")
+def patch_bullet_component(item_id: int, payload: BulletComponentPatch, db: Session = Depends(get_db)):
+    b = db.query(models.BulletInventory).filter(models.BulletInventory.id == item_id).first()
+    if not b: raise HTTPException(status_code=404, detail="Not found")
+    for k, v in payload.dict(exclude_none=True).items(): setattr(b, k, v)
+    db.commit(); db.refresh(b)
+    return _bullet_dict(b)
+
+@app.delete("/components/bullets/{item_id}")
+def delete_bullet_component(item_id: int, db: Session = Depends(get_db)):
+    b = db.query(models.BulletInventory).filter(models.BulletInventory.id == item_id).first()
+    if not b: raise HTTPException(status_code=404, detail="Not found")
+    db.delete(b); db.commit()
+    return {"deleted": item_id}
+
+
 # ── Performance Logs ───────────────────────────────────────────────────────────
 
 @app.post("/performance-log/")
