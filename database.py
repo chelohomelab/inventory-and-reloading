@@ -8,19 +8,18 @@ engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# --- NEW: FURNITURE MODEL (Stocks, Grips, Forearms) ---
+# Kept for backward-compat with existing DB rows; not exposed in new UI
 class Furniture(Base):
     __tablename__ = "furniture"
     id = Column(Integer, primary_key=True, index=True)
     firearm_id = Column(Integer, ForeignKey("firearms.id"), nullable=True)
     barrel_id = Column(Integer, ForeignKey("barrels.id"), nullable=True)
-    type = Column(String)          
-    material = Column(String)      
+    type = Column(String)
+    material = Column(String)
     price_paid = Column(Float, default=0.0)
     brand = Column(String, nullable=True)
     image_path = Column(String, nullable=True)
 
-# --- REFACTORED COMPONENTS & ACCESSORIES ---
 class Scope(Base):
     __tablename__ = "scopes"
     id = Column(Integer, primary_key=True, index=True)
@@ -29,7 +28,7 @@ class Scope(Base):
     units = Column(String, default="MOA")
     price_paid = Column(Float, default=0.0)
     image_path = Column(String, nullable=True)
-    
+
     firearms = relationship("Firearm", back_populates="scope")
     barrels = relationship("Barrel", back_populates="scope")
 
@@ -38,16 +37,26 @@ class Accessory(Base):
     id = Column(Integer, primary_key=True, index=True)
     firearm_id = Column(Integer, ForeignKey("firearms.id"), nullable=True)
     barrel_id = Column(Integer, ForeignKey("barrels.id"), nullable=True)
-    name = Column(String)  
+    name = Column(String)
     price_paid = Column(Float, default=0.0)
 
-# --- REFACTORED FIREARMS & BARRELS ---
+# Thompson Center receiver (Encore / Contender) — tracked separately from barrels
+class TCReceiver(Base):
+    __tablename__ = "tc_receivers"
+    id = Column(Integer, primary_key=True, index=True)
+    platform = Column(String)           # "Encore" or "Contender"
+    serial_number = Column(String, nullable=True)
+    price_paid = Column(Float, default=0.0)
+    image_path = Column(String, nullable=True)
+    is_sold = Column(Boolean, default=False)
+    price_sold = Column(Float, nullable=True)
+
 class Firearm(Base):
     __tablename__ = "firearms"
     id = Column(Integer, primary_key=True, index=True)
-    brand = Column(String)       
-    model = Column(String)       
-    frame_type = Column(String, default="Rifle") 
+    brand = Column(String)
+    model = Column(String)
+    frame_type = Column(String, default="Rifle")
     price_paid = Column(Float, default=0.0)
     image_path_1 = Column(String, nullable=True)
     image_path_2 = Column(String, nullable=True)
@@ -62,14 +71,21 @@ class Firearm(Base):
 class Barrel(Base):
     __tablename__ = "barrels"
     id = Column(Integer, primary_key=True, index=True)
-    firearm_id = Column(Integer, ForeignKey("firearms.id")) 
-    name = Column(String, nullable=True)                    
-    caliber = Column(String)                                
+    # nullable so TC barrels can exist without a parent Firearm
+    firearm_id = Column(Integer, ForeignKey("firearms.id"), nullable=True)
+    name = Column(String, nullable=True)
+    caliber = Column(String)
     twist_rate = Column(String, nullable=True)
-    price_paid = Column(Float, default=0.0)                 
-    scope_id = Column(Integer, ForeignKey("scopes.id"), nullable=True) 
+    price_paid = Column(Float, default=0.0)
+    scope_id = Column(Integer, ForeignKey("scopes.id"), nullable=True)
     image_path = Column(String, nullable=True)
-    
+    # TC-specific fields (null for regular rifle barrels)
+    tc_platform = Column(String, nullable=True)     # "Encore" or "Contender"
+    barrel_length = Column(String, nullable=True)
+    hardware_color = Column(String, nullable=True)
+    is_threaded = Column(Boolean, default=False)
+    has_muzzle_brake = Column(Boolean, default=False)
+
     firearm = relationship("Firearm", back_populates="barrels")
     scope = relationship("Scope", back_populates="barrels")
     accessories = relationship("Accessory", foreign_keys=[Accessory.barrel_id])
@@ -117,16 +133,23 @@ class ShotString(Base):
 
 def init_db():
     Base.metadata.create_all(bind=engine)
-    # Safe migration: add caliber column to ammo table if not present
     from sqlalchemy import text, inspect as sa_inspect
     inspector = sa_inspect(engine)
+
+    def _add_col(table, col, ddl):
+        existing = [c['name'] for c in inspector.get_columns(table)]
+        if col not in existing:
+            with engine.connect() as conn:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {ddl}"))
+                conn.commit()
+
     if 'ammo' in inspector.get_table_names():
-        existing = [col['name'] for col in inspector.get_columns('ammo')]
-        if 'caliber' not in existing:
-            with engine.connect() as conn:
-                conn.execute(text("ALTER TABLE ammo ADD COLUMN caliber VARCHAR"))
-                conn.commit()
-        if 'bullet_bc' not in existing:
-            with engine.connect() as conn:
-                conn.execute(text("ALTER TABLE ammo ADD COLUMN bullet_bc FLOAT"))
-                conn.commit()
+        _add_col('ammo', 'caliber', 'caliber VARCHAR')
+        _add_col('ammo', 'bullet_bc', 'bullet_bc FLOAT')
+
+    if 'barrels' in inspector.get_table_names():
+        _add_col('barrels', 'tc_platform',    'tc_platform VARCHAR')
+        _add_col('barrels', 'barrel_length',  'barrel_length VARCHAR')
+        _add_col('barrels', 'hardware_color', 'hardware_color VARCHAR')
+        _add_col('barrels', 'is_threaded',    'is_threaded BOOLEAN DEFAULT FALSE')
+        _add_col('barrels', 'has_muzzle_brake', 'has_muzzle_brake BOOLEAN DEFAULT FALSE')

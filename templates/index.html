@@ -58,14 +58,48 @@
 
             <!-- Platforms pane -->
             <div id="inv-pane-platforms">
-                <div class="flex items-center gap-3 mb-4">
+                <!-- General / TC sub-tabs -->
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
                     <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
+                        <button id="plat-btn-general" onclick="switchPlatformTab('general')" class="px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer">🔫 General Rifles</button>
+                        <button id="plat-btn-tc" onclick="switchPlatformTab('tc')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🛠️ Thompson Center</button>
+                    </div>
+                    <!-- Collection filter only shown for general rifles -->
+                    <div id="plat-collection-filter" class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
                         <button onclick="setCollectionFilter('active')" id="btn-filter-active" class="px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer">My Collection</button>
                         <button onclick="setCollectionFilter('sold')" id="btn-filter-sold" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">Sold History</button>
                     </div>
                 </div>
-                <div id="catalog-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <p class="text-gray-400 col-span-3">Loading platforms...</p>
+
+                <!-- General rifles grid -->
+                <div id="plat-pane-general">
+                    <div id="catalog-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <p class="text-gray-400 col-span-3">Loading platforms...</p>
+                    </div>
+                </div>
+
+                <!-- Thompson Center pane -->
+                <div id="plat-pane-tc" class="hidden space-y-8">
+                    <!-- Receivers -->
+                    <div>
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="text-xs font-bold uppercase tracking-wider text-amber-500">Receivers</span>
+                            <div class="flex-1 border-t border-gray-700/60"></div>
+                        </div>
+                        <div id="tc-receivers-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <p class="text-gray-500 italic text-sm col-span-3">Loading receivers...</p>
+                        </div>
+                    </div>
+                    <!-- Barrels -->
+                    <div>
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="text-xs font-bold uppercase tracking-wider text-blue-400">Barrels</span>
+                            <div class="flex-1 border-t border-gray-700/60"></div>
+                        </div>
+                        <div id="tc-barrels-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <p class="text-gray-500 italic text-sm col-span-3">Loading barrels...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -184,15 +218,23 @@
             <div class="border-b border-gray-700 pb-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <h2 class="text-2xl font-bold">Add Inventory Vault Registration</h2>
                 <div class="flex flex-wrap gap-1 bg-gray-950 p-1 rounded-md border border-gray-800">
-                    <button onclick="switchFormCategory('cat-platforms')" id="btn-cat-platforms" class="px-4 py-1.5 text-xs font-bold rounded bg-amber-600 text-white cursor-pointer">Rifles, Scopes & Furniture</button>
+                    <button onclick="switchFormCategory('cat-platforms')" id="btn-cat-platforms" class="px-4 py-1.5 text-xs font-bold rounded bg-amber-600 text-white cursor-pointer">Rifles & Optics</button>
                     <button onclick="switchFormCategory('cat-ammunition')" id="btn-cat-ammunition" class="px-4 py-1.5 text-xs font-bold rounded text-gray-400 hover:text-gray-200 cursor-pointer">Ammunition & Components</button>
                 </div>
             </div>
 
-            <div id="pane-platforms" class="space-y-6">
-                <form id="firearm-form" class="bg-gray-800 p-6 rounded-lg border border-gray-700 space-y-4 shadow-xl">
-                    <h3 class="text-sm font-bold uppercase tracking-wider text-amber-500">Log Firearm Hardware & Ecosystem</h3>
-                    
+            <div id="pane-platforms" class="space-y-4">
+                <!-- Add form sub-tabs -->
+                <div class="flex flex-wrap gap-1 bg-gray-950 p-1 rounded-md border border-gray-800 w-fit">
+                    <button onclick="switchAddForm('add-general')" id="btn-add-general" class="px-3 py-1.5 text-xs font-bold rounded bg-amber-600 text-white cursor-pointer">🔫 General Rifle</button>
+                    <button onclick="switchAddForm('add-tc-receiver')" id="btn-add-tc-receiver" class="px-3 py-1.5 text-xs font-bold rounded text-gray-400 hover:text-gray-200 cursor-pointer">🛠️ TC Receiver</button>
+                    <button onclick="switchAddForm('add-tc-barrel')" id="btn-add-tc-barrel" class="px-3 py-1.5 text-xs font-bold rounded text-gray-400 hover:text-gray-200 cursor-pointer">🎯 TC Barrel</button>
+                    <button onclick="switchAddForm('add-scope')" id="btn-add-scope" class="px-3 py-1.5 text-xs font-bold rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔭 Scope</button>
+                </div>
+
+                <!-- General Rifle form -->
+                <form id="firearm-form" class="add-platform-form bg-gray-800 p-6 rounded-lg border border-gray-700 space-y-4 shadow-xl">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-amber-500">Log General Rifle</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Manufacturer / Brand</label>
@@ -209,118 +251,164 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Receiver Configuration Type</label>
-                            <select name="frame_type" id="rifle-frame-select" onchange="handleFrameTypeChange()" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
-                                <option value="Rifle">Rifle Frame</option>
-                                <option value="Pistol">Pistol Frame</option>
-                                <option id="tc-barrel-only-option" value="Barrel Only" class="hidden">Barrel Only</option>
+                            <label class="block text-xs text-gray-400 mb-1">Frame Type</label>
+                            <select name="frame_type" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                                <option value="Rifle">Rifle</option>
+                                <option value="Pistol">Pistol</option>
                             </select>
                         </div>
                     </div>
-
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Primary Caliber Designation</label>
+                            <label class="block text-xs text-gray-400 mb-1">Caliber</label>
                             <select name="caliber" id="rifle-caliber-select" onchange="handleDynamicDropdown(this, 'calibers')" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                                 <option value="">-- Select Caliber --</option>
                                 <option value="ADD_NEW" class="text-amber-400 font-bold">+ Add New...</option>
                             </select>
                         </div>
-                        <div id="optic-dropdown-container">
-                            <label class="block text-xs text-gray-400 mb-1">Optic Glass Installed (Scope)</label>
-                            <select name="scope_optic" id="rifle-optic-select" onchange="handleDynamicDropdown(this, 'optics')" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
-                                <option value="None">None (Iron Sights)</option>
-                                <option value="ADD_NEW" class="text-amber-400 font-bold">+ Add New Scope/Optic...</option>
-                            </select>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Twist Rate</label>
+                            <input type="text" name="twist_rate" placeholder='e.g., 1:10"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
-                        <div id="furniture-dropdown-container">
-                            <label class="block text-xs text-gray-400 mb-1">Chassis / Stock System</label>
-                            <select name="furniture_stock" id="rifle-stock-select" onchange="handleDynamicDropdown(this, 'furniture')" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
-                                <option value="Factory Stock">Factory OEM Stock</option>
-                                <option value="ADD_NEW" class="text-amber-400 font-bold">+ Add New Stock/Furniture...</option>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Scope Installed</label>
+                            <select name="scope_optic" id="rifle-optic-select" onchange="handleDynamicDropdown(this, 'optics')" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                                <option value="None">None</option>
+                                <option value="ADD_NEW" class="text-amber-400 font-bold">+ Add New Scope...</option>
                             </select>
                         </div>
                     </div>
-                    
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Acquisition Price Basis ($)</label>
+                            <label class="block text-xs text-gray-400 mb-1">Acquisition Price ($)</label>
                             <input type="number" step="0.01" name="price" placeholder="750.00" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Primary Hardware Photo Profile</label>
-                            <input type="file" name="image_1" id="firearm-image-input" accept="image/*" class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-amber-500 file:py-1 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
+                            <label class="block text-xs text-gray-400 mb-1">Photo</label>
+                            <input type="file" name="image_1" accept="image/*" class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-amber-500 file:py-1 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
                         </div>
                     </div>
+                    <button type="submit" class="w-full bg-amber-600 text-white font-bold py-2.5 rounded text-sm hover:bg-amber-500 transition shadow-md cursor-pointer">Register Rifle</button>
+                </form>
 
-                    <div id="tc-modular-extension" class="hidden bg-gray-850 border border-amber-500/30 p-5 rounded-lg space-y-4 shadow-inner">
-                        <div class="flex items-center space-x-2 border-b border-gray-750 pb-2">
-                            <span class="text-lg">🛠️</span>
-                            <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400">Specification Matrix Breakdown</h4>
+                <!-- TC Receiver form -->
+                <form id="tc-receiver-form" class="add-platform-form hidden bg-gray-800 p-6 rounded-lg border border-amber-500/30 space-y-4 shadow-xl">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-amber-400">🛠️ Log TC Receiver</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Platform</label>
+                            <select name="platform" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                                <option value="Encore">Encore</option>
+                                <option value="Contender">Contender</option>
+                            </select>
                         </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">Barrel Length (Inches)</label>
-                                <input type="text" name="barrel_length" placeholder="e.g., 24\"" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">Twist Rate</label>
-                                <input type="text" name="twist_rate" placeholder="e.g., 1:8\"" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">Finish Color</label>
-                                <input type="text" name="hardware_color" placeholder="e.g., Blued, Matte Black" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                            </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Serial Number</label>
+                            <input type="text" name="serial_number" placeholder="e.g., EN-123456" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
-
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-900/40 p-3 rounded-md border border-gray-750">
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">Threaded Muzzle?</label>
-                                <select name="is_threaded" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
-                                    <option value="No">No</option>
-                                    <option value="Yes">Yes</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">Muzzle Brake Installed?</label>
-                                <select name="has_muzzle_brake" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
-                                    <option value="No">No</option>
-                                    <option value="Yes">Yes</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">Came With Forearm?</label>
-                                <select name="has_forearm" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
-                                    <option value="No">No</option>
-                                    <option value="Yes">Yes</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">Came With Scope?</label>
-                                <select name="came_with_scope" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
-                                    <option value="No">No</option>
-                                    <option value="Yes">Yes</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">Is Scope Currently Installed?</label>
-                                <select id="tc-scope-installed-toggle" name="scope_installed_boolean" onchange="toggleScopeInputState()" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
-                                    <option value="No">No</option>
-                                    <option value="Yes">Yes</option>
-                                </select>
-                            </div>
-                            <div id="tc-scope-specification-box" class="opacity-40 transition-opacity duration-200">
-                                <label class="block text-xs text-gray-500 mb-1">Specify Installed Scope Model</label>
-                                <input type="text" id="tc-scope-name-input" name="installed_scope_specification" disabled placeholder="e.g., Leupold VX-3HD 4.5-14x40" class="w-full bg-gray-750 border border-gray-650 rounded p-2 text-sm text-white focus:outline-none">
-                            </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Acquisition Price ($)</label>
+                            <input type="number" step="0.01" name="price" placeholder="350.00" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Photo</label>
+                        <input type="file" name="image" accept="image/*" class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-amber-400 file:py-1 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
+                    </div>
+                    <button type="submit" class="w-full bg-amber-600 text-white font-bold py-2.5 rounded text-sm hover:bg-amber-500 transition shadow-md cursor-pointer">Register TC Receiver</button>
+                </form>
 
-                    <button type="submit" class="w-full bg-amber-600 text-white font-bold py-2.5 rounded text-sm hover:bg-amber-500 transition shadow-md cursor-pointer">Register Asset Stack</button>
+                <!-- TC Barrel form -->
+                <form id="tc-barrel-form" class="add-platform-form hidden bg-gray-800 p-6 rounded-lg border border-blue-500/30 space-y-4 shadow-xl">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-blue-400">🎯 Log TC Barrel</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Platform</label>
+                            <select name="tc_platform" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                                <option value="Encore">Encore</option>
+                                <option value="Contender">Contender</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Caliber</label>
+                            <select name="caliber" id="tc-caliber-select" onchange="handleDynamicDropdown(this, 'calibers')" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                                <option value="">-- Select Caliber --</option>
+                                <option value="ADD_NEW" class="text-amber-400 font-bold">+ Add New...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Barrel Length</label>
+                            <input type="text" name="barrel_length" placeholder='e.g., 15", 24"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Twist Rate</label>
+                            <input type="text" name="twist_rate" placeholder='e.g., 1:12"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Finish / Color</label>
+                            <input type="text" name="hardware_color" placeholder="e.g., Blued, Stainless" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Acquisition Price ($)</label>
+                            <input type="number" step="0.01" name="price" placeholder="250.00" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-900/40 p-3 rounded-md border border-gray-700">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Threaded Muzzle?</label>
+                            <select name="is_threaded" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
+                                <option value="false">No</option>
+                                <option value="true">Yes</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Muzzle Brake?</label>
+                            <select name="has_muzzle_brake" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
+                                <option value="false">No</option>
+                                <option value="true">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs text-gray-400 mb-1">Photo</label>
+                            <input type="file" name="image" accept="image/*" class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-1 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded text-sm hover:bg-blue-500 transition shadow-md cursor-pointer">Register TC Barrel</button>
+                </form>
+
+                <!-- Scope form -->
+                <form id="add-scope-form" class="add-platform-form hidden bg-gray-800 p-6 rounded-lg border border-gray-700 space-y-4 shadow-xl">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-blue-400">🔭 Log Scope / Optic</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Brand</label>
+                            <input type="text" name="brand" placeholder="e.g., Vortex, Leupold" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Model</label>
+                            <input type="text" name="model" placeholder="e.g., Viper HST 4-16x44" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Adjustment Units</label>
+                            <select name="units" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                                <option value="MOA">MOA</option>
+                                <option value="MRAD">MRAD</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Acquisition Price ($)</label>
+                            <input type="number" step="0.01" name="price" placeholder="500.00" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Photo</label>
+                            <input type="file" name="image" accept="image/*" class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-1 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded text-sm hover:bg-blue-500 transition shadow-md cursor-pointer">Register Scope</button>
                 </form>
             </div>
 

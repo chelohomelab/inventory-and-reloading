@@ -72,62 +72,33 @@ async def create_firearm(
     brand: str = Form(...),
     model: str = Form(...),
     price: float = Form(...),
-    caliber: str = Form(...),           # stored on the auto-created primary barrel
+    caliber: str = Form(...),
     frame_type: str = Form(...),
     twist_rate: str = Form(None),
-    # Scope & furniture come from the "Add Inventory" form dropdowns
-    scope_optic: str = Form(None),      # free-text optic name — stored as a Scope record
-    furniture_stock: str = Form(None),  # free-text stock name — stored as a Furniture record
+    scope_optic: str = Form(None),
     image_1: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
-    """
-    Creates a Firearm + primary Barrel.
-    Optionally creates linked Scope and Furniture records from the form values.
-    """
+    """Creates a Firearm + primary Barrel. Optionally creates a linked Scope."""
     img_path = await save_uploaded_file(image_1, "firearm")
 
     new_gun = models.Firearm(
-        brand=brand,
-        model=model,
-        price_paid=price,
-        frame_type=frame_type,
-        image_path_1=img_path
+        brand=brand, model=model, price_paid=price,
+        frame_type=frame_type, image_path_1=img_path
     )
     db.add(new_gun)
-    db.flush()  # get new_gun.id without closing the transaction
+    db.flush()
 
-    # Primary barrel — caliber lives here
-    primary_barrel = models.Barrel(
-        firearm_id=new_gun.id,
-        caliber=caliber,
-        name="Primary",
-        twist_rate=twist_rate,
-        price_paid=0.0
-    )
-    db.add(primary_barrel)
+    db.add(models.Barrel(
+        firearm_id=new_gun.id, caliber=caliber,
+        name="Primary", twist_rate=twist_rate, price_paid=0.0
+    ))
 
-    # Scope — create a record and link it if a non-empty, non-"None" value was sent
-    if scope_optic and scope_optic.strip() and scope_optic.strip().lower() not in ("none", "factory stock"):
-        new_scope = models.Scope(
-            brand=scope_optic.strip(),
-            model="",
-            units="MOA",
-            price_paid=0.0
-        )
+    if scope_optic and scope_optic.strip() and scope_optic.strip().lower() not in ("none",):
+        new_scope = models.Scope(brand=scope_optic.strip(), model="", units="MOA", price_paid=0.0)
         db.add(new_scope)
         db.flush()
         new_gun.scope_id = new_scope.id
-
-    # Furniture — create a record and link it if a non-empty, non-default value was sent
-    if furniture_stock and furniture_stock.strip() and furniture_stock.strip().lower() not in ("none", "factory stock", "factory oem stock"):
-        new_furniture = models.Furniture(
-            firearm_id=new_gun.id,
-            type="Stock",
-            material=furniture_stock.strip(),
-            price_paid=0.0
-        )
-        db.add(new_furniture)
 
     db.commit()
     db.refresh(new_gun)
@@ -162,7 +133,6 @@ class FirearmPatchPayload(BaseModel):
     model: Optional[str] = None
     caliber: Optional[str] = None
     scope_optic: Optional[str] = None
-    furniture_stock: Optional[str] = None
     price_paid: Optional[float] = None
 
 
@@ -180,7 +150,6 @@ def patch_firearm(firearm_id: int, payload: FirearmPatchPayload, db: Session = D
     if payload.price_paid is not None:
         gun.price_paid = payload.price_paid
 
-    # Caliber lives on the primary barrel
     if payload.caliber is not None:
         primary_barrel = (
             db.query(models.Barrel)
@@ -190,17 +159,12 @@ def patch_firearm(firearm_id: int, payload: FirearmPatchPayload, db: Session = D
         if primary_barrel:
             primary_barrel.caliber = payload.caliber
 
-    # Scope — find existing linked scope or create a new one
     if payload.scope_optic is not None:
         optic_val = payload.scope_optic.strip()
         if not optic_val or optic_val.lower() == "none":
             gun.scope_id = None
         else:
-            existing_scope = (
-                db.query(models.Scope)
-                .filter(models.Scope.brand == optic_val)
-                .first()
-            )
+            existing_scope = db.query(models.Scope).filter(models.Scope.brand == optic_val).first()
             if existing_scope:
                 gun.scope_id = existing_scope.id
             else:
@@ -208,25 +172,6 @@ def patch_firearm(firearm_id: int, payload: FirearmPatchPayload, db: Session = D
                 db.add(new_scope)
                 db.flush()
                 gun.scope_id = new_scope.id
-
-    # Furniture — update the first linked furniture record or create one
-    if payload.furniture_stock is not None:
-        stock_val = payload.furniture_stock.strip()
-        existing_furniture = (
-            db.query(models.Furniture)
-            .filter(models.Furniture.firearm_id == firearm_id)
-            .first()
-        )
-        if existing_furniture:
-            existing_furniture.material = stock_val
-        elif stock_val and stock_val.lower() not in ("none", "factory oem", "factory oem stock"):
-            new_furniture = models.Furniture(
-                firearm_id=firearm_id,
-                type="Stock",
-                material=stock_val,
-                price_paid=0.0
-            )
-            db.add(new_furniture)
 
     db.commit()
     db.refresh(gun)
@@ -369,27 +314,106 @@ async def create_scope(
     return new_scope
 
 
-# ── Furniture ──────────────────────────────────────────────────────────────────
+# ── Thompson Center ────────────────────────────────────────────────────────────
 
-@app.post("/furniture/")
-async def add_furniture(
-    furniture_type: str = Form(...),
-    material: str = Form(...),
+def _tc_receiver_dict(r: models.TCReceiver) -> dict:
+    return {
+        "id": r.id,
+        "platform": r.platform,
+        "serial_number": r.serial_number,
+        "price_paid": r.price_paid,
+        "image_path": r.image_path,
+        "is_sold": r.is_sold,
+        "price_sold": r.price_sold,
+    }
+
+def _tc_barrel_dict(b: models.Barrel) -> dict:
+    return {
+        "id": b.id,
+        "tc_platform": b.tc_platform,
+        "caliber": b.caliber,
+        "twist_rate": b.twist_rate,
+        "barrel_length": b.barrel_length,
+        "hardware_color": b.hardware_color,
+        "is_threaded": b.is_threaded,
+        "has_muzzle_brake": b.has_muzzle_brake,
+        "price_paid": b.price_paid,
+        "image_path": b.image_path,
+        "scope_id": b.scope_id,
+    }
+
+
+@app.get("/tc-receivers/")
+def list_tc_receivers(db: Session = Depends(get_db)):
+    return [_tc_receiver_dict(r) for r in db.query(models.TCReceiver).all()]
+
+
+@app.post("/tc-receivers/")
+async def create_tc_receiver(
+    platform: str = Form(...),
+    serial_number: str = Form(None),
     price: float = Form(0.0),
-    firearm_id: int = Form(None),
-    barrel_id: int = Form(None),
     image: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
-    img_path = await save_uploaded_file(image, "furniture")
-    new_furniture = models.Furniture(
-        type=furniture_type, material=material, price_paid=price,
-        firearm_id=firearm_id, barrel_id=barrel_id, image_path=img_path
-    )
-    db.add(new_furniture)
+    img_path = await save_uploaded_file(image, "tc_receiver")
+    r = models.TCReceiver(platform=platform, serial_number=serial_number,
+                          price_paid=price, image_path=img_path)
+    db.add(r)
     db.commit()
-    db.refresh(new_furniture)
-    return new_furniture
+    db.refresh(r)
+    return _tc_receiver_dict(r)
+
+
+@app.post("/tc-receivers/{receiver_id}/mark-sold/")
+def mark_tc_receiver_sold(receiver_id: int, payload: SoldPayload, db: Session = Depends(get_db)):
+    r = db.query(models.TCReceiver).filter(models.TCReceiver.id == receiver_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="TC Receiver not found")
+    r.is_sold = payload.is_sold
+    r.price_sold = payload.price_sold
+    db.commit()
+    db.refresh(r)
+    return _tc_receiver_dict(r)
+
+
+@app.get("/tc-barrels/")
+def list_tc_barrels(db: Session = Depends(get_db)):
+    barrels = db.query(models.Barrel).filter(models.Barrel.tc_platform.isnot(None)).all()
+    return [_tc_barrel_dict(b) for b in barrels]
+
+
+@app.post("/tc-barrels/")
+async def create_tc_barrel(
+    tc_platform: str = Form(...),
+    caliber: str = Form(...),
+    twist_rate: str = Form(None),
+    barrel_length: str = Form(None),
+    hardware_color: str = Form(None),
+    is_threaded: bool = Form(False),
+    has_muzzle_brake: bool = Form(False),
+    price: float = Form(0.0),
+    image: UploadFile = File(None),
+    db: Session = Depends(get_db)
+):
+    img_path = await save_uploaded_file(image, "tc_barrel")
+    b = models.Barrel(
+        firearm_id=None,
+        tc_platform=tc_platform,
+        caliber=caliber,
+        name=f"{tc_platform} {caliber}",
+        twist_rate=twist_rate,
+        barrel_length=barrel_length,
+        hardware_color=hardware_color,
+        is_threaded=is_threaded,
+        has_muzzle_brake=has_muzzle_brake,
+        price_paid=price,
+        image_path=img_path
+    )
+    db.add(b)
+    db.commit()
+    db.refresh(b)
+    return _tc_barrel_dict(b)
 
 
 # ── Ammunition ─────────────────────────────────────────────────────────────────
