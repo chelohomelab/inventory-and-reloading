@@ -36,7 +36,14 @@
                             <h1 id="detail-title" class="text-3xl font-extrabold text-white tracking-tight">---</h1>
                             <p id="detail-model" class="text-amber-500 text-sm font-medium tracking-wide">---</p>
                         </div>
-                        <span id="detail-caliber" class="px-3 py-1 bg-amber-950 text-amber-400 border border-amber-800 font-mono font-bold rounded-md text-sm">---</span>
+                        <div class="flex items-center gap-2">
+                            <span id="detail-caliber" class="px-3 py-1 bg-amber-950 text-amber-400 border border-amber-800 font-mono font-bold rounded-md text-sm">---</span>
+                            <button onclick="toggleEditPanel()" id="edit-pencil-btn" title="Edit platform information" class="p-1.5 rounded-md bg-gray-700 hover:bg-amber-600 text-gray-400 hover:text-white border border-gray-600 hover:border-amber-500 transition" aria-label="Edit platform information">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 text-xs">
@@ -53,8 +60,11 @@
             </div>
         </div>
 
-        <div class="bg-gray-800 border border-gray-700 rounded-xl p-5 shadow-xl">
-            <h3 class="text-sm font-bold uppercase tracking-wider text-amber-500 mb-4">✏️ Edit Platform Information</h3>
+        <div id="edit-panel" class="bg-gray-800 border border-gray-700 rounded-xl p-5 shadow-xl hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-amber-500">Edit Platform Information</h3>
+                <button type="button" onclick="toggleEditPanel()" class="text-gray-500 hover:text-gray-300 transition text-xs font-bold px-2 py-1 rounded hover:bg-gray-700">✕ Close</button>
+            </div>
             <form id="edit-specs-form" onsubmit="saveProfileEdits(event)" class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
                 <div>
                     <label class="block text-gray-400 mb-1">Brand</label>
@@ -101,11 +111,12 @@
                             <th class="p-3.5 text-right font-mono">Max Span (Inches)</th>
                             <th class="p-3.5 text-right font-mono">Avg Vel (FPS)</th>
                             <th class="p-3.5 text-center">Telemetry/Target Artifact</th>
+                            <th class="p-3.5"></th>
                         </tr>
                     </thead>
                     <tbody id="range-sessions-tbody" class="divide-y divide-gray-750 text-gray-300">
                         <tr>
-                            <td colspan="6" class="p-6 text-center text-gray-500 italic">No historic targeting metrics found.</td>
+                            <td colspan="7" class="p-6 text-center text-gray-500 italic">No historic targeting metrics found.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -124,11 +135,7 @@
                     <div>
                         <label class="block text-gray-400 mb-1">Target Ballistic Loadout</label>
                         <select id="ballistic-load-select" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-emerald-500 font-medium">
-                            <option value="default_223">.223 Rem Match</option>
-                            <option value="default_65">6.5 Creedmoor ELD</option>
-                            <option value="default_308">.308 Win Standard</option>
-                            <option value="default_9mm">9mm Luger FMJ</option>
-                            <option value="custom">Custom Load Rules</option>
+                            <option value="manual">Manual Entry</option>
                         </select>
                     </div>
                     
@@ -202,6 +209,28 @@
         let customDistances = new Set();
         let targetGunObject = null;
 
+        function toggleEditPanel() {
+            const panel = document.getElementById('edit-panel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        function showDetailToast(message, type = 'success') {
+            const existing = document.getElementById('detail-toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.id = 'detail-toast';
+            const color = type === 'warn' ? 'bg-amber-950/90 text-amber-400 border-amber-700'
+                        : type === 'error' ? 'bg-red-950/90 text-red-400 border-red-800'
+                        : 'bg-gray-900/95 text-emerald-400 border-emerald-800';
+            toast.className = `fixed bottom-5 right-5 z-[100] p-4 rounded-lg shadow-xl text-xs font-bold tracking-wide border ${color} transition-all duration-300`;
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3500);
+        }
+
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             currentFirearmId = urlParams.get('id');
@@ -215,86 +244,79 @@
         };
 
         async function loadFirearmProfile() {
-            let items = [];
-            // Load custom local cache updates first
-            const localEdits = localStorage.getItem(`edited_gun_${currentFirearmId}`);
-            
-            try {
-                const response = await fetch('/catalog/');
-                if (response.ok) items = await response.json();
-            } catch(err) {}
+            let gun = null;
 
-            if(!items || items.length === 0) {
-                items = [
-                    { id: 101, brand: "Thompson/Center", model: "Encore", frame_type: "Barrel Only", caliber: "6.5 Creedmoor", price: 450, scope_optic: "None", furniture_stock: "N/A" },
-                    { id: 102, brand: "Remington", model: "700 SPS", frame_type: "Rifle", caliber: ".308 Win", price: 899, scope_optic: "Vortex Viper 4-16x50", furniture_stock: "Factory Stock" }
-                ];
+            try {
+                const response = await fetch(`/firearms/${currentFirearmId}`);
+                if (response.ok) {
+                    gun = await response.json();
+                }
+            } catch(err) {
+                console.error("Failed to load firearm profile:", err);
             }
 
-            let gun = items.find(x => x.id == currentFirearmId);
-            if (localEdits) {
+            // Merge any pending local edits (e.g. if server was unreachable last save)
+            const localEdits = localStorage.getItem(`edited_gun_${currentFirearmId}`);
+            if (gun && localEdits) {
                 gun = { ...gun, ...JSON.parse(localEdits) };
             }
 
-            if(!gun) {
-                document.body.innerHTML = `<div class="p-12 text-center text-red-400 font-mono text-sm">Error: Platform Target Context #${currentFirearmId} not found.</div>`;
+            if (!gun) {
+                document.body.innerHTML = `<div class="p-12 text-center text-red-400 font-mono text-sm">Error: Platform #${currentFirearmId} not found in vault.</div>`;
                 return;
             }
 
             targetGunObject = gun;
 
-            // Apply fields to current metrics view
-            document.getElementById('breadcrumb-current').innerText = `${gun.brand} (${gun.caliber || 'N/A'})`;
+            // Derive display values from real relationships
+            const primaryBarrel = gun.barrels && gun.barrels.length > 0 ? gun.barrels[0] : null;
+            const caliber = primaryBarrel ? primaryBarrel.caliber : (gun.caliber || "N/A");
+            const scopeLabel = gun.scope ? `${gun.scope.brand} ${gun.scope.model}` : "None";
+            const stockLabel = gun.furniture_stock || "Factory OEM";
+
+            // Populate display fields
+            document.getElementById('breadcrumb-current').innerText = `${gun.brand} ${gun.model} (${caliber})`;
             document.getElementById('detail-title').innerText = gun.brand;
             document.getElementById('detail-model').innerText = gun.model;
-            document.getElementById('detail-caliber').innerText = gun.caliber || "N/A";
+            document.getElementById('detail-caliber').innerText = caliber;
             document.getElementById('val-frame').innerText = gun.frame_type || "Rifle";
-            document.getElementById('val-optic').innerText = gun.scope_optic || "None";
-            document.getElementById('val-stock').innerText = gun.furniture_stock || "Factory OEM";
-            document.getElementById('val-price').innerText = `$${parseFloat(gun.price || 0).toFixed(2)}`;
+            document.getElementById('val-optic').innerText = scopeLabel;
+            document.getElementById('val-stock').innerText = stockLabel;
+            document.getElementById('val-price').innerText = `$${parseFloat(gun.price_paid || 0).toFixed(2)}`;
 
-            // Hydrate Edit input boxes
+            // Hydrate edit form
             document.getElementById('edit-brand').value = gun.brand || "";
             document.getElementById('edit-model').value = gun.model || "";
-            document.getElementById('edit-caliber').value = gun.caliber || "";
-            document.getElementById('edit-optic').value = gun.scope_optic || "";
-            document.getElementById('edit-stock').value = gun.furniture_stock || "";
-            document.getElementById('edit-price').value = gun.price || "";
+            document.getElementById('edit-caliber').value = caliber;
+            document.getElementById('edit-optic').value = scopeLabel !== "None" ? scopeLabel : "";
+            document.getElementById('edit-stock').value = stockLabel !== "Factory OEM" ? stockLabel : "";
+            document.getElementById('edit-price').value = gun.price_paid || "";
 
-            // Check for sale status flags
-            if (localStorage.getItem(`sold_flag_${gun.id}`)) {
+            // Sold status
+            if (gun.is_sold || localStorage.getItem(`sold_flag_${gun.id}`)) {
                 document.getElementById('sold-alert-banner').classList.remove('hidden');
             }
 
-            // Image Handler
+            // Image gallery — server image takes priority, then local override
             const imagePool = [];
             const localSavedImg = localStorage.getItem(`local_img_${gun.id}`);
-
-            if (localSavedImg) {
-                imagePool.push(localSavedImg); // Prioritize your uploaded picture token first!
-            }
-            if (gun.image_url) imagePool.push(gun.image_url);
+            if (localSavedImg) imagePool.push(localSavedImg);
             if (gun.image_path_1) imagePool.push(gun.image_path_1);
-            if (gun.image_1) imagePool.push(gun.image_1);
-
-            // Standard background fallbacks
-            if (gun.model && gun.model.toLowerCase().includes("encore")) imagePool.push("/static/images/tc_encore.jpg");
-            if (gun.model && gun.model.toLowerCase().includes("700")) imagePool.push("/static/images/remington700.jpg");
+            if (gun.image_path_2) imagePool.push(gun.image_path_2);
 
             renderImageGallery([...new Set(imagePool)].filter(Boolean));
             loadLinkedRangePerformance(gun);
 
-            // Conditional visibility for ballistics flight computations panel
+            // Ballistics panel — only show if we have a caliber
             const panel = document.getElementById('ballistics-panel-container');
-            if (gun.caliber && gun.caliber.trim() !== "") {
+            if (caliber && caliber !== "N/A") {
                 panel.classList.remove('hidden');
-                autoSelectCaliberProfile(gun.caliber);
             } else {
                 panel.classList.add('hidden');
             }
         }
 
-        function saveProfileEdits(e) {
+        async function saveProfileEdits(e) {
             e.preventDefault();
             const updatedData = {
                 brand: document.getElementById('edit-brand').value,
@@ -302,10 +324,55 @@
                 caliber: document.getElementById('edit-caliber').value,
                 scope_optic: document.getElementById('edit-optic').value,
                 furniture_stock: document.getElementById('edit-stock').value,
-                price: document.getElementById('edit-price').value
+                price_paid: parseFloat(document.getElementById('edit-price').value) || 0
             };
-            localStorage.setItem(`edited_gun_${currentFirearmId}`, JSON.stringify(updatedData));
+
+            let savedToServer = false;
+            try {
+                const response = await fetch(`/firearms/${currentFirearmId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedData)
+                });
+                if (response.ok) {
+                    savedToServer = true;
+                    localStorage.removeItem(`edited_gun_${currentFirearmId}`);
+                    showDetailToast("Specifications updated in vault.");
+                    document.getElementById('edit-panel').classList.add('hidden');
+                }
+            } catch(err) {
+                console.error("PATCH failed:", err);
+            }
+
+            if (!savedToServer) {
+                // Keep local cache as fallback so edits aren't lost
+                localStorage.setItem(`edited_gun_${currentFirearmId}`, JSON.stringify(updatedData));
+                showDetailToast("Saved locally — server unreachable.", "warn");
+            }
+
             loadFirearmProfile();
+        }
+
+        async function deletePerformanceLog(logId) {
+            if (!confirm('Delete this range session entry? This cannot be undone.')) return;
+            try {
+                const res = await fetch(`/performance-log/${logId}`, { method: 'DELETE' });
+                if (res.ok) {
+                    document.getElementById(`log-row-${logId}`)?.remove();
+                    const tbody = document.getElementById('range-sessions-tbody');
+                    const badge = document.getElementById('session-count-badge');
+                    const remaining = tbody.querySelectorAll('tr[id^="log-row-"]').length;
+                    badge.innerText = `${remaining} Record${remaining !== 1 ? 's' : ''}`;
+                    if (remaining === 0) {
+                        tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-gray-500 italic">No historic targeting metrics found.</td></tr>`;
+                    }
+                    showDetailToast('Entry removed from vault.');
+                } else {
+                    showDetailToast('Failed to delete entry.', 'error');
+                }
+            } catch (err) {
+                showDetailToast('Error contacting server.', 'error');
+            }
         }
 
         function renderImageGallery(images) {
@@ -327,50 +394,149 @@
         async function loadLinkedRangePerformance(gun) {
             const tbody = document.getElementById('range-sessions-tbody');
             const badge = document.getElementById('session-count-badge');
-            const mockGroups = [
-                { date: "2026-05-12", firearm_id: 101, load_name: "6.5 Match Handload Profile", shots: 5, size_inches: "0.412", avg_velocity: 2714 },
-                { date: "2026-05-19", firearm_id: 101, load_name: "Hornady Commercial Factory ELD", shots: 3, size_inches: "0.685", avg_velocity: 2690 }
-            ];
-            const matches = mockGroups.filter(x => x.firearm_id == gun.id);
-            badge.innerText = `${matches.length} Records`;
-            if(matches.length === 0) return;
-            tbody.innerHTML = matches.map(s => `
-                <tr class="hover:bg-gray-700/40 border-b border-gray-750">
-                    <td class="p-3 font-mono">${s.date}</td>
-                    <td class="p-3 font-bold text-white">${s.load_name}</td>
-                    <td class="p-3 font-mono">${s.shots}</td>
-                    <td class="p-3 text-right text-amber-400 font-mono font-bold">${s.size_inches}"</td>
-                    <td class="p-3 text-right text-gray-400 font-mono">${s.avg_velocity}</td>
-                    <td class="p-3 text-center"><span class="text-gray-500 italic">Attached</span></td>
-                </tr>
-            `).join('');
+
+            tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-gray-500 italic">Loading range records...</td></tr>`;
+
+            let logs = [];
+            try {
+                const res = await fetch(`/performance-log/firearm/${gun.id}`);
+                if (res.ok) logs = await res.json();
+            } catch(err) {
+                console.error("Failed to load performance logs:", err);
+            }
+
+            badge.innerText = `${logs.length} Record${logs.length !== 1 ? 's' : ''}`;
+
+            if (logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-500 italic">No historic targeting metrics found.</td></tr>`;
+                return;
+            }
+
+            buildBallisticsDropdown(gun, logs);
+
+            tbody.innerHTML = logs.map(s => {
+                const groupDisplay = s.group_size_inches
+                    ? `<span class="text-amber-400 font-bold">${parseFloat(s.group_size_inches).toFixed(3)}&quot;</span>`
+                    : `<span class="text-gray-600">—</span>`;
+
+                const velDisplay = s.avg_velocity
+                    ? `${Math.round(s.avg_velocity)}`
+                    : `<span class="text-gray-600">—</span>`;
+
+                const sdDisplay = s.standard_deviation
+                    ? `<span class="text-xs text-gray-500 font-mono">SD ${s.standard_deviation}</span>`
+                    : '';
+
+                const targetCell = s.target_image_path
+                    ? `<a href="${s.target_image_path}" target="_blank" class="text-blue-400 hover:text-blue-300 font-bold text-[10px] underline">View Target</a>`
+                    : `<span class="text-gray-600 italic text-[10px]">None</span>`;
+
+                return `
+                <tr id="log-row-${s.id}" class="hover:bg-gray-700/40 border-b border-gray-750">
+                    <td class="p-3.5 font-mono text-gray-400">${s.date}</td>
+                    <td class="p-3.5">
+                        <span class="font-bold text-white">${s.load_name}</span>
+                        <br><span class="text-[10px] text-gray-500 font-mono">${s.caliber} · ${s.barrel_name}</span>
+                    </td>
+                    <td class="p-3.5 font-mono text-gray-400">${s.shots || '—'}</td>
+                    <td class="p-3.5 text-right">${groupDisplay}</td>
+                    <td class="p-3.5 text-right text-gray-400 font-mono">${velDisplay} ${sdDisplay}</td>
+                    <td class="p-3.5 text-center">${targetCell}</td>
+                    <td class="p-3.5 text-center">
+                        <button onclick="deletePerformanceLog(${s.id})"
+                            class="text-gray-600 hover:text-red-400 transition cursor-pointer p-1 rounded hover:bg-red-950/30"
+                            title="Delete this entry">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
         }
 
-        function autoSelectCaliberProfile(cal) {
+        let _testedProfiles = [];
+
+        function buildBallisticsDropdown(gun, logs) {
             const selector = document.getElementById('ballistic-load-select');
-            const lower = cal.toLowerCase();
-            if(lower.includes("9mm")) selector.value = "default_9mm";
-            else if(lower.includes("223") || lower.includes("5.56")) selector.value = "default_223";
-            else if(lower.includes("6.5")) selector.value = "default_65";
-            else if(lower.includes("308") || lower.includes("win")) selector.value = "default_308";
-            else selector.value = "custom";
-            updateSelectorInputs();
+            const caliber = gun.barrels?.[0]?.caliber || gun.caliber || '';
+
+            // Aggregate sessions by load name
+            const map = {};
+            (logs || []).forEach(s => {
+                if (!map[s.load_name]) {
+                    map[s.load_name] = { load_name: s.load_name, caliber: s.caliber, bullet_bc: s.bullet_bc || null, velocities: [], sessions: 0 };
+                }
+                map[s.load_name].sessions++;
+                if (s.avg_velocity) map[s.load_name].velocities.push(s.avg_velocity);
+                // Take the first non-null BC found across sessions for this load
+                if (s.bullet_bc && !map[s.load_name].bullet_bc) map[s.load_name].bullet_bc = s.bullet_bc;
+            });
+
+            _testedProfiles = Object.values(map).map(l => ({
+                ...l,
+                avg_velocity: l.velocities.length > 0
+                    ? Math.round(l.velocities.reduce((a, b) => a + b, 0) / l.velocities.length)
+                    : null
+            }));
+
+            const options = ['<option value="manual">Manual Entry</option>'];
+            _testedProfiles.forEach((p, i) => {
+                const label = p.avg_velocity ? `${p.load_name} — ${p.avg_velocity} fps` : p.load_name;
+                options.push(`<option value="profile_${i}">${label}</option>`);
+            });
+            selector.innerHTML = options.join('');
+
+            if (_testedProfiles.length > 0) {
+                selector.value = 'profile_0';
+                applyBallisticsProfile(_testedProfiles[0], caliber);
+            } else {
+                const bc = inferBC(caliber);
+                if (bc !== null) document.getElementById('bal-input-bc').value = bc;
+                runBallisticEngine();
+            }
         }
 
-        document.getElementById('ballistic-load-select').addEventListener('change', updateSelectorInputs);
+        function inferBC(caliber) {
+            const c = (caliber || '').toLowerCase();
+            if (c.includes('9mm'))                              return 0.145;
+            if (c.includes('.40') || c.includes('40 s&w'))     return 0.165;
+            if (c.includes('45 ') || c.includes('.45'))        return 0.195;
+            if (c.includes('223') || c.includes('5.56'))       return 0.360;
+            if (c.includes('243'))                             return 0.430;
+            if (c.includes('270'))                             return 0.460;
+            if (c.includes('6mm'))                             return 0.480;
+            if (c.includes('308') || c.includes('7.62x51'))    return 0.435;
+            if (c.includes('30-06') || c.includes('30-0'))     return 0.410;
+            if (c.includes('300 win') || c.includes('300 prc') || c.includes('300 rum')) return 0.600;
+            if (c.includes('300'))                             return 0.530;
+            if (c.includes('338'))                             return 0.580;
+            if (c.includes('7mm'))                             return 0.540;
+            if (c.includes('6.5'))                             return 0.620;
+            return null;
+        }
 
-        function updateSelectorInputs() {
-            const type = document.getElementById('ballistic-load-select').value;
-            const velInput = document.getElementById('bal-input-velocity');
-            const bcInput = document.getElementById('bal-input-bc');
-
-            if(type === 'default_9mm')  { velInput.value = "1150"; bcInput.value = "0.145"; }
-            else if(type === 'default_223')  { velInput.value = "2950"; bcInput.value = "0.360"; }
-            else if(type === 'default_65')   { velInput.value = "2720"; bcInput.value = "0.620"; }
-            else if(type === 'default_308')  { velInput.value = "2650"; bcInput.value = "0.435"; }
-            
+        function applyBallisticsProfile(profile, caliber) {
+            if (profile.avg_velocity) {
+                document.getElementById('bal-input-velocity').value = profile.avg_velocity;
+            }
+            // Prefer the stored BC from the ammo record; fall back to caliber inference
+            const bc = profile.bullet_bc || inferBC(caliber || profile.caliber);
+            if (bc !== null && bc !== undefined) {
+                document.getElementById('bal-input-bc').value = bc;
+            }
             runBallisticEngine();
         }
+
+        document.getElementById('ballistic-load-select').addEventListener('change', function () {
+            const val = this.value;
+            if (val === 'manual') return;
+            const idx = parseInt(val.replace('profile_', ''));
+            const caliber = targetGunObject?.barrels?.[0]?.caliber || '';
+            if (!isNaN(idx) && _testedProfiles[idx]) {
+                applyBallisticsProfile(_testedProfiles[idx], caliber);
+            }
+        });
 
         function runBallisticEngine() {
             const v0 = parseFloat(document.getElementById('bal-input-velocity').value) || 0;

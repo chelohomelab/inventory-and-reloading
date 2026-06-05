@@ -34,7 +34,7 @@
             <h1 class="text-xl font-bold tracking-wide text-amber-500">🎯 Guns & Reloading</h1>
             <div class="space-x-2 pointer-events-auto">
                 <button onclick="switchTab('catalog-tab')" class="px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 font-medium text-sm transition cursor-pointer">Inventory</button>
-                <button onclick="switchTab('measure-tab')" class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 font-medium text-sm text-white transition cursor-pointer">📏 Measure Group</button>
+                <button onclick="switchTab('measure-tab')" class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 font-medium text-sm text-white transition cursor-pointer">🎯 Range Session</button>
                 <button onclick="switchTab('add-tab')" class="px-3 py-1.5 rounded bg-amber-600 hover:bg-amber-500 font-medium text-sm text-white transition cursor-pointer">⚙️ Add Inventory</button>
             </div>
         </div>
@@ -42,29 +42,65 @@
 
     <main class="container mx-auto p-4 max-w-6xl">
         
-        <section id="catalog-tab" class="space-y-6">
-            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-gray-700 pb-2 gap-3">
-                <div class="flex items-center space-x-4">
-                    <h2 class="text-2xl font-bold">Hardware Inventory</h2>
+        <section id="catalog-tab" class="space-y-4">
+            <!-- Inventory section header + sub-navigation -->
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-gray-700 pb-3 gap-3">
+                <div class="flex flex-wrap items-center gap-3">
+                    <h2 class="text-2xl font-bold">Inventory Vault</h2>
                     <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
-                        <button onclick="setCollectionFilter('active')" id="btn-filter-active" class="px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer">My Collection</button>
-                        <button onclick="setCollectionFilter('sold')" id="btn-filter-sold" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">My Sold Items</button>
+                        <button id="inv-btn-platforms" onclick="switchInventoryTab('platforms')" class="px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer">🔫 Platforms</button>
+                        <button id="inv-btn-optics" onclick="switchInventoryTab('optics')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔭 Optics</button>
+                        <button id="inv-btn-ammo" onclick="switchInventoryTab('ammo')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🧪 Ammunition</button>
                     </div>
                 </div>
                 <span id="inventory-count" class="text-xs bg-gray-800 text-gray-400 font-mono px-2.5 py-1 rounded border border-gray-700 self-start sm:self-auto">0 Assets Logged</span>
             </div>
 
-            <div id="catalog-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <p class="text-gray-400 col-span-3">Loading your catalog...</p>
+            <!-- Platforms pane -->
+            <div id="inv-pane-platforms">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
+                        <button onclick="setCollectionFilter('active')" id="btn-filter-active" class="px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer">My Collection</button>
+                        <button onclick="setCollectionFilter('sold')" id="btn-filter-sold" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">Sold History</button>
+                    </div>
+                </div>
+                <div id="catalog-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <p class="text-gray-400 col-span-3">Loading platforms...</p>
+                </div>
+            </div>
+
+            <!-- Optics pane -->
+            <div id="inv-pane-optics" class="hidden">
+                <div id="scopes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <p class="text-gray-400 col-span-3 italic">Loading optics...</p>
+                </div>
+            </div>
+
+            <!-- Ammunition pane -->
+            <div id="inv-pane-ammo" class="hidden">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
+                        <button id="ammo-btn-factory" onclick="switchAmmoFilter('factory')" class="px-3 py-1 rounded bg-gray-800 text-blue-400 cursor-pointer">Factory Loads</button>
+                        <button id="ammo-btn-handload" onclick="switchAmmoFilter('handload')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">Handloads</button>
+                    </div>
+                </div>
+                <div id="ammo-container">
+                    <p class="text-gray-400 italic">Loading ammunition...</p>
+                </div>
             </div>
         </section>
 
         <section id="measure-tab" class="hidden space-y-4">
             <div class="flex justify-between items-center border-b border-gray-700 pb-2">
-                <h2 class="text-2xl font-bold">Digital Group Caliper & Chrono Sync</h2>
-                <button onclick="downloadAnnotatedTarget()" id="download-btn" class="hidden px-4 py-2 bg-emerald-600 hover:bg-emerald-500 font-bold text-xs rounded text-white shadow-md transition cursor-pointer">
-                    💾 Download Annotated Target Image
-                </button>
+                <h2 class="text-2xl font-bold">Range Session</h2>
+                <div class="flex gap-2">
+                    <button onclick="downloadAnnotatedTarget()" id="download-btn" class="hidden px-4 py-2 bg-emerald-600 hover:bg-emerald-500 font-bold text-xs rounded text-white shadow-md transition cursor-pointer">
+                        💾 Download Full Session
+                    </button>
+                    <button onclick="saveForShare()" id="share-btn" class="hidden px-4 py-2 bg-blue-600 hover:bg-blue-500 font-bold text-xs rounded text-white shadow-md transition cursor-pointer">
+                        📲 Save for Social
+                    </button>
+                </div>
             </div>
             
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -387,6 +423,14 @@
                                 </select>
                             </div>
                             <div>
+                                <label class="block text-xs text-gray-500 mb-1">Bullet Weight (Grains)</label>
+                                <input type="number" step="0.1" name="bullet_weight" placeholder="e.g., 140" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">Ballistic Coefficient (G1 BC)</label>
+                                <input type="number" step="0.001" name="bullet_bc" placeholder="e.g., 0.620" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            </div>
+                            <div>
                                 <label class="block text-xs text-gray-500 mb-1">Brass Casing Brand Asset</label>
                                 <select name="brass_brand" id="hand-brass-select" onchange="handleDynamicDropdown(this, 'brass')" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                                     <option value="">-- Select Brass Brand --</option>
@@ -406,6 +450,26 @@
         </section>
 
     </main>
+
+    <!-- Crop Modal -->
+    <div id="crop-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm">
+        <div class="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl p-5 w-full max-w-3xl mx-4 space-y-3">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-amber-500">Crop Target Image</h3>
+                    <p class="text-[11px] text-gray-400 mt-0.5">Drag to move · corners to resize · click outside to draw new region</p>
+                </div>
+                <button onclick="cropSaveFullImage()" class="text-gray-500 hover:text-gray-300 text-[10px] font-bold cursor-pointer">ESC / Skip Crop</button>
+            </div>
+            <div class="border border-gray-700 rounded bg-gray-950 overflow-hidden flex justify-center">
+                <canvas id="crop-canvas" class="cursor-crosshair max-w-full" style="display:block;"></canvas>
+            </div>
+            <div class="flex justify-end gap-3 pt-1">
+                <button onclick="cropSaveFullImage()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">Save Full Image</button>
+                <button onclick="cropConfirm()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded transition cursor-pointer">✂ Confirm Crop & Save</button>
+            </div>
+        </div>
+    </div>
 
     <script src="/static/app.js"></script>
 </body>

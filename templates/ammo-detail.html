@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ammo Detail — Vault</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans antialiased">
+
+    <nav class="bg-gray-800 border-b border-gray-700 p-4 sticky top-0 z-50 shadow-md">
+        <div class="container mx-auto flex justify-between items-center max-w-5xl">
+            <div class="flex items-center space-x-2 text-sm">
+                <a href="index.html" class="text-amber-500 hover:underline font-medium">🎯 Inventory</a>
+                <span class="text-gray-500">/</span>
+                <span id="breadcrumb-type" class="text-gray-500 text-xs">Ammunition</span>
+                <span class="text-gray-500">/</span>
+                <span id="breadcrumb-name" class="text-gray-400 font-mono truncate max-w-xs">Loading...</span>
+            </div>
+            <a href="index.html" class="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-white font-bold transition">← Back to Vault</a>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 max-w-5xl space-y-6">
+
+        <!-- Header card -->
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
+            <div class="flex justify-between items-start flex-wrap gap-4">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span id="badge-type" class="px-2 py-0.5 rounded text-[11px] font-bold border">FACTORY</span>
+                        <span id="badge-caliber" class="px-3 py-1 bg-amber-950 text-amber-400 border border-amber-800 font-mono font-bold rounded-md text-sm">—</span>
+                    </div>
+                    <h1 id="detail-name" class="text-3xl font-extrabold text-white tracking-tight mt-2">—</h1>
+                    <p id="detail-line" class="text-amber-500 text-sm font-medium">—</p>
+                </div>
+                <button onclick="toggleEditPanel()" id="edit-pencil-btn" title="Edit load data"
+                    class="p-2 rounded-md bg-gray-700 hover:bg-amber-600 text-gray-400 hover:text-white border border-gray-600 hover:border-amber-500 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Data grid -->
+            <div id="data-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 text-xs"></div>
+        </div>
+
+        <!-- Edit panel (hidden by default) -->
+        <div id="edit-panel" class="bg-gray-800 border border-gray-700 rounded-xl p-5 shadow-xl hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-amber-500">Edit Load Data</h3>
+                <button onclick="toggleEditPanel()" class="text-gray-500 hover:text-gray-300 text-xs font-bold px-2 py-1 rounded hover:bg-gray-700 cursor-pointer">✕ Close</button>
+            </div>
+            <form id="edit-form" onsubmit="saveEdits(event)" class="space-y-4">
+                <div id="factory-fields" class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                    <div>
+                        <label class="block text-gray-400 mb-1">Brand / Manufacturer</label>
+                        <input type="text" id="ef-brand" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Caliber</label>
+                        <input type="text" id="ef-caliber" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Product Line / Powder</label>
+                        <input type="text" id="ef-line" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Bullet Type</label>
+                        <input type="text" id="ef-bullet-type" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Bullet Weight (gr)</label>
+                        <input type="number" step="0.1" id="ef-weight" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">G1 Ballistic Coefficient</label>
+                        <input type="number" step="0.001" id="ef-bc" placeholder="e.g., 0.620" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+
+                <div id="handload-fields" class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs hidden">
+                    <div>
+                        <label class="block text-gray-400 mb-1">Charge Weight (gr)</label>
+                        <input type="number" step="0.1" id="ef-charge" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">C.O.A.L. (inches)</label>
+                        <input type="number" step="0.001" id="ef-coal" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-2">
+                    <button type="button" onclick="deleteLoad()" class="px-4 py-2 bg-red-900/60 hover:bg-red-800 text-red-400 hover:text-red-200 text-xs font-bold rounded transition cursor-pointer border border-red-800/60">
+                        🗑 Delete Load
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded transition cursor-pointer">
+                        Update Load Data
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Range Sessions -->
+        <div class="bg-gray-800 border border-gray-700 rounded-xl shadow-xl overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-700 flex justify-between items-center">
+                <h2 class="text-sm font-bold uppercase tracking-wider text-blue-400">📊 Range Sessions Using This Load</h2>
+                <span id="session-badge" class="text-xs bg-gray-900 text-gray-400 px-2 py-0.5 rounded font-mono border border-gray-700">0 Sessions</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-gray-900/50 text-gray-400 uppercase font-mono border-b border-gray-700">
+                            <th class="p-3.5">Date</th>
+                            <th class="p-3.5">Firearm</th>
+                            <th class="p-3.5">Caliber</th>
+                            <th class="p-3.5 text-right">Shots</th>
+                            <th class="p-3.5 text-right">Avg Vel (FPS)</th>
+                            <th class="p-3.5 text-right">Group (in)</th>
+                            <th class="p-3.5 text-center">Target</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sessions-tbody" class="divide-y divide-gray-750 text-gray-300">
+                        <tr><td colspan="7" class="p-6 text-center text-gray-500 italic">Loading sessions...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let currentAmmoId = null;
+        let ammoData = null;
+
+        function showToast(message, type = 'success') {
+            const existing = document.getElementById('ammo-toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.id = 'ammo-toast';
+            const color = type === 'error'
+                ? 'bg-red-950/90 text-red-400 border-red-800'
+                : 'bg-gray-900/95 text-emerald-400 border-emerald-800';
+            toast.className = `fixed bottom-5 right-5 z-[100] p-4 rounded-lg shadow-xl text-xs font-bold tracking-wide border ${color} transition-all duration-300`;
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3500);
+        }
+
+        function toggleEditPanel() {
+            const panel = document.getElementById('edit-panel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        window.onload = function() {
+            const params = new URLSearchParams(window.location.search);
+            currentAmmoId = params.get('id');
+            if (!currentAmmoId) { window.location.href = 'index.html'; return; }
+            loadAmmoData();
+        };
+
+        async function loadAmmoData() {
+            try {
+                const res = await fetch(`/ammo/${currentAmmoId}`);
+                if (!res.ok) throw new Error('Not found');
+                ammoData = await res.json();
+            } catch(err) {
+                document.body.innerHTML = `<div class="p-12 text-center text-red-400 font-mono text-sm">Error: Load #${currentAmmoId} not found.</div>`;
+                return;
+            }
+            renderAmmoProfile(ammoData);
+            loadSessions();
+        }
+
+        function renderAmmoProfile(a) {
+            const isHandload = a.is_handload;
+            const name = a.brand || '—';
+            const line = a.line_or_powder || '';
+            const caliber = a.caliber || 'Unknown Caliber';
+
+            document.getElementById('breadcrumb-name').innerText = name;
+            document.getElementById('breadcrumb-type').innerText = isHandload ? 'Handloads' : 'Factory';
+            document.getElementById('detail-name').innerText = name;
+            document.getElementById('detail-line').innerText = line || (isHandload ? 'Handload Recipe' : 'Factory Load');
+            document.getElementById('badge-caliber').innerText = caliber;
+
+            const typeBadge = document.getElementById('badge-type');
+            if (isHandload) {
+                typeBadge.innerText = 'HANDLOAD';
+                typeBadge.className = 'px-2 py-0.5 rounded text-[11px] font-bold border bg-emerald-950 text-emerald-400 border-emerald-800';
+            } else {
+                typeBadge.innerText = 'FACTORY';
+                typeBadge.className = 'px-2 py-0.5 rounded text-[11px] font-bold border bg-blue-950 text-blue-400 border-blue-800';
+            }
+
+            const grid = document.getElementById('data-grid');
+            const cell = (label, value, accent) =>
+                `<div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700">
+                    <span class="text-gray-500 block mb-1">${label}</span>
+                    <span class="${accent || 'text-gray-200'} font-bold">${value || '—'}</span>
+                </div>`;
+
+            let cells = '';
+            cells += cell('Caliber', caliber, 'text-amber-400 font-mono');
+            cells += cell('Bullet Weight', a.bullet_weight ? `${a.bullet_weight} gr` : null, 'text-white font-mono');
+            cells += cell('Bullet Type', a.bullet_type);
+            cells += cell('G1 BC', a.bullet_bc != null ? a.bullet_bc.toFixed(3) : '—', a.bullet_bc ? 'text-emerald-400 font-mono' : 'text-gray-600');
+            if (isHandload) {
+                cells += cell('Powder', line);
+                cells += cell('Charge Weight', a.charge_weight ? `${a.charge_weight} gr` : null, 'text-white font-mono');
+                cells += cell('C.O.A.L.', a.coal ? `${a.coal}"` : null, 'text-white font-mono');
+            } else {
+                cells += cell('Product Line', line);
+            }
+            cells += cell('Range Sessions', a.usage_count !== undefined ? a.usage_count : '—', 'text-blue-400');
+            grid.innerHTML = cells;
+
+            // Hydrate edit form
+            document.getElementById('ef-brand').value = a.brand || '';
+            document.getElementById('ef-caliber').value = a.caliber || '';
+            document.getElementById('ef-line').value = a.line_or_powder || '';
+            document.getElementById('ef-bullet-type').value = a.bullet_type || '';
+            document.getElementById('ef-weight').value = a.bullet_weight || '';
+            document.getElementById('ef-bc').value = a.bullet_bc != null ? a.bullet_bc : '';
+            if (isHandload) {
+                document.getElementById('handload-fields').classList.remove('hidden');
+                document.getElementById('ef-charge').value = a.charge_weight || '';
+                document.getElementById('ef-coal').value = a.coal || '';
+            }
+        }
+
+        async function saveEdits(e) {
+            e.preventDefault();
+            const bcVal = parseFloat(document.getElementById('ef-bc').value);
+            const payload = {
+                brand: document.getElementById('ef-brand').value.trim(),
+                caliber: document.getElementById('ef-caliber').value.trim(),
+                line_or_powder: document.getElementById('ef-line').value.trim(),
+                bullet_type: document.getElementById('ef-bullet-type').value.trim(),
+                bullet_weight: parseFloat(document.getElementById('ef-weight').value) || null,
+                bullet_bc: isNaN(bcVal) ? null : bcVal,
+            };
+            if (ammoData?.is_handload) {
+                payload.charge_weight = parseFloat(document.getElementById('ef-charge').value) || null;
+                payload.coal = parseFloat(document.getElementById('ef-coal').value) || null;
+            }
+            // strip null/empty
+            Object.keys(payload).forEach(k => { if (payload[k] === null || payload[k] === '') delete payload[k]; });
+
+            try {
+                const res = await fetch(`/ammo/${currentAmmoId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    ammoData = await res.json();
+                    ammoData.usage_count = parseInt(document.getElementById('session-badge').innerText) || 0;
+                    renderAmmoProfile(ammoData);
+                    document.getElementById('edit-panel').classList.add('hidden');
+                    showToast('Load data updated.');
+                } else {
+                    showToast('Failed to save changes.', 'error');
+                }
+            } catch(err) {
+                showToast('Error contacting server.', 'error');
+            }
+        }
+
+        async function deleteLoad() {
+            if (!confirm('Delete this load permanently? This cannot be undone.')) return;
+            try {
+                const res = await fetch(`/ammo/${currentAmmoId}`, { method: 'DELETE' });
+                if (res.ok) {
+                    window.location.href = 'index.html';
+                } else {
+                    const body = await res.json();
+                    showToast(body.detail || 'Cannot delete this load.', 'error');
+                }
+            } catch(err) {
+                showToast('Error contacting server.', 'error');
+            }
+        }
+
+        async function loadSessions() {
+            const tbody = document.getElementById('sessions-tbody');
+            const badge = document.getElementById('session-badge');
+            try {
+                const res = await fetch(`/performance-log/ammo/${currentAmmoId}`);
+                const sessions = res.ok ? await res.json() : [];
+
+                badge.innerText = `${sessions.length} Session${sessions.length !== 1 ? 's' : ''}`;
+
+                if (sessions.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-gray-500 italic">No range sessions recorded with this load yet.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = sessions.map(s => {
+                    const grpDisplay = s.group_size_inches
+                        ? `<span class="text-amber-400 font-bold">${parseFloat(s.group_size_inches).toFixed(3)}&quot;</span>`
+                        : `<span class="text-gray-600">—</span>`;
+                    const velDisplay = s.avg_velocity
+                        ? `<span class="font-mono">${Math.round(s.avg_velocity)}</span>`
+                        : `<span class="text-gray-600">—</span>`;
+                    const targetCell = s.target_image_path
+                        ? `<a href="${s.target_image_path}" target="_blank" class="text-blue-400 hover:text-blue-300 font-bold text-[10px] underline">View</a>`
+                        : `<span class="text-gray-600 text-[10px]">—</span>`;
+                    const firearmlinkOpen = s.firearm_id
+                        ? `<a href="firearm-detail.html?id=${s.firearm_id}" class="text-white hover:text-amber-400 transition font-bold">`
+                        : `<span class="text-gray-300 font-bold">`;
+                    const firearmlinkClose = s.firearm_id ? `</a>` : `</span>`;
+
+                    return `
+                    <tr class="hover:bg-gray-700/40">
+                        <td class="p-3.5 font-mono text-gray-400">${s.date}</td>
+                        <td class="p-3.5">${firearmlinkOpen}${s.firearm_name}${firearmlinkClose}</td>
+                        <td class="p-3.5 font-mono text-gray-400">${s.caliber}</td>
+                        <td class="p-3.5 text-right text-gray-400">${s.shots || '—'}</td>
+                        <td class="p-3.5 text-right">${velDisplay}</td>
+                        <td class="p-3.5 text-right">${grpDisplay}</td>
+                        <td class="p-3.5 text-center">${targetCell}</td>
+                    </tr>`;
+                }).join('');
+            } catch(err) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-red-400 italic">Failed to load sessions.</td></tr>`;
+            }
+        }
+    </script>
+</body>
+</html>

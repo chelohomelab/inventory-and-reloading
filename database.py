@@ -52,7 +52,9 @@ class Firearm(Base):
     image_path_1 = Column(String, nullable=True)
     image_path_2 = Column(String, nullable=True)
     scope_id = Column(Integer, ForeignKey("scopes.id"), nullable=True)
-    
+    is_sold = Column(Boolean, default=False)
+    price_sold = Column(Float, nullable=True)
+
     scope = relationship("Scope", back_populates="firearms")
     barrels = relationship("Barrel", back_populates="firearm", cascade="all, delete-orphan")
     accessories = relationship("Accessory", foreign_keys=[Accessory.firearm_id])
@@ -78,12 +80,14 @@ class Ammo(Base):
     __tablename__ = "ammo"
     id = Column(Integer, primary_key=True, index=True)
     is_handload = Column(Boolean, default=False)
-    brand = Column(String)              
-    line_or_powder = Column(String)     
-    bullet_weight = Column(Float)       
-    bullet_type = Column(String)        
-    charge_weight = Column(Float, nullable=True) 
-    coal = Column(Float, nullable=True)          
+    brand = Column(String)
+    caliber = Column(String, nullable=True)
+    line_or_powder = Column(String)
+    bullet_weight = Column(Float)
+    bullet_type = Column(String)
+    bullet_bc = Column(Float, nullable=True)
+    charge_weight = Column(Float, nullable=True)
+    coal = Column(Float, nullable=True)
     image_path = Column(String, nullable=True)
     
     shot_strings = relationship("ShotString", back_populates="ammo")
@@ -113,3 +117,16 @@ class ShotString(Base):
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    # Safe migration: add caliber column to ammo table if not present
+    from sqlalchemy import text, inspect as sa_inspect
+    inspector = sa_inspect(engine)
+    if 'ammo' in inspector.get_table_names():
+        existing = [col['name'] for col in inspector.get_columns('ammo')]
+        if 'caliber' not in existing:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE ammo ADD COLUMN caliber VARCHAR"))
+                conn.commit()
+        if 'bullet_bc' not in existing:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE ammo ADD COLUMN bullet_bc FLOAT"))
+                conn.commit()

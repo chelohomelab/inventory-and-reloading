@@ -8,19 +8,25 @@ let state = "idle";
 let calibrationPoints = [];
 let pixelsPerInch = null;
 
-const BOX_WIDTH = 460;
-const BOX_HEIGHT_CHRONO = 220; 
-const BOX_HEIGHT_NORMAL = 150; 
+let liveBoxDims = { w: 300, h: 150 };
 
 let liveBoxPos = { x: 0, y: 0, customized: false };
 let isDraggingBox = false;
 let isDraggingLabelIdx = null;
 let dragOffset = { x: 0, y: 0 };
 
+// Crop modal state
+let pendingGroupData = null;
+let cropRect = { x: 0, y: 0, w: 0, h: 0 };
+let cropDisplayScale = 1;
+let cropDragState = { active: false, mode: null, startX: 0, startY: 0, origRect: null };
+
 // UI Pipeline Filters state trackers
 let currentCollectionFilter = "active"; // "active" or "sold"
 let activeItemIdForSaleLog = null;
 let activeItemIdForPictureReplacement = null;
+let currentInventoryTab = "platforms";
+let currentAmmoFilter = "factory";
 
 let lookupTables = {
     firearm_brands: [],
@@ -249,16 +255,170 @@ function switchTab(tabId) {
     const catTab = document.getElementById('catalog-tab');
     const measTab = document.getElementById('measure-tab');
     const addTab = document.getElementById('add-tab');
-    
+
     if (catTab) catTab.classList.add('hidden');
     if (measTab) measTab.classList.add('hidden');
     if (addTab) addTab.classList.add('hidden');
-    
+
     const target = document.getElementById(tabId);
     if (target) target.classList.remove('hidden');
-    
-    if (tabId === 'catalog-tab') loadCatalog();
+
+    if (tabId === 'catalog-tab') switchInventoryTab(currentInventoryTab);
     if (tabId === 'measure-tab') setupMeasureDropdowns();
+}
+
+function switchInventoryTab(tab) {
+    currentInventoryTab = tab;
+    const tabs = ['platforms', 'optics', 'ammo'];
+    tabs.forEach(t => {
+        document.getElementById(`inv-pane-${t}`)?.classList.add('hidden');
+        const btn = document.getElementById(`inv-btn-${t}`);
+        if (btn) btn.className = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+    });
+    document.getElementById(`inv-pane-${tab}`)?.classList.remove('hidden');
+    const activeBtn = document.getElementById(`inv-btn-${tab}`);
+    if (activeBtn) activeBtn.className = "px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer";
+
+    if (tab === 'platforms') loadCatalog();
+    if (tab === 'optics')    loadScopes();
+    if (tab === 'ammo')      loadAmmoInventory(currentAmmoFilter);
+}
+
+function switchAmmoFilter(type) {
+    currentAmmoFilter = type;
+    const factBtn = document.getElementById('ammo-btn-factory');
+    const handBtn = document.getElementById('ammo-btn-handload');
+    if (type === 'factory') {
+        if (factBtn) factBtn.className = "px-3 py-1 rounded bg-gray-800 text-blue-400 cursor-pointer";
+        if (handBtn) handBtn.className = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+    } else {
+        if (factBtn) factBtn.className = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+        if (handBtn) handBtn.className = "px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer";
+    }
+    loadAmmoInventory(type);
+}
+
+async function loadScopes() {
+    const container = document.getElementById('scopes-container');
+    if (!container) return;
+    container.innerHTML = '<p class="text-gray-400 col-span-3 italic text-sm">Loading optics...</p>';
+
+    try {
+        const res = await fetch('/scopes/');
+        const scopes = res.ok ? await res.json() : [];
+        document.getElementById('inventory-count').innerText = `${scopes.length} Optic${scopes.length !== 1 ? 's' : ''} Registered`;
+
+        if (scopes.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 col-span-3 italic text-sm">No optics registered. Add one via the Add Inventory form.</p>';
+            return;
+        }
+
+        container.innerHTML = scopes.map(s => {
+            const imgHtml = s.image_path
+                ? `<img src="${s.image_path}" class="w-full h-full object-cover">`
+                : `<div class="w-full h-full flex items-center justify-center text-5xl">🔭</div>`;
+            const mountLabel = s.mounted_on
+                ? `<p class="text-xs text-gray-400 truncate">Mounted: <span class="text-gray-200 font-medium">${s.mounted_on}</span></p>`
+                : `<p class="text-xs text-gray-600 italic">Not currently mounted</p>`;
+            const linkAttr = s.mounted_firearm_id
+                ? `onclick="window.location.href='firearm-detail.html?id=${s.mounted_firearm_id}'" class="cursor-pointer hover:border-blue-400/70 transition"`
+                : `class=""`;
+            return `
+            <div ${linkAttr} style="background:#1f2937;border:1px solid #374151;border-radius:0.5rem;overflow:hidden;box-shadow:0 10px 15px -3px rgba(0,0,0,.4)">
+                <div class="w-full h-40 bg-gray-950 overflow-hidden">${imgHtml}</div>
+                <div class="p-4 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-400 border border-blue-800">OPTIC</span>
+                        <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-gray-900 text-gray-300 border border-gray-700">${s.units || 'MOA'}</span>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-white">${s.brand || '—'}</h3>
+                        <p class="text-sm text-amber-500">${s.model || '—'}</p>
+                    </div>
+                    <div class="border-t border-gray-700 pt-2 space-y-1">
+                        ${mountLabel}
+                        <p class="text-xs text-gray-400">Cost Basis: <span class="text-white font-mono">$${parseFloat(s.price_paid || 0).toFixed(2)}</span></p>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    } catch(err) {
+        container.innerHTML = '<p class="text-red-400 col-span-3 italic text-sm">Failed to load optics.</p>';
+    }
+}
+
+async function loadAmmoInventory(type) {
+    const container = document.getElementById('ammo-container');
+    if (!container) return;
+    container.innerHTML = '<p class="text-gray-400 italic text-sm">Loading ammunition...</p>';
+
+    try {
+        const res = await fetch('/ammo/');
+        const all = res.ok ? await res.json() : [];
+        const filtered = all.filter(a => type === 'handload' ? a.is_handload : !a.is_handload);
+
+        document.getElementById('inventory-count').innerText = `${filtered.length} Load${filtered.length !== 1 ? 's' : ''} Registered`;
+
+        if (filtered.length === 0) {
+            container.innerHTML = `<p class="text-gray-500 italic text-sm">No ${type === 'handload' ? 'handload recipes' : 'factory loads'} registered.</p>`;
+            return;
+        }
+
+        // Group by caliber
+        const groups = {};
+        filtered.forEach(a => {
+            const cal = a.caliber || 'Unknown Caliber';
+            if (!groups[cal]) groups[cal] = [];
+            groups[cal].push(a);
+        });
+
+        container.innerHTML = Object.entries(groups).sort(([a],[b]) => a.localeCompare(b)).map(([cal, loads]) => `
+            <div class="mb-8">
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-amber-500 font-mono">${cal}</span>
+                    <span class="text-[10px] text-gray-500">${loads.length} load${loads.length !== 1 ? 's' : ''}</span>
+                    <div class="flex-1 border-t border-gray-700/60"></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    ${loads.map(renderAmmoCard).join('')}
+                </div>
+            </div>`
+        ).join('');
+    } catch(err) {
+        container.innerHTML = '<p class="text-red-400 italic text-sm">Failed to load ammunition.</p>';
+    }
+}
+
+function renderAmmoCard(ammo) {
+    const isHandload = ammo.is_handload;
+    const badgeCls = isHandload
+        ? 'bg-emerald-950 text-emerald-400 border-emerald-800'
+        : 'bg-blue-950 text-blue-400 border-blue-800';
+    const badgeLabel = isHandload ? 'HANDLOAD' : 'FACTORY';
+    const line = ammo.line_or_powder || '';
+
+    let detail = '';
+    if (isHandload) {
+        if (line)              detail += `<p class="text-[11px] text-gray-400">Powder: <span class="text-gray-200">${line}</span></p>`;
+        if (ammo.charge_weight) detail += `<p class="text-[11px] text-gray-400">Charge: <span class="text-gray-200 font-mono">${ammo.charge_weight}gr</span></p>`;
+        if (ammo.coal)         detail += `<p class="text-[11px] text-gray-400">COAL: <span class="text-gray-200 font-mono">${ammo.coal}&quot;</span></p>`;
+    } else {
+        if (line) detail += `<p class="text-[11px] text-gray-400">Line: <span class="text-gray-200">${line}</span></p>`;
+    }
+
+    return `
+    <div onclick="window.location.href='ammo-detail.html?id=${ammo.id}'"
+         class="bg-gray-800 border border-gray-700 rounded-lg p-4 space-y-2 hover:border-amber-500/60 transition cursor-pointer shadow-lg">
+        <div class="flex justify-between items-start">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeCls}">${badgeLabel}</span>
+            <span class="text-xs font-mono font-bold text-amber-400">${ammo.bullet_weight}gr</span>
+        </div>
+        <div>
+            <h3 class="text-sm font-bold text-white leading-tight">${ammo.brand || '—'}</h3>
+            <p class="text-[11px] text-gray-400">${ammo.bullet_type || '—'}</p>
+        </div>
+        ${detail ? `<div class="border-t border-gray-700/60 pt-2 space-y-0.5">${detail}</div>` : ''}
+    </div>`;
 }
 
 function switchFormCategory(targetCat) {
@@ -441,8 +601,7 @@ function handleStart(e) {
     if (state === "idle") return;
     const coords = getCanvasCoords(e);
     if (state === "measuring") {
-        const h = currentGroupShots.some(s => s.velocity !== null) ? BOX_HEIGHT_CHRONO : BOX_HEIGHT_NORMAL;
-        if (coords.x >= liveBoxPos.x && coords.x <= liveBoxPos.x + BOX_WIDTH && coords.y >= liveBoxPos.y && coords.y <= liveBoxPos.y + h) {
+        if (coords.x >= liveBoxPos.x && coords.x <= liveBoxPos.x + liveBoxDims.w && coords.y >= liveBoxPos.y && coords.y <= liveBoxPos.y + liveBoxDims.h) {
             e.preventDefault(); isDraggingBox = true; dragOffset.x = coords.x - liveBoxPos.x; dragOffset.y = coords.y - liveBoxPos.y; return;
         }
     }
@@ -508,20 +667,349 @@ function findMaxDistance(pts) {
 }
 
 function saveCurrentGroup() {
-    const gunSelect = document.getElementById('select-gun'); const ammoSelect = document.getElementById('select-ammo');
-    if (!gunSelect || !ammoSelect || !gunSelect.value || !ammoSelect.value || currentGroupShots.length < 2) return;
-    groups.push({ shots: [...currentGroupShots], size: (findMaxDistance(currentGroupShots) / pixelsPerInch).toFixed(3), gunText: gunSelect.options[gunSelect.selectedIndex].text, ammoText: ammoSelect.options[ammoSelect.selectedIndex].text, boxX: liveBoxPos.x, boxY: liveBoxPos.y, chrono: null, dateText: "", tempText: "" });
-    currentGroupShots = []; 
+    if (currentGroupShots.length < 2) {
+        showToast("Need at least 2 shots to save a group.", "error");
+        return;
+    }
+    const gunSelect = document.getElementById('select-gun');
+    const ammoSelect = document.getElementById('select-ammo');
+    if (!gunSelect || !gunSelect.value) {
+        showToast("Please select a Firearm before saving.", "error");
+        return;
+    }
+    if (!ammoSelect || !ammoSelect.value) {
+        showToast("Please select a Load Profile before saving.", "error");
+        return;
+    }
+
+    const size = (findMaxDistance(currentGroupShots) / pixelsPerInch).toFixed(3);
+    const groupData = {
+        shots: [...currentGroupShots],
+        size,
+        gunText: gunSelect.options[gunSelect.selectedIndex].text,
+        ammoText: ammoSelect.options[ammoSelect.selectedIndex].text,
+        boxX: liveBoxPos.x,
+        boxY: liveBoxPos.y,
+        chrono: null,
+        dateText: "",
+        tempText: "",
+        cropRect: null
+    };
+
+    if (imgElement.src && imgElement.naturalWidth > 0) {
+        openCropModal(groupData);
+    } else {
+        commitGroupToList(groupData);
+    }
+}
+
+function commitGroupToList(groupData) {
+    groups.push(groupData);
+    currentGroupShots = [];
     const liveRes = document.getElementById('live-result');
-    if (liveRes) liveRes.classList.add('hidden'); 
-    resetDragState(); updateSidebarList(); redrawCanvas();
+    if (liveRes) liveRes.classList.add('hidden');
+    resetDragState();
+    updateSidebarList();
+    redrawCanvas();
+    showToast(`Group ${groups.length} saved — ${groupData.size}"`);
+}
+
+function openCropModal(groupData) {
+    pendingGroupData = groupData;
+    const cropCanvas = document.getElementById('crop-canvas');
+
+    const MAX_W = 820, MAX_H = 520;
+    cropDisplayScale = Math.min(MAX_W / canvas.width, MAX_H / canvas.height, 1);
+    cropCanvas.width = Math.round(canvas.width * cropDisplayScale);
+    cropCanvas.height = Math.round(canvas.height * cropDisplayScale);
+
+    // Pre-select a crop region around the shot bounding box + padding
+    const shots = groupData.shots;
+    const PAD = 200;
+    const minX = Math.max(0, Math.min(...shots.map(s => s.x)) - PAD);
+    const minY = Math.max(0, Math.min(...shots.map(s => s.y)) - PAD);
+    const maxX = Math.min(canvas.width,  Math.max(...shots.map(s => s.x)) + PAD);
+    const maxY = Math.min(canvas.height, Math.max(...shots.map(s => s.y)) + PAD);
+    cropRect = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+
+    drawCropOverlay();
+    document.getElementById('crop-modal').classList.remove('hidden');
+
+    cropCanvas.onmousedown  = cropHandleStart;
+    cropCanvas.onmousemove  = cropHandleMove;
+    cropCanvas.onmouseup    = cropHandleEnd;
+    cropCanvas.onmouseleave = cropHandleEnd;
+    cropCanvas.ontouchstart = (e) => { e.preventDefault(); cropHandleStart(e.touches[0]); };
+    cropCanvas.ontouchmove  = (e) => { e.preventDefault(); cropHandleMove(e.touches[0]); };
+    cropCanvas.ontouchend   = cropHandleEnd;
+}
+
+function drawCropOverlay() {
+    const cropCanvas = document.getElementById('crop-canvas');
+    const cropCtx = cropCanvas.getContext('2d');
+    const s = cropDisplayScale;
+
+    cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+    cropCtx.drawImage(imgElement, 0, 0, cropCanvas.width, cropCanvas.height);
+
+    // Shot dots for reference
+    if (pendingGroupData) {
+        pendingGroupData.shots.forEach((p, i) => {
+            pendingGroupData.shots.forEach((q, j) => {
+                if (j <= i) return;
+                cropCtx.strokeStyle = '#ef4444';
+                cropCtx.lineWidth = Math.max(2, 4 * s);
+                cropCtx.beginPath();
+                cropCtx.moveTo(p.x * s, p.y * s);
+                cropCtx.lineTo(q.x * s, q.y * s);
+                cropCtx.stroke();
+            });
+            cropCtx.fillStyle = '#ef4444';
+            cropCtx.beginPath();
+            cropCtx.arc(p.x * s, p.y * s, Math.max(4, 7 * s), 0, Math.PI * 2);
+            cropCtx.fill();
+        });
+    }
+
+    const rx = cropRect.x * s, ry = cropRect.y * s;
+    const rw = cropRect.w * s, rh = cropRect.h * s;
+
+    // Dark vignette outside crop region
+    cropCtx.fillStyle = 'rgba(0,0,0,0.62)';
+    cropCtx.fillRect(0, 0, cropCanvas.width, ry);
+    cropCtx.fillRect(0, ry + rh, cropCanvas.width, cropCanvas.height - ry - rh);
+    cropCtx.fillRect(0, ry, rx, rh);
+    cropCtx.fillRect(rx + rw, ry, cropCanvas.width - rx - rw, rh);
+
+    // Crop border
+    cropCtx.strokeStyle = '#f59e0b';
+    cropCtx.lineWidth = 2;
+    cropCtx.strokeRect(rx, ry, rw, rh);
+
+    // Rule-of-thirds grid
+    cropCtx.strokeStyle = 'rgba(255,255,255,0.18)';
+    cropCtx.lineWidth = 0.5;
+    cropCtx.beginPath();
+    cropCtx.moveTo(rx + rw/3, ry);    cropCtx.lineTo(rx + rw/3, ry + rh);
+    cropCtx.moveTo(rx + 2*rw/3, ry); cropCtx.lineTo(rx + 2*rw/3, ry + rh);
+    cropCtx.moveTo(rx, ry + rh/3);   cropCtx.lineTo(rx + rw, ry + rh/3);
+    cropCtx.moveTo(rx, ry + 2*rh/3); cropCtx.lineTo(rx + rw, ry + 2*rh/3);
+    cropCtx.stroke();
+
+    // Corner handles
+    const HS = 9;
+    cropCtx.fillStyle = '#f59e0b';
+    [[rx, ry], [rx + rw, ry], [rx, ry + rh], [rx + rw, ry + rh]].forEach(([hx, hy]) => {
+        cropCtx.fillRect(hx - HS/2, hy - HS/2, HS, HS);
+    });
+}
+
+function getCropCanvasPos(e) {
+    const cropCanvas = document.getElementById('crop-canvas');
+    const rect = cropCanvas.getBoundingClientRect();
+    const sx = cropCanvas.width / rect.width;
+    const sy = cropCanvas.height / rect.height;
+    return { x: (e.clientX - rect.left) * sx, y: (e.clientY - rect.top) * sy };
+}
+
+function getCropHitMode(dx, dy) {
+    const s = cropDisplayScale;
+    const rx = cropRect.x * s, ry = cropRect.y * s;
+    const rw = cropRect.w * s, rh = cropRect.h * s;
+    const HIT = 12;
+    if (Math.abs(dx - rx) <= HIT && Math.abs(dy - ry) <= HIT)           return 'nw';
+    if (Math.abs(dx - (rx+rw)) <= HIT && Math.abs(dy - ry) <= HIT)      return 'ne';
+    if (Math.abs(dx - rx) <= HIT && Math.abs(dy - (ry+rh)) <= HIT)      return 'sw';
+    if (Math.abs(dx - (rx+rw)) <= HIT && Math.abs(dy - (ry+rh)) <= HIT) return 'se';
+    if (dx >= rx && dx <= rx+rw && dy >= ry && dy <= ry+rh)              return 'move';
+    return 'draw';
+}
+
+function cropHandleStart(e) {
+    const { x: dx, y: dy } = getCropCanvasPos(e);
+    cropDragState = { active: true, mode: getCropHitMode(dx, dy), startX: dx, startY: dy, origRect: { ...cropRect } };
+}
+
+function cropHandleMove(e) {
+    if (!cropDragState.active) return;
+    const { x: dx, y: dy } = getCropCanvasPos(e);
+    const s = cropDisplayScale;
+    const W = canvas.width, H = canvas.height;
+    const orig = cropDragState.origRect;
+    const dxC = (dx - cropDragState.startX) / s;
+    const dyC = (dy - cropDragState.startY) / s;
+
+    if (cropDragState.mode === 'move') {
+        cropRect.x = Math.max(0, Math.min(W - orig.w, orig.x + dxC));
+        cropRect.y = Math.max(0, Math.min(H - orig.h, orig.y + dyC));
+    } else if (cropDragState.mode === 'draw') {
+        const cx = dx / s, cy = dy / s;
+        const sx = cropDragState.startX / s, sy = cropDragState.startY / s;
+        cropRect.x = Math.max(0, Math.min(cx, sx));
+        cropRect.y = Math.max(0, Math.min(cy, sy));
+        cropRect.w = Math.min(Math.abs(cx - sx), W - cropRect.x);
+        cropRect.h = Math.min(Math.abs(cy - sy), H - cropRect.y);
+    } else {
+        let nx = orig.x, ny = orig.y, nw = orig.w, nh = orig.h;
+        if (cropDragState.mode === 'nw') { nx = orig.x + dxC; ny = orig.y + dyC; nw = orig.w - dxC; nh = orig.h - dyC; }
+        if (cropDragState.mode === 'ne') { ny = orig.y + dyC; nw = orig.w + dxC; nh = orig.h - dyC; }
+        if (cropDragState.mode === 'sw') { nx = orig.x + dxC; nw = orig.w - dxC; nh = orig.h + dyC; }
+        if (cropDragState.mode === 'se') { nw = orig.w + dxC; nh = orig.h + dyC; }
+        if (nw > 30 && nh > 30) {
+            cropRect.x = Math.max(0, nx); cropRect.y = Math.max(0, ny);
+            cropRect.w = Math.min(nw, W - cropRect.x); cropRect.h = Math.min(nh, H - cropRect.y);
+        }
+    }
+    drawCropOverlay();
+}
+
+function cropHandleEnd() { cropDragState.active = false; }
+
+function cropConfirm() {
+    if (pendingGroupData) {
+        pendingGroupData.cropRect = cropRect.w > 0 && cropRect.h > 0 ? { ...cropRect } : null;
+        commitGroupToList(pendingGroupData);
+        pendingGroupData = null;
+    }
+    closeCropModal();
+}
+
+function cropSaveFullImage() {
+    if (pendingGroupData) {
+        pendingGroupData.cropRect = null;
+        commitGroupToList(pendingGroupData);
+        pendingGroupData = null;
+    }
+    closeCropModal();
+}
+
+function closeCropModal() {
+    document.getElementById('crop-modal').classList.add('hidden');
+    const cropCanvas = document.getElementById('crop-canvas');
+    cropCanvas.onmousedown = cropCanvas.onmousemove = cropCanvas.onmouseup = cropCanvas.onmouseleave = null;
+    cropCanvas.ontouchstart = cropCanvas.ontouchmove = cropCanvas.ontouchend = null;
 }
 
 function redrawCanvas() {
     if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height); if (imgElement.src) ctx.drawImage(imgElement, 0, 0);
-    groups.forEach(g => { drawConnections(g.shots, '#ef4444', 6); });
-    if (currentGroupShots.length > 0) drawConnections(currentGroupShots, '#ef4444', 6);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (imgElement.src) ctx.drawImage(imgElement, 0, 0);
+
+    // Draw saved groups with their overlay boxes
+    groups.forEach(g => {
+        drawConnections(g.shots, '#ef4444', 6);
+        drawStatsBox(g.shots, g.size, g.boxX, g.boxY, g.ammoText, g.gunText);
+    });
+
+    // Draw current in-progress shots
+    if (currentGroupShots.length > 0) {
+        drawConnections(currentGroupShots, '#3b82f6', 6);
+        if (currentGroupShots.length >= 2 && pixelsPerInch) {
+            const size = (findMaxDistance(currentGroupShots) / pixelsPerInch).toFixed(3);
+            const gunSel  = document.getElementById('select-gun');
+            const ammoSel = document.getElementById('select-ammo');
+            const livePlatform = gunSel?.selectedIndex  > 0 ? gunSel.options[gunSel.selectedIndex].text   : '';
+            const liveLoad     = ammoSel?.selectedIndex > 0 ? ammoSel.options[ammoSel.selectedIndex].text : '';
+            drawStatsBox(currentGroupShots, size, liveBoxPos.x, liveBoxPos.y, liveLoad, livePlatform);
+        }
+    }
+
+    // Draw calibration points as blue dots with a line between them
+    if (calibrationPoints.length > 0) {
+        ctx.fillStyle = '#3b82f6';
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 2;
+        calibrationPoints.forEach(p => {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        if (calibrationPoints.length === 2) {
+            ctx.beginPath();
+            ctx.setLineDash([6, 4]);
+            ctx.moveTo(calibrationPoints[0].x, calibrationPoints[0].y);
+            ctx.lineTo(calibrationPoints[1].x, calibrationPoints[1].y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+    }
+}
+
+function drawStatsBox(shots, sizeInches, boxX, boxY, loadLabel, platformLabel) {
+    if (!shots || shots.length < 2) return;
+
+    const velocities = shots.map(s => s.velocity).filter(v => v !== null);
+    const hasChrono = velocities.length > 0;
+
+    const trunc = (s, n) => s && s.length > n ? s.slice(0, n - 1) + '…' : (s || '');
+    const loadStr = trunc(loadLabel, 34);
+    const platStr = trunc(platformLabel, 34);
+
+    // Build lines: [text, font, color, lineAdvance]
+    const lines = [
+        [`GROUP: ${sizeInches}"`, 'bold 32px monospace', '#f59e0b', 42],
+    ];
+    if (loadStr) lines.push([loadStr, 'bold 22px monospace', '#a3e635', 30]);
+    if (platStr) lines.push([platStr, '20px monospace',      '#60a5fa', 28]);
+    lines.push([`${shots.length} shots`, '22px monospace', '#9ca3af', 30]);
+
+    if (hasChrono) {
+        const avg = Math.round(velocities.reduce((a, b) => a + b, 0) / velocities.length);
+        const es  = Math.max(...velocities) - Math.min(...velocities);
+        const sd  = velocities.length > 1
+            ? Math.sqrt(velocities.reduce((a, v) => a + Math.pow(v - avg, 2), 0) / (velocities.length - 1)).toFixed(1)
+            : 0;
+        lines.push([`AVG: ${avg} fps`,            'bold 26px monospace', '#60a5fa', 36]);
+        lines.push([`ES: ${es} fps  |  SD: ${sd}`, '22px monospace',     '#9ca3af', 30]);
+        velocities.forEach((v, i) =>
+            lines.push([`  Shot ${i + 1}: ${v} fps`, '22px monospace', '#6b7280', 28])
+        );
+    }
+
+    // Measure widest line to set box width
+    const HPAD = 20, VTOP = 16, VBOT = 14;
+    let maxW = 0;
+    lines.forEach(([text, font]) => {
+        ctx.font = font;
+        maxW = Math.max(maxW, ctx.measureText(text).width);
+    });
+    const BOX_W = Math.ceil(maxW) + HPAD * 2;
+    const BOX_H = VTOP + lines.reduce((sum, [,,, adv]) => sum + adv, 0) + VBOT;
+
+    liveBoxDims.w = BOX_W;
+    liveBoxDims.h = BOX_H;
+
+    // Auto-position near centroid if not customized
+    if (!liveBoxPos.customized && boxX === 0 && boxY === 0) {
+        const cx = shots.reduce((a, s) => a + s.x, 0) / shots.length;
+        const cy = shots.reduce((a, s) => a + s.y, 0) / shots.length;
+        boxX = Math.min(cx + 20, canvas.width - BOX_W - 10);
+        boxY = Math.max(cy - BOX_H / 2, 10);
+        liveBoxPos.x = boxX;
+        liveBoxPos.y = boxY;
+    }
+
+    // Draw background
+    ctx.fillStyle = 'rgba(10, 10, 20, 0.88)';
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, BOX_W, BOX_H, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    // Draw each line
+    const px = boxX + HPAD;
+    let py = boxY + VTOP;
+    lines.forEach(([text, font, color, advance]) => {
+        ctx.font = font;
+        ctx.fillStyle = color;
+        // offset baseline by approx ascent (80% of font size)
+        const size = parseInt(font.match(/(\d+)px/)[1]);
+        py += size * 0.82;
+        ctx.fillText(text, px, py);
+        py += advance - size * 0.82;
+    });
 }
 
 function drawConnections(shots, color, width) {
@@ -535,9 +1023,258 @@ function drawConnections(shots, color, width) {
     shots.forEach(p => { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); ctx.fill(); });
 }
 
-function updateSidebarList() {}
-function downloadAnnotatedTarget() {}
-function commitSessionToDatabase() {}
+function deleteGroup(idx) {
+    groups.splice(idx, 1);
+    updateSidebarList();
+    redrawCanvas();
+}
+
+function updateSidebarList() {
+    const list = document.getElementById('session-groups-list');
+    const saveBtn  = document.getElementById('db-save-session-btn');
+    const dlBtn    = document.getElementById('download-btn');
+    const shareBtn = document.getElementById('share-btn');
+    if (!list) return;
+
+    if (groups.length === 0) {
+        list.innerHTML = `<p class="text-xs text-gray-500 italic">No groups recorded in this session yet.</p>`;
+        if (saveBtn)  saveBtn.classList.add('hidden');
+        if (dlBtn)    dlBtn.classList.add('hidden');
+        if (shareBtn) shareBtn.classList.add('hidden');
+        return;
+    }
+
+    list.innerHTML = groups.map((g, idx) => {
+        const velocities = g.shots.map(s => s.velocity).filter(v => v !== null);
+        const avgVel = velocities.length > 0
+            ? Math.round(velocities.reduce((a, b) => a + b, 0) / velocities.length)
+            : null;
+        const velLine = avgVel !== null
+            ? `<span class="text-blue-400 font-mono">${avgVel} fps avg</span> · <span class="text-gray-500">${velocities.length} shots</span>`
+            : `<span class="text-gray-500">${g.shots.length} shots · no chrono</span>`;
+
+        return `
+        <div class="bg-gray-900 border border-gray-700 rounded-lg p-3 space-y-1.5">
+            <div class="flex justify-between items-start">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-500">Group ${idx + 1}</span>
+                <button onclick="deleteGroup(${idx})"
+                    class="text-red-500 hover:text-red-400 text-[10px] font-bold cursor-pointer leading-none">✕ Remove</button>
+            </div>
+            <p class="text-xs font-bold text-white truncate">${g.gunText}</p>
+            <p class="text-[11px] text-gray-400 truncate">${g.ammoText}</p>
+            <div class="flex justify-between items-center pt-1 border-t border-gray-750">
+                <span class="text-emerald-400 font-mono font-bold text-sm">${g.size}&quot;</span>
+                <span class="text-[11px]">${velLine}</span>
+            </div>
+        </div>`;
+    }).join('');
+
+    if (saveBtn)  saveBtn.classList.remove('hidden');
+    if (dlBtn)    dlBtn.classList.remove('hidden');
+    if (shareBtn) shareBtn.classList.remove('hidden');
+}
+function saveForShare() {
+    if (!canvas || groups.length === 0) return;
+
+    const FOOTER_H = 60;
+    const off = document.createElement('canvas');
+    off.width  = canvas.width;
+    off.height = canvas.height + FOOTER_H;
+    const octx = off.getContext('2d');
+
+    // Main annotated canvas (already has all stats boxes drawn)
+    octx.drawImage(canvas, 0, 0);
+
+    // Footer banner
+    octx.fillStyle = '#050508';
+    octx.fillRect(0, canvas.height, canvas.width, FOOTER_H);
+
+    // Amber top edge
+    octx.strokeStyle = '#f59e0b';
+    octx.lineWidth = 2;
+    octx.beginPath();
+    octx.moveTo(0, canvas.height + 1);
+    octx.lineTo(canvas.width, canvas.height + 1);
+    octx.stroke();
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const groupSummary = groups.map((g, i) => `G${i + 1}: ${g.size}"`).join('   ');
+    const gunLabel = groups[0]?.gunText || '';
+
+    const fontSize = Math.max(14, Math.min(22, Math.round(canvas.width / 55)));
+    const midY = canvas.height + FOOTER_H / 2 + fontSize * 0.38;
+
+    octx.font = `bold ${fontSize}px monospace`;
+    octx.fillStyle = '#f59e0b';
+    octx.textAlign = 'left';
+    octx.fillText('🎯 ' + groupSummary, 20, midY);
+
+    octx.font = `${Math.round(fontSize * 0.82)}px monospace`;
+    octx.fillStyle = '#6b7280';
+    octx.textAlign = 'right';
+    octx.fillText((gunLabel ? gunLabel + '  ·  ' : '') + dateStr, canvas.width - 20, midY);
+    octx.textAlign = 'left';
+
+    const link = document.createElement('a');
+    link.download = `range_session_${dateStr}.png`;
+    link.href = off.toDataURL('image/png');
+    link.click();
+}
+function downloadAnnotatedTarget() {
+    if (!canvas || groups.length === 0) return;
+
+    // Work on an offscreen copy so we don't dirty the live canvas
+    const offscreen = document.createElement('canvas');
+    offscreen.width = canvas.width;
+    offscreen.height = canvas.height;
+    const octx = offscreen.getContext('2d');
+
+    // 1. Draw the base image
+    octx.drawImage(imgElement, 0, 0);
+
+    // 2. Re-draw all saved group lines & dots
+    groups.forEach(g => {
+        octx.strokeStyle = '#ef4444';
+        octx.lineWidth = 6;
+        for (let i = 0; i < g.shots.length; i++) {
+            for (let j = i + 1; j < g.shots.length; j++) {
+                octx.beginPath();
+                octx.moveTo(g.shots[i].x, g.shots[i].y);
+                octx.lineTo(g.shots[j].x, g.shots[j].y);
+                octx.stroke();
+            }
+        }
+        g.shots.forEach(p => {
+            octx.fillStyle = '#ef4444';
+            octx.beginPath();
+            octx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+            octx.fill();
+        });
+    });
+
+    // 3. Draw a stats legend box in the top-left corner
+    const PAD = 18, LINE = 22, BOX_W = 340;
+    const labelLines = groups.map((g, idx) => {
+        const velocities = g.shots.map(s => s.velocity).filter(v => v !== null);
+        const avgVel = velocities.length > 0
+            ? Math.round(velocities.reduce((a, b) => a + b, 0) / velocities.length)
+            : null;
+        const velStr = avgVel !== null ? `  ${avgVel} fps avg` : '';
+        return `G${idx + 1}: ${g.size}"  ·  ${g.gunText}${velStr}`;
+    });
+
+    const BOX_H = PAD * 2 + LINE * (labelLines.length + 1);
+    octx.fillStyle = 'rgba(10, 10, 20, 0.82)';
+    octx.strokeStyle = '#f59e0b';
+    octx.lineWidth = 2;
+    octx.beginPath();
+    octx.roundRect(PAD, PAD, BOX_W, BOX_H, 8);
+    octx.fill();
+    octx.stroke();
+
+    octx.font = 'bold 16px monospace';
+    octx.fillStyle = '#f59e0b';
+    octx.fillText('SESSION RESULTS', PAD + 14, PAD + LINE);
+
+    octx.font = '14px monospace';
+    octx.fillStyle = '#e5e7eb';
+    labelLines.forEach((line, i) => {
+        octx.fillText(line, PAD + 14, PAD + LINE * (i + 2));
+    });
+
+    // 4. Trigger download
+    const link = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    link.download = `target_session_${dateStr}.png`;
+    link.href = offscreen.toDataURL('image/png');
+    link.click();
+}
+async function commitSessionToDatabase() {
+    if (groups.length === 0) return;
+
+    const dateInput = document.getElementById('session-date');
+    const sessionDate = dateInput ? dateInput.value : new Date().toISOString().split('T')[0];
+
+    const gunSelect = document.getElementById('select-gun');
+    const ammoSelect = document.getElementById('select-ammo');
+
+    const defaultGunId = gunSelect ? gunSelect.value : null;
+    const defaultAmmoId = ammoSelect ? ammoSelect.value : null;
+
+    if (!defaultGunId || !defaultAmmoId) {
+        showToast("Please select a Firearm and Load Profile before saving to DB.", "error");
+        return;
+    }
+
+    const saveBtn = document.getElementById('db-save-session-btn');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.innerText = "Uploading…"; }
+
+    // Fetch the primary barrel ID once before the loop
+    let barrelId = null;
+    try {
+        const gunRes = await fetch(`/firearms/${defaultGunId}`);
+        if (gunRes.ok) {
+            const gunData = await gunRes.json();
+            barrelId = gunData.barrels && gunData.barrels.length > 0 ? gunData.barrels[0].id : null;
+        }
+    } catch (_) {}
+
+    if (!barrelId) {
+        showToast("Could not resolve barrel for selected firearm.", "error");
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerText = "🚀 Upload Data to Homelab DB"; }
+        return;
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const g of groups) {
+        const velocities = g.shots.map(s => s.velocity).filter(v => v !== null);
+        const velocitiesCsv = velocities.length > 0 ? velocities.join(',') : '';
+
+        // Build per-group image blob, respecting saved crop region
+        let groupBlob = null;
+        if (imgElement.src && imgElement.naturalWidth > 0) {
+            if (g.cropRect && g.cropRect.w > 0 && g.cropRect.h > 0) {
+                const off = document.createElement('canvas');
+                off.width  = Math.round(g.cropRect.w);
+                off.height = Math.round(g.cropRect.h);
+                off.getContext('2d').drawImage(
+                    canvas,
+                    g.cropRect.x, g.cropRect.y, g.cropRect.w, g.cropRect.h,
+                    0, 0, off.width, off.height
+                );
+                groupBlob = await new Promise(resolve => off.toBlob(resolve, 'image/jpeg', 0.88));
+            } else {
+                groupBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.88));
+            }
+        }
+
+        const formData = new FormData();
+        formData.append('barrel_id', barrelId);
+        formData.append('ammo_id', defaultAmmoId);
+        formData.append('date', sessionDate);
+        formData.append('velocities_csv', velocitiesCsv);
+        formData.append('group_size', g.size);
+        if (groupBlob) formData.append('target_image', groupBlob, 'target.jpg');
+
+        try {
+            const res = await fetch('/performance-log/', { method: 'POST', body: formData });
+            if (res.ok) { successCount++; } else { failCount++; }
+        } catch (_) { failCount++; }
+    }
+
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerText = "🚀 Upload Data to Homelab DB"; }
+
+    if (failCount === 0) {
+        showToast(`${successCount} group${successCount > 1 ? 's' : ''} committed to database.`);
+        groups = [];
+        updateSidebarList();
+        redrawCanvas();
+    } else {
+        showToast(`${successCount} saved, ${failCount} failed. Check console for details.`, "error");
+    }
+}
 function resetCanvas() { calibrationPoints = []; currentGroupShots = []; groups = []; pixelsPerInch = null; state = imgElement.src ? "calibrating" : "idle"; redrawCanvas(); }
 
 async function loadCatalog() {
@@ -545,7 +1282,7 @@ async function loadCatalog() {
     const response = await fetch('/catalog/');
     const inventory = await response.json();
 
-    document.getElementById('inventory-count').innerText = `${inventory.length} Assets Logged`;
+    document.getElementById('inventory-count').innerText = `${inventory.length} Platform${inventory.length !== 1 ? 's' : ''} Logged`;
     container.innerHTML = '';
 
     inventory.forEach(gun => {
@@ -589,12 +1326,51 @@ if (firearmForm) {
             const response = await fetch('/firearms/', { method: 'POST', body: formData });
             if (response.ok) {
                 e.target.reset(); const ext = document.getElementById('tc-modular-extension'); if (ext) ext.classList.add('hidden');
-                showToast('Hardware logged successfully.'); await fetchInitialLookupData(); switchTab('catalog-tab'); 
+                showToast('Hardware logged successfully.'); await fetchInitialLookupData(); switchTab('catalog-tab');
             } else {
                 showToast('Asset data accepted locally for offline caching.', 'success');
                 e.target.reset(); switchTab('catalog-tab');
             }
         } catch (err) { e.target.reset(); switchTab('catalog-tab'); }
+    });
+}
+
+const factoryAmmoForm = document.getElementById('ammo-factory-form');
+if (factoryAmmoForm) {
+    factoryAmmoForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        try {
+            const response = await fetch('/ammo/', { method: 'POST', body: formData });
+            if (response.ok) {
+                e.target.reset();
+                showToast('Factory load registered.');
+            } else {
+                showToast('Failed to save ammo load.', 'error');
+            }
+        } catch (err) {
+            showToast('Error saving ammo load.', 'error');
+        }
+    });
+}
+
+const handloadForm = document.getElementById('ammo-handload-form');
+if (handloadForm) {
+    handloadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        formData.set('is_handload', 'true');
+        try {
+            const response = await fetch('/ammo/', { method: 'POST', body: formData });
+            if (response.ok) {
+                e.target.reset();
+                showToast('Handload recipe committed to vault.');
+            } else {
+                showToast('Failed to save handload recipe.', 'error');
+            }
+        } catch (err) {
+            showToast('Error saving handload recipe.', 'error');
+        }
     });
 }
 
