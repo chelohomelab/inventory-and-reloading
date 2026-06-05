@@ -556,10 +556,14 @@ async function loadCatalog() {
             ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-950 text-red-400 border border-red-800">SOLD HISTORY ARCHIVE</span>`
             : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-400 border border-blue-800">${gun.frame_type || 'Rifle'}</span>`;
         
-        // Dynamic caliber display logic based on backend model mapping
+        // Fix: Properly map the image and caliber from your DB fields
+        const targetSrc = gun.image_path_1 || "/static/images/placeholder.jpg";
         const caliberDisplay = gun.caliber || (gun.frame_type === "Barrel Only" ? "Modular Frame" : "Multi-Caliber Base");
 
         content.innerHTML = `
+            <div class="w-full h-44 bg-gray-950 relative overflow-hidden cursor-pointer" onclick="window.location.href='firearm-detail.html?id=${gun.id}'">
+                <img src="${targetSrc}" class="w-full h-full object-cover">
+            </div>
             <div class="p-4 space-y-3">
                 <div class="flex justify-between items-center">
                     ${statusLabelMarkup}
