@@ -1669,21 +1669,68 @@ if (tcBarrelForm) {
     });
 }
 
+async function toggleScopeAddMount() {
+    const sel = document.getElementById('scope-add-installed');
+    const mountSel = document.getElementById('scope-add-mount-select');
+    if (!sel || !mountSel) return;
+
+    if (sel.value === 'yes') {
+        mountSel.classList.remove('hidden');
+        if (mountSel.options.length <= 1) {
+            // Lazy-load available mounts (no scope yet, so no for_scope_id filter needed)
+            try {
+                const res = await fetch('/available-mounts/');
+                const data = res.ok ? await res.json() : { firearms: [], tc_barrels: [] };
+                let opts = `<option value="">-- Select Platform --</option>`;
+                if (data.firearms.length > 0) {
+                    opts += `<optgroup label="── General Rifles ──">` +
+                        data.firearms.map(f => `<option value="firearm:${f.id}">${f.label}</option>`).join('') +
+                        `</optgroup>`;
+                }
+                if (data.tc_barrels.length > 0) {
+                    opts += `<optgroup label="── TC Barrels ──">` +
+                        data.tc_barrels.map(b => `<option value="barrel:${b.id}">${b.label}</option>`).join('') +
+                        `</optgroup>`;
+                }
+                mountSel.innerHTML = opts;
+            } catch(_) {}
+        }
+    } else {
+        mountSel.classList.add('hidden');
+    }
+}
+
 const addScopeForm = document.getElementById('add-scope-form');
 if (addScopeForm) {
     addScopeForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
+        const installedSel = document.getElementById('scope-add-installed');
+        const mountSel     = document.getElementById('scope-add-mount-select');
+
         try {
             const res = await fetch('/scopes/', { method: 'POST', body: formData });
-            if (res.ok) {
-                e.target.reset();
-                showToast('Scope registered.');
-                switchTab('catalog-tab');
-                switchInventoryTab('optics');
-            } else {
-                showToast('Failed to register scope.', 'error');
+            if (!res.ok) { showToast('Failed to register scope.', 'error'); return; }
+            const scope = await res.json();
+
+            // Mount immediately if the user chose a platform
+            if (installedSel?.value === 'yes' && mountSel?.value) {
+                const [type, id] = mountSel.value.split(':');
+                await fetch(`/scopes/${scope.id}/mount`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mount_type: type, mount_id: parseInt(id) })
+                });
             }
+
+            e.target.reset();
+            // Reset the mount UI
+            if (installedSel) installedSel.value = 'no';
+            if (mountSel) { mountSel.innerHTML = '<option value="">Loading platforms…</option>'; mountSel.classList.add('hidden'); }
+
+            showToast('Scope registered.');
+            switchTab('catalog-tab');
+            switchInventoryTab('optics');
         } catch (err) { showToast('Error saving scope.', 'error'); }
     });
 }
