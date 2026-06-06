@@ -8,8 +8,8 @@ Prerequisites: a running Debian 12 LXC with Docker installed. See [LXC Setup](lx
 
 ```bash
 cd /opt
-git clone https://github.com/chelohomelab/reloading-and-inventory.git
-cd reloading-and-inventory
+git clone https://github.com/chelohomelab/inventory-and-reloading.git
+cd inventory-and-reloading
 ```
 
 ---

@@ -19,7 +19,7 @@ A self-hosted homelab app to track your firearm collection and reloading data.
 ## Quick Start
 
 ```bash
-git clone https://github.com/chelohomelab/reloading-and-inventory.git
+git clone https://github.com/chelohomelab/inventory-and-reloading.git
 cd reloading-and-inventory
 docker compose up -d --build
 ```
