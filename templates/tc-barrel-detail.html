@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firearm Vault Analytics</title>
+    <title>TC Barrel Analytics</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body class="bg-gray-900 text-gray-100 font-sans antialiased">
@@ -13,14 +13,16 @@
             <div class="flex items-center space-x-2 text-sm">
                 <a href="index.html"><img src="/static/images/logo.png" alt="Inventory" class="h-6 w-auto hover:opacity-80 transition inline-block"></a>
                 <span class="text-gray-500">/</span>
-                <span id="breadcrumb-current" class="text-gray-400 font-mono">Loading Profile...</span>
+                <span class="text-gray-500">TC Barrels</span>
+                <span class="text-gray-500">/</span>
+                <span id="breadcrumb-current" class="text-gray-400 font-mono">Loading...</span>
             </div>
             <a href="index.html" class="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-white font-bold transition">Back to Vault</a>
         </div>
     </nav>
 
     <main class="container mx-auto p-4 max-w-6xl space-y-6">
-        
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-gray-800 border border-gray-700 p-6 rounded-xl shadow-xl">
             <div class="md:col-span-1 space-y-3">
                 <div id="main-photo-viewport" class="w-full h-64 bg-gray-950 border border-gray-700 rounded-lg overflow-hidden flex items-center justify-center relative">
@@ -33,62 +35,64 @@
                 <div>
                     <div class="flex justify-between items-start">
                         <div>
-                            <h1 id="detail-title" class="text-3xl font-extrabold text-white tracking-tight">---</h1>
-                            <p id="detail-model" class="text-amber-500 text-sm font-medium tracking-wide">---</p>
+                            <h1 id="detail-platform" class="text-3xl font-extrabold text-white tracking-tight">---</h1>
+                            <p id="detail-caliber-sub" class="text-blue-400 text-sm font-medium tracking-wide">---</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <span id="detail-caliber" class="px-3 py-1 bg-amber-950 text-amber-400 border border-amber-800 font-mono font-bold rounded-md text-sm">---</span>
-                            <button onclick="toggleEditPanel()" id="edit-pencil-btn" title="Edit platform information" class="p-1.5 rounded-md bg-gray-700 hover:bg-amber-600 text-gray-400 hover:text-white border border-gray-600 hover:border-amber-500 transition" aria-label="Edit platform information">
+                            <span id="detail-caliber" class="px-3 py-1 bg-blue-950 text-blue-400 border border-blue-800 font-mono font-bold rounded-md text-sm">---</span>
+                            <button onclick="toggleEditPanel()" id="edit-pencil-btn" title="Edit barrel information" class="p-1.5 rounded-md bg-gray-700 hover:bg-amber-600 text-gray-400 hover:text-white border border-gray-600 hover:border-amber-500 transition" aria-label="Edit barrel information">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
                                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
                                 </svg>
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 text-xs">
-                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-gray-500 block mb-1">Configuration Type:</span><span id="val-frame" class="text-gray-200 font-bold">---</span></div>
-                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-gray-500 block mb-1">Optic Assembly:</span><span id="val-optic" class="text-gray-200 font-bold">---</span></div>
-                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-gray-500 block mb-1">Chassis Stock:</span><span id="val-stock" class="text-gray-200 font-bold">---</span></div>
+                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-gray-500 block mb-1">Platform:</span><span id="val-platform" class="text-gray-200 font-bold">---</span></div>
+                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-gray-500 block mb-1">Barrel Length:</span><span id="val-length" class="text-gray-200 font-bold">---</span></div>
+                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-gray-500 block mb-1">Twist Rate:</span><span id="val-twist" class="text-gray-200 font-bold">---</span></div>
+                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-gray-500 block mb-1">Finish:</span><span id="val-finish" class="text-gray-200 font-bold">---</span></div>
+                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-gray-500 block mb-1">Features:</span><span id="val-features" class="text-gray-200 font-bold">---</span></div>
                         <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-gray-500 block mb-1">Cost Basis Valuation:</span><span id="val-price" class="text-emerald-400 font-mono font-bold">---</span></div>
                     </div>
-                </div>
-
-                <div id="sold-alert-banner" class="mt-4 p-3 bg-red-950/40 border border-red-900/60 rounded-lg hidden">
-                    <p class="text-xs text-red-400 font-medium">⚠️ Asset Deactivated: This platform was logged as sold under historical archive registries.</p>
                 </div>
             </div>
         </div>
 
         <div id="edit-panel" class="bg-gray-800 border border-gray-700 rounded-xl p-5 shadow-xl hidden">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-sm font-bold uppercase tracking-wider text-amber-500">Edit Platform Information</h3>
+                <h3 class="text-sm font-bold uppercase tracking-wider text-amber-500">Edit Barrel Information</h3>
                 <button type="button" onclick="toggleEditPanel()" class="text-gray-500 hover:text-gray-300 transition text-xs font-bold px-2 py-1 rounded hover:bg-gray-700">✕ Close</button>
             </div>
-            <form id="edit-specs-form" onsubmit="saveProfileEdits(event)" class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-                <div>
-                    <label class="block text-gray-400 mb-1">Brand</label>
-                    <input type="text" id="edit-brand" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-gray-400 mb-1">Model</label>
-                    <input type="text" id="edit-model" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none">
-                </div>
+            <form id="edit-specs-form" onsubmit="saveBarrelEdits(event)" class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
                 <div>
                     <label class="block text-gray-400 mb-1">Caliber</label>
                     <input type="text" id="edit-caliber" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-gray-400 mb-1">Optic</label>
-                    <input type="text" id="edit-optic" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none">
+                    <label class="block text-gray-400 mb-1">Barrel Length</label>
+                    <input type="text" id="edit-length" placeholder='e.g. 15"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-gray-400 mb-1">Stock / Chassis</label>
-                    <input type="text" id="edit-stock" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none">
+                    <label class="block text-gray-400 mb-1">Twist Rate</label>
+                    <input type="text" id="edit-twist" placeholder='e.g. 1:12"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-gray-400 mb-1">Finish / Hardware Color</label>
+                    <input type="text" id="edit-finish" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none">
                 </div>
                 <div>
                     <label class="block text-gray-400 mb-1">Cost Basis ($)</label>
                     <input type="number" step="0.01" id="edit-price" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none">
+                </div>
+                <div class="flex flex-col gap-3 justify-center">
+                    <label class="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+                        <input type="checkbox" id="edit-threaded" class="accent-amber-500"> Threaded Muzzle
+                    </label>
+                    <label class="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+                        <input type="checkbox" id="edit-brake" class="accent-amber-500"> Muzzle Brake
+                    </label>
                 </div>
                 <div class="col-span-2 md:col-span-3 text-right pt-2">
                     <button type="submit" class="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded text-white font-bold transition cursor-pointer">Update Specifications</button>
@@ -124,13 +128,13 @@
         </div>
 
         <div id="ballistics-panel-container" class="grid grid-cols-1 lg:grid-cols-3 gap-6 hidden">
-            
+
             <div class="bg-gray-800 border border-gray-700 rounded-xl p-5 shadow-xl h-fit space-y-4">
                 <div>
                     <h3 class="text-sm font-bold uppercase tracking-wider text-emerald-400">🎯 Flight Path Profiler</h3>
                     <p class="text-[11px] text-gray-400 mt-0.5">Downrange flight prediction algorithms.</p>
                 </div>
-                
+
                 <div class="space-y-3 text-xs">
                     <div>
                         <label class="block text-gray-400 mb-1">Target Ballistic Loadout</label>
@@ -138,7 +142,7 @@
                             <option value="manual">Manual Entry</option>
                         </select>
                     </div>
-                    
+
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-gray-400 mb-1">Velocity (FPS)</label>
@@ -205,9 +209,9 @@
     </main>
 
     <script>
-        let currentFirearmId = null;
+        let currentBarrelId = null;
         let customDistances = new Set();
-        let targetGunObject = null;
+        let targetBarrelObject = null;
 
         function toggleEditPanel() {
             const panel = document.getElementById('edit-panel');
@@ -233,124 +237,91 @@
 
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
-            currentFirearmId = urlParams.get('id');
-            
-            if(!currentFirearmId) {
+            currentBarrelId = urlParams.get('id');
+            if (!currentBarrelId) {
                 window.location.href = "index.html";
                 return;
             }
-
-            loadFirearmProfile();
+            loadBarrelProfile();
         };
 
-        async function loadFirearmProfile() {
-            let gun = null;
-
+        async function loadBarrelProfile() {
+            let barrel = null;
             try {
-                const response = await fetch(`/firearms/${currentFirearmId}`);
-                if (response.ok) {
-                    gun = await response.json();
-                }
+                const response = await fetch(`/tc-barrels/${currentBarrelId}`);
+                if (response.ok) barrel = await response.json();
             } catch(err) {
-                console.error("Failed to load firearm profile:", err);
+                console.error("Failed to load barrel profile:", err);
             }
 
-            // Merge any pending local edits (e.g. if server was unreachable last save)
-            const localEdits = localStorage.getItem(`edited_gun_${currentFirearmId}`);
-            if (gun && localEdits) {
-                gun = { ...gun, ...JSON.parse(localEdits) };
-            }
-
-            if (!gun) {
-                document.body.innerHTML = `<div class="p-12 text-center text-red-400 font-mono text-sm">Error: Platform #${currentFirearmId} not found in vault.</div>`;
+            if (!barrel) {
+                document.body.innerHTML = `<div class="p-12 text-center text-red-400 font-mono text-sm">Error: TC Barrel #${currentBarrelId} not found in vault.</div>`;
                 return;
             }
 
-            targetGunObject = gun;
+            targetBarrelObject = barrel;
 
-            // Derive display values from real relationships
-            const primaryBarrel = gun.barrels && gun.barrels.length > 0 ? gun.barrels[0] : null;
-            const caliber = primaryBarrel ? primaryBarrel.caliber : (gun.caliber || "N/A");
-            const scopeLabel = gun.scope ? `${gun.scope.brand} ${gun.scope.model}` : "None";
-            const stockLabel = gun.furniture_stock || "Factory OEM";
+            const flags = [barrel.is_threaded && 'Threaded', barrel.has_muzzle_brake && 'Muzzle Brake'].filter(Boolean).join(' · ') || 'None';
 
-            // Populate display fields
-            document.getElementById('breadcrumb-current').innerText = `${gun.brand} ${gun.model} (${caliber})`;
-            document.getElementById('detail-title').innerText = gun.brand;
-            document.getElementById('detail-model').innerText = gun.model;
-            document.getElementById('detail-caliber').innerText = caliber;
-            document.getElementById('val-frame').innerText = gun.frame_type || "Rifle";
-            document.getElementById('val-optic').innerText = scopeLabel;
-            document.getElementById('val-stock').innerText = stockLabel;
-            document.getElementById('val-price').innerText = `$${parseFloat(gun.price_paid || 0).toFixed(2)}`;
+            document.getElementById('breadcrumb-current').innerText = `${barrel.tc_platform} ${barrel.caliber}`;
+            document.getElementById('detail-platform').innerText = barrel.tc_platform || '---';
+            document.getElementById('detail-caliber-sub').innerText = barrel.caliber || '---';
+            document.getElementById('detail-caliber').innerText = barrel.caliber || '---';
+            document.getElementById('val-platform').innerText = barrel.tc_platform || '---';
+            document.getElementById('val-length').innerText = barrel.barrel_length || '---';
+            document.getElementById('val-twist').innerText = barrel.twist_rate || '---';
+            document.getElementById('val-finish').innerText = barrel.hardware_color || '---';
+            document.getElementById('val-features').innerText = flags;
+            document.getElementById('val-price').innerText = `$${parseFloat(barrel.price_paid || 0).toFixed(2)}`;
 
-            // Hydrate edit form
-            document.getElementById('edit-brand').value = gun.brand || "";
-            document.getElementById('edit-model').value = gun.model || "";
-            document.getElementById('edit-caliber').value = caliber;
-            document.getElementById('edit-optic').value = scopeLabel !== "None" ? scopeLabel : "";
-            document.getElementById('edit-stock').value = stockLabel !== "Factory OEM" ? stockLabel : "";
-            document.getElementById('edit-price').value = gun.price_paid || "";
+            document.getElementById('edit-caliber').value = barrel.caliber || '';
+            document.getElementById('edit-length').value = barrel.barrel_length || '';
+            document.getElementById('edit-twist').value = barrel.twist_rate || '';
+            document.getElementById('edit-finish').value = barrel.hardware_color || '';
+            document.getElementById('edit-price').value = barrel.price_paid || '';
+            document.getElementById('edit-threaded').checked = !!barrel.is_threaded;
+            document.getElementById('edit-brake').checked = !!barrel.has_muzzle_brake;
 
-            // Sold status
-            if (gun.is_sold || localStorage.getItem(`sold_flag_${gun.id}`)) {
-                document.getElementById('sold-alert-banner').classList.remove('hidden');
-            }
+            const imagePool = [barrel.image_path, barrel.image_path_2].filter(Boolean);
+            renderImageGallery(imagePool);
+            loadLinkedRangePerformance(barrel);
 
-            // Image gallery — server image takes priority, then local override
-            const imagePool = [];
-            const localSavedImg = localStorage.getItem(`local_img_${gun.id}`);
-            if (localSavedImg) imagePool.push(localSavedImg);
-            if (gun.image_path_1) imagePool.push(gun.image_path_1);
-            if (gun.image_path_2) imagePool.push(gun.image_path_2);
-
-            renderImageGallery([...new Set(imagePool)].filter(Boolean));
-            loadLinkedRangePerformance(gun);
-
-            // Ballistics panel — only show if we have a caliber
             const panel = document.getElementById('ballistics-panel-container');
-            if (caliber && caliber !== "N/A") {
+            if (barrel.caliber) {
                 panel.classList.remove('hidden');
             } else {
                 panel.classList.add('hidden');
             }
         }
 
-        async function saveProfileEdits(e) {
+        async function saveBarrelEdits(e) {
             e.preventDefault();
             const updatedData = {
-                brand: document.getElementById('edit-brand').value,
-                model: document.getElementById('edit-model').value,
                 caliber: document.getElementById('edit-caliber').value,
-                scope_optic: document.getElementById('edit-optic').value,
-                furniture_stock: document.getElementById('edit-stock').value,
-                price_paid: parseFloat(document.getElementById('edit-price').value) || 0
+                barrel_length: document.getElementById('edit-length').value,
+                twist_rate: document.getElementById('edit-twist').value,
+                hardware_color: document.getElementById('edit-finish').value,
+                price_paid: parseFloat(document.getElementById('edit-price').value) || 0,
+                is_threaded: document.getElementById('edit-threaded').checked,
+                has_muzzle_brake: document.getElementById('edit-brake').checked,
             };
 
-            let savedToServer = false;
             try {
-                const response = await fetch(`/firearms/${currentFirearmId}`, {
+                const response = await fetch(`/tc-barrels/${currentBarrelId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updatedData)
                 });
                 if (response.ok) {
-                    savedToServer = true;
-                    localStorage.removeItem(`edited_gun_${currentFirearmId}`);
-                    showDetailToast("Specifications updated in vault.");
+                    showDetailToast("Barrel specifications updated.");
                     document.getElementById('edit-panel').classList.add('hidden');
+                    loadBarrelProfile();
+                } else {
+                    showDetailToast("Failed to update barrel.", "error");
                 }
             } catch(err) {
-                console.error("PATCH failed:", err);
+                showDetailToast("Error contacting server.", "error");
             }
-
-            if (!savedToServer) {
-                // Keep local cache as fallback so edits aren't lost
-                localStorage.setItem(`edited_gun_${currentFirearmId}`, JSON.stringify(updatedData));
-                showDetailToast("Saved locally — server unreachable.", "warn");
-            }
-
-            loadFirearmProfile();
         }
 
         async function deletePerformanceLog(logId) {
@@ -378,28 +349,27 @@
         function renderImageGallery(images) {
             const viewport = document.getElementById('main-photo-viewport');
             const strip = document.getElementById('thumbnail-gallery-strip');
-            if(images.length === 0) {
+            if (images.length === 0) {
                 viewport.innerHTML = `<div class="text-xs text-gray-500 font-mono">📷 No Media Records Filed</div>`;
                 strip.innerHTML = "";
                 return;
             }
-            viewport.innerHTML = `<img src="${images[0]}" class="w-full h-full object-cover opacity-90" onerror="this.src='https://images.unsplash.com/photo-1603511812635-43a0d5c8a41b?w=400'">`;
-            if(images.length > 1) {
+            viewport.innerHTML = `<img src="${images[0]}" class="w-full h-full object-cover opacity-90">`;
+            if (images.length > 1) {
                 strip.innerHTML = images.map(img => `<img src="${img}" onclick="document.querySelector('#main-photo-viewport img').src='${img}'" class="w-12 h-12 rounded object-cover border-2 border-gray-700 hover:border-amber-500 transition cursor-pointer flex-shrink-0">`).join('');
             } else {
                 strip.innerHTML = "";
             }
         }
 
-        async function loadLinkedRangePerformance(gun) {
+        async function loadLinkedRangePerformance(barrel) {
             const tbody = document.getElementById('range-sessions-tbody');
             const badge = document.getElementById('session-count-badge');
-
             tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-gray-500 italic">Loading range records...</td></tr>`;
 
             let logs = [];
             try {
-                const res = await fetch(`/performance-log/firearm/${gun.id}`);
+                const res = await fetch(`/performance-log/tc-barrel/${barrel.id}`);
                 if (res.ok) logs = await res.json();
             } catch(err) {
                 console.error("Failed to load performance logs:", err);
@@ -408,11 +378,11 @@
             badge.innerText = `${logs.length} Record${logs.length !== 1 ? 's' : ''}`;
 
             if (logs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-500 italic">No historic targeting metrics found.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-gray-500 italic">No historic targeting metrics found.</td></tr>`;
                 return;
             }
 
-            buildBallisticsDropdown(gun, logs);
+            buildBallisticsDropdown(barrel, logs);
 
             tbody.innerHTML = logs.map(s => {
                 const groupDisplay = s.group_size_inches
@@ -436,7 +406,7 @@
                     <td class="p-3.5 font-mono text-gray-400">${s.date}</td>
                     <td class="p-3.5">
                         <span class="font-bold text-white">${s.load_name}</span>
-                        <br><span class="text-[10px] text-gray-500 font-mono">${s.caliber} · ${s.barrel_name}</span>
+                        <br><span class="text-[10px] text-gray-500 font-mono">${s.caliber}</span>
                     </td>
                     <td class="p-3.5 font-mono text-gray-400">${s.shots || '—'}</td>
                     <td class="p-3.5 text-right">${groupDisplay}</td>
@@ -457,11 +427,10 @@
 
         let _testedProfiles = [];
 
-        function buildBallisticsDropdown(gun, logs) {
+        function buildBallisticsDropdown(barrel, logs) {
             const selector = document.getElementById('ballistic-load-select');
-            const caliber = gun.barrels?.[0]?.caliber || gun.caliber || '';
+            const caliber = barrel.caliber || '';
 
-            // Aggregate sessions by load name
             const map = {};
             (logs || []).forEach(s => {
                 if (!map[s.load_name]) {
@@ -469,7 +438,6 @@
                 }
                 map[s.load_name].sessions++;
                 if (s.avg_velocity) map[s.load_name].velocities.push(s.avg_velocity);
-                // Take the first non-null BC found across sessions for this load
                 if (s.bullet_bc && !map[s.load_name].bullet_bc) map[s.load_name].bullet_bc = s.bullet_bc;
             });
 
@@ -520,7 +488,6 @@
             if (profile.avg_velocity) {
                 document.getElementById('bal-input-velocity').value = profile.avg_velocity;
             }
-            // Prefer the stored BC from the ammo record; fall back to caliber inference
             const bc = profile.bullet_bc || inferBC(caliber || profile.caliber);
             if (bc !== null && bc !== undefined) {
                 document.getElementById('bal-input-bc').value = bc;
@@ -532,7 +499,7 @@
             const val = this.value;
             if (val === 'manual') return;
             const idx = parseInt(val.replace('profile_', ''));
-            const caliber = targetGunObject?.barrels?.[0]?.caliber || '';
+            const caliber = targetBarrelObject?.caliber || '';
             if (!isNaN(idx) && _testedProfiles[idx]) {
                 applyBallisticsProfile(_testedProfiles[idx], caliber);
             }
@@ -545,14 +512,14 @@
             const killzone = parseFloat(document.getElementById('bal-input-kz').value) || 6.0;
 
             const tbody = document.getElementById('trajectory-tbody');
-            if(v0 <= 0 || bc <= 0) {
+            if (v0 <= 0 || bc <= 0) {
                 tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500 italic">No flight parameters entered. Flight chart empty.</td></tr>`;
                 document.getElementById('mpbr-zero').innerText = "-- Yds";
                 document.getElementById('mpbr-max').innerText = "-- Yds";
                 return;
             }
 
-            const optZeroYds = Math.round((v0 * 0.045) + (bc * 55)); 
+            const optZeroYds = Math.round((v0 * 0.045) + (bc * 55));
             const maxMpbrYds = Math.round(optZeroYds * 1.15 + (killzone * 8));
             document.getElementById('mpbr-zero').innerText = `${optZeroYds} Yds`;
             document.getElementById('mpbr-max').innerText = `${maxMpbrYds} Yds`;
@@ -572,7 +539,9 @@
                 const moaValue = yds > 0 ? (Math.abs(netDropInches) / (yds * 0.01047)) : 0;
 
                 const isCustom = ![0, 50, 100, 150, 200, 250, 300, 350, 400].includes(yds);
-                const actionButtonHTML = isCustom ? `<button onclick="removeCustomDistance(${yds})" class="text-red-400 hover:text-red-300 font-bold cursor-pointer text-[10px]">✕ Remove</button>` : `<span class="text-gray-600 font-mono text-[10px]">Standard</span>`;
+                const actionButtonHTML = isCustom
+                    ? `<button onclick="removeCustomDistance(${yds})" class="text-red-400 hover:text-red-300 font-bold cursor-pointer text-[10px]">✕ Remove</button>`
+                    : `<span class="text-gray-600 font-mono text-[10px]">Standard</span>`;
 
                 const row = document.createElement('tr');
                 row.className = isCustom ? "bg-amber-950/20" : "border-b border-gray-750";
@@ -590,7 +559,7 @@
         function addCustomDistanceRow() {
             const input = document.getElementById('bal-custom-distance');
             const val = parseInt(input.value);
-            if(!isNaN(val) && val > 0 && val <= 1500) {
+            if (!isNaN(val) && val > 0 && val <= 1500) {
                 customDistances.add(val);
                 input.value = "";
                 runBallisticEngine();

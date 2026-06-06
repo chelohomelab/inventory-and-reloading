@@ -28,7 +28,7 @@ class Scope(Base):
     id = Column(Integer, primary_key=True, index=True)
     brand = Column(String)
     model = Column(String)
-    magnification = Column(String, nullable=True)   # e.g. "4-16x44"
+    magnification = Column(String, nullable=True)
     units = Column(String, default="MOA")
     price_paid = Column(Float, default=0.0)
     image_path = Column(String, nullable=True)
@@ -110,6 +110,8 @@ class CasingInventory(Base):
     times_fired = Column(Integer, default=0)   # 0 = new, 1 = once fired, etc.
     price_paid = Column(Float, default=0.0)
     notes = Column(String, nullable=True)
+    image_path = Column(String, nullable=True)
+    image_path_2 = Column(String, nullable=True)
 
 class PowderInventory(Base):
     __tablename__ = "powder_inventory"
@@ -119,6 +121,8 @@ class PowderInventory(Base):
     weight_lbs = Column(Float, default=0.0)  # pounds on hand
     price_paid = Column(Float, default=0.0)
     notes = Column(String, nullable=True)
+    image_path = Column(String, nullable=True)
+    image_path_2 = Column(String, nullable=True)
 
 class PrimerInventory(Base):
     __tablename__ = "primer_inventory"
@@ -128,6 +132,8 @@ class PrimerInventory(Base):
     quantity = Column(Integer, default=0)
     price_paid = Column(Float, default=0.0)   # per 1000
     notes = Column(String, nullable=True)
+    image_path = Column(String, nullable=True)
+    image_path_2 = Column(String, nullable=True)
 
 class BulletInventory(Base):
     __tablename__ = "bullet_inventory"
@@ -142,6 +148,8 @@ class BulletInventory(Base):
     quantity = Column(Integer, default=0)
     price_paid = Column(Float, default=0.0)       # per box/unit price
     notes = Column(String, nullable=True)
+    image_path = Column(String, nullable=True)
+    image_path_2 = Column(String, nullable=True)
 
 # --- AMMUNITION & PERFORMANCE LOGS ---
 class Ammo(Base):
@@ -157,7 +165,8 @@ class Ammo(Base):
     charge_weight = Column(Float, nullable=True)
     coal = Column(Float, nullable=True)
     image_path = Column(String, nullable=True)
-    
+    image_path_2 = Column(String, nullable=True)
+
     shot_strings = relationship("ShotString", back_populates="ammo")
 
 class ShotString(Base):
@@ -240,6 +249,20 @@ def init_db():
     if 'ammo' in inspector.get_table_names():
         _add_col('ammo', 'caliber', 'caliber VARCHAR')
         _add_col('ammo', 'bullet_bc', 'bullet_bc FLOAT')
+
+    for tbl, col in [
+        ('casing_inventory', 'image_path'),
+        ('casing_inventory', 'image_path_2'),
+        ('powder_inventory', 'image_path'),
+        ('powder_inventory', 'image_path_2'),
+        ('primer_inventory', 'image_path'),
+        ('primer_inventory', 'image_path_2'),
+        ('bullet_inventory', 'image_path'),
+        ('bullet_inventory', 'image_path_2'),
+        ('ammo', 'image_path_2'),
+    ]:
+        if tbl in inspector.get_table_names():
+            _add_col(tbl, col, f'{col} VARCHAR')
 
     if 'barrels' in inspector.get_table_names():
         _add_col('barrels', 'tc_platform',    'tc_platform VARCHAR')

@@ -21,6 +21,7 @@ def _ammo_dict(a: models.Ammo) -> dict:
         "charge_weight": a.charge_weight,
         "coal": a.coal,
         "image_path": a.image_path,
+        "image_path_2": getattr(a, "image_path_2", None),
     }
 
 
@@ -39,9 +40,11 @@ async def add_ammo(
     caliber: str = Form(None),
     bullet_bc: float = Form(None),
     image: UploadFile = File(None),
+    image_2: UploadFile = File(None),
     db: Session = Depends(get_db),
 ):
     img_path = await save_uploaded_file(image, "ammo")
+    img2 = await save_uploaded_file(image_2, "ammo")
     a = models.Ammo(
         brand=recipe_name or brand or "Unknown",
         caliber=caliber,
@@ -53,10 +56,30 @@ async def add_ammo(
         charge_weight=powder_charge,
         coal=coal,
         image_path=img_path,
+        image_path_2=img2,
     )
     db.add(a)
     db.commit()
     db.refresh(a)
+    return _ammo_dict(a)
+
+
+@router.post("/ammo/{ammo_id}/update-photo/")
+async def update_ammo_photo(ammo_id: int, slot: int = Form(1), image: UploadFile = File(...), db: Session = Depends(get_db)):
+    a = db.query(models.Ammo).filter(models.Ammo.id == ammo_id).first()
+    if not a: raise HTTPException(404, "Not found")
+    path = await save_uploaded_file(image, "ammo")
+    if slot == 2: a.image_path_2 = path
+    else: a.image_path = path
+    db.commit()
+    return _ammo_dict(a)
+
+@router.post("/ammo/{ammo_id}/swap-photos/")
+def swap_ammo_photos(ammo_id: int, db: Session = Depends(get_db)):
+    a = db.query(models.Ammo).filter(models.Ammo.id == ammo_id).first()
+    if not a: raise HTTPException(404, "Not found")
+    a.image_path, a.image_path_2 = a.image_path_2, a.image_path
+    db.commit()
     return _ammo_dict(a)
 
 

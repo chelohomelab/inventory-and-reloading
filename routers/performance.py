@@ -80,6 +80,35 @@ def get_logs_for_ammo(ammo_id: int, db: Session = Depends(get_db)):
     return result
 
 
+@router.get("/performance-log/tc-barrel/{barrel_id}")
+def get_logs_for_tc_barrel(barrel_id: int, db: Session = Depends(get_db)):
+    logs = (
+        db.query(models.ShotString)
+        .options(joinedload(models.ShotString.ammo), joinedload(models.ShotString.barrel))
+        .filter(models.ShotString.barrel_id == barrel_id)
+        .order_by(models.ShotString.date_shot.desc())
+        .all()
+    )
+    result = []
+    for s in logs:
+        vel_list = [float(v) for v in s.velocities.split(",") if v.strip()] if s.velocities else []
+        result.append({
+            "id": s.id,
+            "date": s.date_shot,
+            "barrel_name": (s.barrel.name or s.barrel.caliber) if s.barrel else "—",
+            "caliber": s.barrel.caliber if s.barrel else "—",
+            "load_name": f"{s.ammo.brand} {s.ammo.line_or_powder or ''} {s.ammo.bullet_weight}gr".strip(),
+            "bullet_bc": getattr(s.ammo, "bullet_bc", None),
+            "shots": len(vel_list),
+            "avg_velocity": s.avg_velocity,
+            "extreme_spread": s.extreme_spread,
+            "standard_deviation": s.standard_deviation,
+            "group_size_inches": s.group_size_inches,
+            "target_image_path": s.target_image_path,
+        })
+    return result
+
+
 @router.get("/performance-log/firearm/{firearm_id}")
 def get_logs_for_firearm(firearm_id: int, db: Session = Depends(get_db)):
     barrels = db.query(models.Barrel).filter(models.Barrel.firearm_id == firearm_id).all()

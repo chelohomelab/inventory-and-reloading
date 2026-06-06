@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, Form, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 import database as models
-from dependencies import get_db
+from dependencies import get_db, save_uploaded_file
 from schemas import PowderPatch, PrimerPatch, BulletComponentPatch, CasingPatch, DeductPayload
 
 router = APIRouter()
@@ -12,23 +12,27 @@ router = APIRouter()
 
 def _powder_dict(p: models.PowderInventory) -> dict:
     return {"id": p.id, "brand": p.brand, "name": p.name,
-            "weight_lbs": p.weight_lbs, "price_paid": p.price_paid, "notes": p.notes}
+            "weight_lbs": p.weight_lbs, "price_paid": p.price_paid, "notes": p.notes,
+            "image_path": p.image_path, "image_path_2": p.image_path_2}
 
 def _primer_dict(p: models.PrimerInventory) -> dict:
     return {"id": p.id, "brand": p.brand, "primer_type": p.primer_type,
-            "quantity": p.quantity, "price_paid": p.price_paid, "notes": p.notes}
+            "quantity": p.quantity, "price_paid": p.price_paid, "notes": p.notes,
+            "image_path": p.image_path, "image_path_2": p.image_path_2}
 
 def _bullet_dict(b: models.BulletInventory) -> dict:
     return {"id": b.id, "brand": b.brand, "product_line": b.product_line,
             "caliber": b.caliber, "weight_gr": b.weight_gr, "bullet_type": b.bullet_type,
             "bc_g1": b.bc_g1, "bc_g7": b.bc_g7,
-            "quantity": b.quantity, "price_paid": b.price_paid, "notes": b.notes}
+            "quantity": b.quantity, "price_paid": b.price_paid, "notes": b.notes,
+            "image_path": b.image_path, "image_path_2": b.image_path_2}
 
 def _casing_dict(c: models.CasingInventory) -> dict:
     label = "New" if c.times_fired == 0 else f"{c.times_fired}x Fired"
     return {"id": c.id, "brand": c.brand, "caliber": c.caliber,
             "quantity": c.quantity, "times_fired": c.times_fired,
-            "condition_label": label, "price_paid": c.price_paid, "notes": c.notes}
+            "condition_label": label, "price_paid": c.price_paid, "notes": c.notes,
+            "image_path": c.image_path, "image_path_2": c.image_path_2}
 
 def _get_thresholds(db: Session) -> dict:
     rows = {s.key: float(s.value) for s in db.query(models.Setting).all()}
@@ -50,10 +54,15 @@ def list_powders(db: Session = Depends(get_db)):
 async def add_powder(
     brand: str = Form(...), name: str = Form(...),
     weight_lbs: float = Form(0.0), price: float = Form(0.0),
-    notes: str = Form(None), db: Session = Depends(get_db),
+    notes: str = Form(None),
+    image_1: UploadFile = File(None), image_2: UploadFile = File(None),
+    db: Session = Depends(get_db),
 ):
+    img1 = await save_uploaded_file(image_1, "component")
+    img2 = await save_uploaded_file(image_2, "component")
     p = models.PowderInventory(brand=brand, name=name, weight_lbs=weight_lbs,
-                               price_paid=price, notes=notes)
+                               price_paid=price, notes=notes,
+                               image_path=img1, image_path_2=img2)
     db.add(p); db.commit(); db.refresh(p)
     return _powder_dict(p)
 
@@ -72,6 +81,24 @@ def delete_powder(item_id: int, db: Session = Depends(get_db)):
     db.delete(p); db.commit()
     return {"deleted": item_id}
 
+@router.post("/components/powders/{item_id}/update-photo/")
+async def update_powder_photo(item_id: int, slot: int = Form(1), image: UploadFile = File(...), db: Session = Depends(get_db)):
+    p = db.query(models.PowderInventory).filter(models.PowderInventory.id == item_id).first()
+    if not p: raise HTTPException(404, "Not found")
+    path = await save_uploaded_file(image, "component")
+    if slot == 2: p.image_path_2 = path
+    else: p.image_path = path
+    db.commit()
+    return _powder_dict(p)
+
+@router.post("/components/powders/{item_id}/swap-photos/")
+def swap_powder_photos(item_id: int, db: Session = Depends(get_db)):
+    p = db.query(models.PowderInventory).filter(models.PowderInventory.id == item_id).first()
+    if not p: raise HTTPException(404, "Not found")
+    p.image_path, p.image_path_2 = p.image_path_2, p.image_path
+    db.commit()
+    return _powder_dict(p)
+
 
 # ── Primers ────────────────────────────────────────────────────────────────────
 
@@ -83,10 +110,15 @@ def list_primers(db: Session = Depends(get_db)):
 async def add_primer(
     brand: str = Form(...), primer_type: str = Form(...),
     quantity: int = Form(0), price: float = Form(0.0),
-    notes: str = Form(None), db: Session = Depends(get_db),
+    notes: str = Form(None),
+    image_1: UploadFile = File(None), image_2: UploadFile = File(None),
+    db: Session = Depends(get_db),
 ):
+    img1 = await save_uploaded_file(image_1, "component")
+    img2 = await save_uploaded_file(image_2, "component")
     p = models.PrimerInventory(brand=brand, primer_type=primer_type,
-                               quantity=quantity, price_paid=price, notes=notes)
+                               quantity=quantity, price_paid=price, notes=notes,
+                               image_path=img1, image_path_2=img2)
     db.add(p); db.commit(); db.refresh(p)
     return _primer_dict(p)
 
@@ -105,6 +137,24 @@ def delete_primer(item_id: int, db: Session = Depends(get_db)):
     db.delete(p); db.commit()
     return {"deleted": item_id}
 
+@router.post("/components/primers/{item_id}/update-photo/")
+async def update_primer_photo(item_id: int, slot: int = Form(1), image: UploadFile = File(...), db: Session = Depends(get_db)):
+    p = db.query(models.PrimerInventory).filter(models.PrimerInventory.id == item_id).first()
+    if not p: raise HTTPException(404, "Not found")
+    path = await save_uploaded_file(image, "component")
+    if slot == 2: p.image_path_2 = path
+    else: p.image_path = path
+    db.commit()
+    return _primer_dict(p)
+
+@router.post("/components/primers/{item_id}/swap-photos/")
+def swap_primer_photos(item_id: int, db: Session = Depends(get_db)):
+    p = db.query(models.PrimerInventory).filter(models.PrimerInventory.id == item_id).first()
+    if not p: raise HTTPException(404, "Not found")
+    p.image_path, p.image_path_2 = p.image_path_2, p.image_path
+    db.commit()
+    return _primer_dict(p)
+
 
 # ── Bullets ────────────────────────────────────────────────────────────────────
 
@@ -119,12 +169,16 @@ async def add_bullet_component(
     bullet_type: str = Form(None), bc_g1: float = Form(None),
     bc_g7: float = Form(None), quantity: int = Form(0),
     price: float = Form(0.0), notes: str = Form(None),
+    image_1: UploadFile = File(None), image_2: UploadFile = File(None),
     db: Session = Depends(get_db),
 ):
+    img1 = await save_uploaded_file(image_1, "component")
+    img2 = await save_uploaded_file(image_2, "component")
     b = models.BulletInventory(brand=brand, product_line=product_line, caliber=caliber,
                                weight_gr=weight_gr, bullet_type=bullet_type,
                                bc_g1=bc_g1, bc_g7=bc_g7,
-                               quantity=quantity, price_paid=price, notes=notes)
+                               quantity=quantity, price_paid=price, notes=notes,
+                               image_path=img1, image_path_2=img2)
     db.add(b); db.commit(); db.refresh(b)
     return _bullet_dict(b)
 
@@ -143,6 +197,24 @@ def delete_bullet_component(item_id: int, db: Session = Depends(get_db)):
     db.delete(b); db.commit()
     return {"deleted": item_id}
 
+@router.post("/components/bullets/{item_id}/update-photo/")
+async def update_bullet_photo(item_id: int, slot: int = Form(1), image: UploadFile = File(...), db: Session = Depends(get_db)):
+    b = db.query(models.BulletInventory).filter(models.BulletInventory.id == item_id).first()
+    if not b: raise HTTPException(404, "Not found")
+    path = await save_uploaded_file(image, "component")
+    if slot == 2: b.image_path_2 = path
+    else: b.image_path = path
+    db.commit()
+    return _bullet_dict(b)
+
+@router.post("/components/bullets/{item_id}/swap-photos/")
+def swap_bullet_photos(item_id: int, db: Session = Depends(get_db)):
+    b = db.query(models.BulletInventory).filter(models.BulletInventory.id == item_id).first()
+    if not b: raise HTTPException(404, "Not found")
+    b.image_path, b.image_path_2 = b.image_path_2, b.image_path
+    db.commit()
+    return _bullet_dict(b)
+
 
 # ── Casings ────────────────────────────────────────────────────────────────────
 
@@ -155,10 +227,14 @@ async def add_casing(
     brand: str = Form(...), caliber: str = Form(...),
     quantity: int = Form(0), times_fired: int = Form(0),
     price: float = Form(0.0), notes: str = Form(None),
+    image_1: UploadFile = File(None), image_2: UploadFile = File(None),
     db: Session = Depends(get_db),
 ):
+    img1 = await save_uploaded_file(image_1, "component")
+    img2 = await save_uploaded_file(image_2, "component")
     c = models.CasingInventory(brand=brand, caliber=caliber, quantity=quantity,
-                               times_fired=times_fired, price_paid=price, notes=notes)
+                               times_fired=times_fired, price_paid=price, notes=notes,
+                               image_path=img1, image_path_2=img2)
     db.add(c); db.commit(); db.refresh(c)
     return _casing_dict(c)
 
@@ -176,6 +252,24 @@ def delete_casing(item_id: int, db: Session = Depends(get_db)):
     if not c: raise HTTPException(404, "Not found")
     db.delete(c); db.commit()
     return {"deleted": item_id}
+
+@router.post("/components/casings/{item_id}/update-photo/")
+async def update_casing_photo(item_id: int, slot: int = Form(1), image: UploadFile = File(...), db: Session = Depends(get_db)):
+    c = db.query(models.CasingInventory).filter(models.CasingInventory.id == item_id).first()
+    if not c: raise HTTPException(404, "Not found")
+    path = await save_uploaded_file(image, "component")
+    if slot == 2: c.image_path_2 = path
+    else: c.image_path = path
+    db.commit()
+    return _casing_dict(c)
+
+@router.post("/components/casings/{item_id}/swap-photos/")
+def swap_casing_photos(item_id: int, db: Session = Depends(get_db)):
+    c = db.query(models.CasingInventory).filter(models.CasingInventory.id == item_id).first()
+    if not c: raise HTTPException(404, "Not found")
+    c.image_path, c.image_path_2 = c.image_path_2, c.image_path
+    db.commit()
+    return _casing_dict(c)
 
 
 # ── Deduct & Low-Stock ─────────────────────────────────────────────────────────

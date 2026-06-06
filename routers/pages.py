@@ -24,3 +24,8 @@ async def firearm_detail(request: Request):
 @router.get("/ammo-detail.html", response_class=HTMLResponse)
 async def ammo_detail(request: Request):
     return templates.TemplateResponse("ammo-detail.html", {"request": request, "user": request.state.user})
+
+
+@router.get("/tc-barrel-detail.html", response_class=HTMLResponse)
+async def tc_barrel_detail(request: Request):
+    return templates.TemplateResponse("tc-barrel-detail.html", {"request": request, "user": request.state.user})

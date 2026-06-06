@@ -115,6 +115,16 @@ def mark_tc_receiver_sold(receiver_id: int, payload: SoldPayload, db: Session = 
     return _receiver_dict(r)
 
 
+@router.get("/tc-barrels/{barrel_id}")
+def get_tc_barrel(barrel_id: int, db: Session = Depends(get_db)):
+    b = db.query(models.Barrel).filter(
+        models.Barrel.id == barrel_id, models.Barrel.tc_platform.isnot(None)
+    ).first()
+    if not b:
+        raise HTTPException(status_code=404, detail="TC Barrel not found")
+    return _barrel_dict(b)
+
+
 @router.get("/tc-barrels/")
 def list_tc_barrels(db: Session = Depends(get_db)):
     barrels = db.query(models.Barrel).filter(models.Barrel.tc_platform.isnot(None)).all()
