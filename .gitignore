@@ -11,6 +11,10 @@ static/uploads/*
 __pycache__/
 *.py[cod]
 
+# Virtual environment
+venv/
+.venv/
+
 # Environment / secrets
 .env
 .env.*

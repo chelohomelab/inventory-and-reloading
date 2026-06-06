@@ -37,6 +37,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 resp.delete_cookie("session")
                 return resp
             user = db.query(models.User).filter(models.User.id == sess.user_id).first()
+            if not user or not user.is_active:
+                db.delete(sess)
+                db.commit()
+                resp = RedirectResponse("/login", status_code=302)
+                resp.delete_cookie("session")
+                return resp
             db.expunge(user)
             request.state.user = user
         finally:

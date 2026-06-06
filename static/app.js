@@ -39,6 +39,7 @@ let isDraggingLabelIdx = null;
 let dragOffset = { x: 0, y: 0 };
 let isMultiTouch = false;
 let touchStartClientPos = null;
+let touchHandled = false;
 
 // Crop modal state
 let pendingGroupData = null;
@@ -192,16 +193,10 @@ async function submitAssetSale() {
             closeSellModal();
             loadCatalog();
         } else {
-            showToast("Asset reassigned to Sold Registry successfully.");
-            localStorage.setItem(`sold_flag_${activeItemIdForSaleLog}`, soldPrice.toString());
-            closeSellModal();
-            loadCatalog();
+            showToast("Failed to log sale. Server returned an error.", "error");
         }
     } catch(err) {
-        localStorage.setItem(`sold_flag_${activeItemIdForSaleLog}`, soldPrice.toString());
-        showToast("Asset tracking shifted to Sold History Archive.");
-        closeSellModal();
-        loadCatalog();
+        showToast("Failed to log sale. Check your connection and try again.", "error");
     }
 }
 
@@ -517,8 +512,17 @@ async function loadComponentInventory(type) {
     container.innerHTML = '<p class="text-gray-400 italic text-sm">Loading...</p>';
     refreshLowStockBanner();
     try {
-        const res = await fetch(`/components/${type}/`);
+        const [res, settingsRes] = await Promise.all([
+            fetch(`/components/${type}/`),
+            fetch('/settings/'),
+        ]);
         const items = res.ok ? await res.json() : [];
+        const settings = settingsRes.ok ? await settingsRes.json() : {};
+        const thresholds = {
+            primers: parseFloat(settings.low_stock_primers ?? 200),
+            bullets: parseFloat(settings.low_stock_bullets ?? 100),
+            casings: parseFloat(settings.low_stock_casings ?? 50),
+        };
         const label = {powders:'Powder',primers:'Primer',bullets:'Bullet',casings:'Casing'}[type] || type;
         document.getElementById('inventory-count').innerText = `${items.length} ${label} Item${items.length !== 1 ? 's' : ''}`;
         if (items.length === 0) {
@@ -526,9 +530,9 @@ async function loadComponentInventory(type) {
             return;
         }
         if (type === 'powders')  container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">${items.map(renderPowderCard).join('')}</div>`;
-        if (type === 'primers')  container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">${items.map(renderPrimerCard).join('')}</div>`;
-        if (type === 'bullets')  renderBulletsGrouped(items, container);
-        if (type === 'casings')  container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">${items.map(renderCasingCard).join('')}</div>`;
+        if (type === 'primers')  container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">${items.map(p => renderPrimerCard(p, thresholds.primers)).join('')}</div>`;
+        if (type === 'bullets')  renderBulletsGrouped(items, container, thresholds.bullets);
+        if (type === 'casings')  container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">${items.map(c => renderCasingCard(c, thresholds.casings)).join('')}</div>`;
     } catch(err) {
         container.innerHTML = '<p class="text-red-400 italic text-sm">Failed to load components.</p>';
     }
@@ -574,8 +578,8 @@ function renderPowderCard(p) {
     </div>`;
 }
 
-function renderPrimerCard(p) {
-    const low = p.quantity < 200;
+function renderPrimerCard(p, lowThreshold = 200) {
+    const low = p.quantity < lowThreshold;
     const qtyColor = low ? 'text-red-400' : 'text-orange-400';
     return `
     <div class="bg-gray-800 border border-gray-700 rounded-lg p-4 space-y-3 shadow-lg hover:border-orange-500/50 transition">
@@ -603,8 +607,8 @@ function renderPrimerCard(p) {
     </div>`;
 }
 
-function renderBulletCard(b) {
-    const low = b.quantity < 100;
+function renderBulletCard(b, lowThreshold = 100) {
+    const low = b.quantity < lowThreshold;
     const qtyColor = low ? 'text-red-400' : 'text-blue-400';
     const bcInfo = b.bc_g1 ? `G1: ${b.bc_g1}` : (b.bc_g7 ? `G7: ${b.bc_g7}` : '');
     return `
@@ -637,8 +641,8 @@ function renderBulletCard(b) {
     </div>`;
 }
 
-function renderCasingCard(c) {
-    const low = c.quantity < 50;
+function renderCasingCard(c, lowThreshold = 50) {
+    const low = c.quantity < lowThreshold;
     const qtyColor = low ? 'text-red-400' : 'text-purple-400';
     const conditionBadge = c.times_fired === 0
         ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">NEW</span>`
@@ -672,7 +676,7 @@ function renderCasingCard(c) {
     </div>`;
 }
 
-function renderBulletsGrouped(bullets, container) {
+function renderBulletsGrouped(bullets, container, lowThreshold = 100) {
     const groups = {};
     bullets.forEach(b => {
         const cal = b.caliber || 'Unknown';
@@ -687,7 +691,7 @@ function renderBulletsGrouped(bullets, container) {
                 <div class="flex-1 border-t border-gray-700/60"></div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                ${items.map(renderBulletCard).join('')}
+                ${items.map(b => renderBulletCard(b, lowThreshold)).join('')}
             </div>
         </div>`
     ).join('');
@@ -1106,8 +1110,15 @@ function resetDragState() { liveBoxPos = { x: 0, y: 0, customized: false }; isDr
 function getCanvasCoords(e) {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height;
-    let clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
-    let clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+    let clientX, clientY;
+    if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX; clientY = e.touches[0].clientY;
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+        // touchend has an empty e.touches; use changedTouches for the released finger position
+        clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY;
+    } else {
+        clientX = e.clientX; clientY = e.clientY;
+    }
     return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
 }
 
@@ -1123,12 +1134,19 @@ if (canvas) {
 function handleStart(e) {
     if (state === "idle") return;
     if (e.touches && e.touches.length > 1) { isMultiTouch = true; return; }
+    if (e.touches) {
+        // New touch gesture starting — clear the flag so touch path runs fresh.
+        touchHandled = false;
+    } else if (touchHandled) {
+        // Synthetic mousedown fired by the browser after touchend — skip it.
+        return;
+    }
     isMultiTouch = false;
     touchStartClientPos = e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
     const coords = getCanvasCoords(e);
     if (state === "measuring") {
         if (coords.x >= liveBoxPos.x && coords.x <= liveBoxPos.x + liveBoxDims.w && coords.y >= liveBoxPos.y && coords.y <= liveBoxPos.y + liveBoxDims.h) {
-            e.preventDefault(); isDraggingBox = true; dragOffset.x = coords.x - liveBoxPos.x; dragOffset.y = coords.y - liveBoxPos.y; return;
+            isDraggingBox = true; dragOffset.x = coords.x - liveBoxPos.x; dragOffset.y = coords.y - liveBoxPos.y; return;
         }
     }
 }
@@ -1140,6 +1158,14 @@ function handleMove(e) {
 }
 function handleEnd(e) {
     if (state === "idle") return;
+    if (e.changedTouches) {
+        // touchend: mark that touch is handling this gesture so the synthetic mouseup is ignored.
+        touchHandled = true;
+    } else if (touchHandled) {
+        // Synthetic mouseup fired by the browser after touchend — skip it.
+        touchHandled = false;
+        return;
+    }
     const wasMultiTouch = isMultiTouch;
     if (e.touches && e.touches.length === 0) { isMultiTouch = false; }
     if (wasMultiTouch) { isDraggingBox = false; touchStartClientPos = null; return; }
@@ -1506,11 +1532,11 @@ function drawStatsBox(shots, sizeInches, boxX, boxY, loadLabel, platformLabel) {
 
     // Build lines: [text, font, color, lineAdvance]
     const lines = [
-        [`GROUP: ${sizeInches}"`, `bold ${fs(32)} monospace`, '#f59e0b', 42 * s],
+        [`GROUP: ${sizeInches}"`, `bold ${fs(24)} monospace`, '#f59e0b', 32 * s],
     ];
-    if (loadStr) lines.push([loadStr, `bold ${fs(22)} monospace`, '#a3e635', 30 * s]);
-    if (platStr) lines.push([platStr, `${fs(20)} monospace`,      '#60a5fa', 28 * s]);
-    lines.push([`${shots.length} shots`, `${fs(22)} monospace`, '#9ca3af', 30 * s]);
+    if (loadStr) lines.push([loadStr, `bold ${fs(17)} monospace`, '#a3e635', 23 * s]);
+    if (platStr) lines.push([platStr, `${fs(16)} monospace`,      '#60a5fa', 22 * s]);
+    lines.push([`${shots.length} shots`, `${fs(17)} monospace`, '#9ca3af', 23 * s]);
 
     if (hasChrono) {
         const avg = Math.round(velocities.reduce((a, b) => a + b, 0) / velocities.length);
@@ -1518,11 +1544,8 @@ function drawStatsBox(shots, sizeInches, boxX, boxY, loadLabel, platformLabel) {
         const sd  = velocities.length > 1
             ? Math.sqrt(velocities.reduce((a, v) => a + Math.pow(v - avg, 2), 0) / (velocities.length - 1)).toFixed(1)
             : 0;
-        lines.push([`AVG: ${avg} fps`,            `bold ${fs(26)} monospace`, '#60a5fa', 36 * s]);
-        lines.push([`ES: ${es} fps  |  SD: ${sd}`, `${fs(22)} monospace`,     '#9ca3af', 30 * s]);
-        velocities.forEach((v, i) =>
-            lines.push([`  Shot ${i + 1}: ${v} fps`, `${fs(22)} monospace`, '#6b7280', 28 * s])
-        );
+        lines.push([`AVG: ${avg} fps`,             `bold ${fs(20)} monospace`, '#60a5fa', 28 * s]);
+        lines.push([`ES: ${es}  SD: ${sd}`,         `${fs(17)} monospace`,     '#9ca3af', 23 * s]);
     }
 
     // Measure widest line to set box width
@@ -1847,9 +1870,17 @@ function resetCanvas() { calibrationPoints = []; currentGroupShots = []; groups 
 
 async function loadCatalog(frameType = currentFrameType()) {
     const container = document.getElementById('catalog-container');
+    if (!container) return;
     const url = `/catalog/?frame_type=${encodeURIComponent(frameType)}`;
-    const response = await fetch(url);
-    const all = await response.json();
+    let all;
+    try {
+        const response = await fetch(url);
+        if (!response.ok) { container.innerHTML = '<p class="text-red-400 italic text-sm">Failed to load catalog.</p>'; return; }
+        all = await response.json();
+    } catch(err) {
+        container.innerHTML = '<p class="text-red-400 italic text-sm">Failed to load catalog.</p>';
+        return;
+    }
     const inventory = all.filter(g => currentCollectionFilter === 'sold' ? g.is_sold : !g.is_sold);
 
     document.getElementById('inventory-count').innerText = `${inventory.length} Platform${inventory.length !== 1 ? 's' : ''} Logged`;

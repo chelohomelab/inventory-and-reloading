@@ -38,10 +38,15 @@ async def create_firearm(
         name="Primary", twist_rate=twist_rate, price_paid=0.0,
     ))
     if scope_optic and scope_optic.strip() and scope_optic.strip().lower() not in ("none",):
-        new_scope = models.Scope(brand=scope_optic.strip(), model="", units="MOA", price_paid=0.0)
-        db.add(new_scope)
-        db.flush()
-        new_gun.scope_id = new_scope.id
+        optic_brand = scope_optic.strip()
+        existing_scope = db.query(models.Scope).filter(models.Scope.brand == optic_brand).first()
+        if existing_scope:
+            new_gun.scope_id = existing_scope.id
+        else:
+            new_scope = models.Scope(brand=optic_brand, model="", units="MOA", price_paid=0.0)
+            db.add(new_scope)
+            db.flush()
+            new_gun.scope_id = new_scope.id
     db.commit()
     db.refresh(new_gun)
     return new_gun
