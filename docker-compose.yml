@@ -1,0 +1,12 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      # Both persistent: survive container rebuilds and updates
+      - ./data:/app/data               # SQLite database
+      - ./uploads:/app/static/uploads  # Photo uploads
+    environment:
+      - PYTHONUNBUFFERED=1

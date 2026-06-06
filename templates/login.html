@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — Guns & Reloading</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans antialiased min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-sm">
+        <!-- Logo / Title -->
+        <div class="text-center mb-8">
+            <div class="text-4xl mb-3">🎯</div>
+            <h1 class="text-2xl font-bold tracking-wide text-amber-500">Guns & Reloading</h1>
+            <p class="text-gray-500 text-sm mt-1">Sign in to your vault</p>
+        </div>
+
+        <!-- Card -->
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-2xl space-y-5">
+
+            {% if error %}
+            <div class="flex items-center gap-2 bg-red-900/50 border border-red-700 text-red-300 text-sm rounded-lg px-4 py-3">
+                <span>⚠️</span><span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <form method="post" action="/login" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Username</label>
+                    <input
+                        type="text"
+                        name="username"
+                        autocomplete="username"
+                        autofocus
+                        required
+                        class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                        placeholder="your username"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Password</label>
+                    <input
+                        type="password"
+                        name="password"
+                        autocomplete="current-password"
+                        required
+                        class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                        placeholder="••••••••"
+                    >
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" name="remember" id="remember" value="on"
+                        class="w-4 h-4 accent-amber-500 cursor-pointer">
+                    <label for="remember" class="text-sm text-gray-400 cursor-pointer select-none">Remember me for 30 days</label>
+                </div>
+
+                <button
+                    type="submit"
+                    class="w-full bg-amber-600 hover:bg-amber-500 text-white font-semibold py-2.5 rounded-lg text-sm transition cursor-pointer"
+                >
+                    Sign In
+                </button>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>

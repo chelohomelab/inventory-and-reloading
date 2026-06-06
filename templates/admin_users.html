@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management — Guns & Reloading</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans antialiased">
+
+<div id="toast-container" class="fixed bottom-5 right-5 z-[100] space-y-2 pointer-events-none"></div>
+
+<nav class="bg-gray-800 border-b border-gray-700 p-4 sticky top-0 z-50">
+    <div class="container mx-auto flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <a href="/" class="text-amber-500 font-bold text-xl tracking-wide">🎯 Guns & Reloading</a>
+            <span class="text-gray-600">›</span>
+            <span class="text-sm text-gray-300 font-semibold">User Management</span>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-xs text-gray-400 font-mono">{{ user.username }}</span>
+            <a href="/logout" class="px-2.5 py-1.5 rounded bg-gray-700 hover:bg-red-900 hover:text-red-300 font-medium text-xs text-gray-400 transition">Sign out</a>
+        </div>
+    </div>
+</nav>
+
+<main class="container mx-auto p-4 max-w-3xl space-y-8">
+
+    <!-- Users table -->
+    <div>
+        <h2 class="text-xl font-bold mb-4">All Users</h2>
+        <div class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-700 text-xs text-gray-400 uppercase tracking-wider">
+                        <th class="text-left px-4 py-3">Username</th>
+                        <th class="text-left px-4 py-3">Email</th>
+                        <th class="text-center px-4 py-3">Admin</th>
+                        <th class="text-center px-4 py-3">Active</th>
+                        <th class="text-right px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table-body">
+                {% for u in users %}
+                <tr class="border-b border-gray-700/50 hover:bg-gray-700/30 transition" id="user-row-{{ u.id }}">
+                    <td class="px-4 py-3 font-mono font-semibold text-white">
+                        {{ u.username }}
+                        {% if u.id == user.id %}<span class="ml-2 text-[10px] bg-blue-900 text-blue-300 px-1.5 py-0.5 rounded font-bold">YOU</span>{% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-gray-400">{{ u.email or '—' }}</td>
+                    <td class="px-4 py-3 text-center">
+                        {% if u.id != user.id %}
+                        <button onclick="toggleAdmin({{ u.id }}, {{ 'true' if u.is_admin else 'false' }})"
+                            class="px-2 py-1 rounded text-xs font-bold cursor-pointer transition
+                            {% if u.is_admin %}bg-amber-900/60 text-amber-300 hover:bg-amber-900{% else %}bg-gray-700 text-gray-400 hover:bg-gray-600{% endif %}"
+                            id="admin-btn-{{ u.id }}">
+                            {{ '✓ Admin' if u.is_admin else 'User' }}
+                        </button>
+                        {% else %}
+                        <span class="px-2 py-1 rounded text-xs font-bold bg-amber-900/60 text-amber-300">✓ Admin</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        {% if u.id != user.id %}
+                        <button onclick="toggleActive({{ u.id }}, {{ 'true' if u.is_active else 'false' }})"
+                            class="px-2 py-1 rounded text-xs font-bold cursor-pointer transition
+                            {% if u.is_active %}bg-emerald-900/60 text-emerald-300 hover:bg-emerald-900{% else %}bg-gray-700 text-gray-400 hover:bg-gray-600{% endif %}"
+                            id="active-btn-{{ u.id }}">
+                            {{ '✓ Active' if u.is_active else 'Disabled' }}
+                        </button>
+                        {% else %}
+                        <span class="px-2 py-1 rounded text-xs font-bold bg-emerald-900/60 text-emerald-300">✓ Active</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        {% if u.id != user.id %}
+                        <button onclick="deleteUser({{ u.id }}, '{{ u.username }}')"
+                            class="px-2 py-1 rounded text-xs font-bold bg-gray-700 text-gray-400 hover:bg-red-900 hover:text-red-300 cursor-pointer transition">
+                            Delete
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Create user form -->
+    <div>
+        <h2 class="text-xl font-bold mb-4">Add New User</h2>
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
+            <form id="create-user-form" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Username *</label>
+                        <input type="text" name="username" required autocomplete="off"
+                            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                            placeholder="username">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Email (optional)</label>
+                        <input type="email" name="email" autocomplete="off"
+                            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                            placeholder="user@example.com">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Password *</label>
+                        <input type="password" name="password" required minlength="8" autocomplete="new-password"
+                            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                            placeholder="at least 8 characters">
+                    </div>
+                    <div class="flex items-end gap-3 pb-0.5">
+                        <label class="flex items-center gap-2 cursor-pointer select-none">
+                            <input type="checkbox" name="is_admin" value="1" class="w-4 h-4 accent-amber-500 cursor-pointer">
+                            <span class="text-sm text-gray-300">Grant admin privileges</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="create-error" class="hidden text-red-400 text-sm"></div>
+                <button type="submit"
+                    class="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg text-sm transition cursor-pointer">
+                    Create User
+                </button>
+            </form>
+        </div>
+    </div>
+
+</main>
+
+<script>
+function showToast(msg, type = 'success') {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `flex items-center gap-2 px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium pointer-events-auto transition-all opacity-0 translate-y-2 ${type === 'error' ? 'bg-red-900 text-red-100 border border-red-700' : 'bg-gray-700 text-white border border-gray-600'}`;
+    t.innerHTML = `<span>${type === 'error' ? '⚠️' : '✅'}</span><span>${msg}</span>`;
+    c.appendChild(t);
+    setTimeout(() => t.classList.remove('opacity-0', 'translate-y-2'), 50);
+    setTimeout(() => { t.classList.add('opacity-0'); setTimeout(() => t.remove(), 300); }, 3500);
+}
+
+async function toggleAdmin(userId, currentlyAdmin) {
+    const res = await fetch(`/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_admin: !currentlyAdmin })
+    });
+    if (!res.ok) { showToast('Failed to update user.', 'error'); return; }
+    const u = await res.json();
+    const btn = document.getElementById(`admin-btn-${userId}`);
+    if (btn) {
+        btn.textContent = u.is_admin ? '✓ Admin' : 'User';
+        btn.className = `px-2 py-1 rounded text-xs font-bold cursor-pointer transition ${u.is_admin ? 'bg-amber-900/60 text-amber-300 hover:bg-amber-900' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`;
+        btn.setAttribute('onclick', `toggleAdmin(${userId}, ${u.is_admin})`);
+    }
+    showToast(`${u.username} is now ${u.is_admin ? 'an admin' : 'a regular user'}.`);
+}
+
+async function toggleActive(userId, currentlyActive) {
+    const res = await fetch(`/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !currentlyActive })
+    });
+    if (!res.ok) { showToast('Failed to update user.', 'error'); return; }
+    const u = await res.json();
+    const btn = document.getElementById(`active-btn-${userId}`);
+    if (btn) {
+        btn.textContent = u.is_active ? '✓ Active' : 'Disabled';
+        btn.className = `px-2 py-1 rounded text-xs font-bold cursor-pointer transition ${u.is_active ? 'bg-emerald-900/60 text-emerald-300 hover:bg-emerald-900' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`;
+        btn.setAttribute('onclick', `toggleActive(${userId}, ${u.is_active})`);
+    }
+    showToast(`${u.username} is now ${u.is_active ? 'active' : 'disabled'}.`);
+}
+
+async function deleteUser(userId, username) {
+    if (!confirm(`Delete user "${username}"? This cannot be undone.`)) return;
+    const res = await fetch(`/admin/users/${userId}`, { method: 'DELETE' });
+    if (!res.ok) { showToast('Failed to delete user.', 'error'); return; }
+    document.getElementById(`user-row-${userId}`)?.remove();
+    showToast(`User "${username}" deleted.`);
+}
+
+document.getElementById('create-user-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('create-error');
+    errEl.classList.add('hidden');
+    const fd = new FormData(e.target);
+    const res = await fetch('/admin/users/', { method: 'POST', body: fd });
+    if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        errEl.textContent = data.detail || 'Failed to create user.';
+        errEl.classList.remove('hidden');
+        return;
+    }
+    showToast(`User "${fd.get('username')}" created.`);
+    setTimeout(() => location.reload(), 1000);
+});
+</script>
+</body>
+</html>

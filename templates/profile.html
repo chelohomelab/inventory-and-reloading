@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile — Guns & Reloading</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans antialiased">
+
+<div id="toast-container" class="fixed bottom-5 right-5 z-[100] space-y-2 pointer-events-none"></div>
+
+<nav class="bg-gray-800 border-b border-gray-700 p-4 sticky top-0 z-50">
+    <div class="container mx-auto flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <a href="/" class="text-amber-500 font-bold text-xl tracking-wide">🎯 Guns & Reloading</a>
+            <span class="text-gray-600">›</span>
+            <span class="text-sm text-gray-300 font-semibold">Profile</span>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-xs text-gray-400 font-mono">{{ user.username }}</span>
+            <a href="/logout" class="px-2.5 py-1.5 rounded bg-gray-700 hover:bg-red-900 hover:text-red-300 font-medium text-xs text-gray-400 transition">Sign out</a>
+        </div>
+    </div>
+</nav>
+
+<main class="container mx-auto p-4 max-w-2xl space-y-8">
+
+    <div>
+        <h2 class="text-xl font-bold mb-1">Feature Preferences</h2>
+        <p class="text-sm text-gray-400 mb-6">Turn off sections you don't use — they'll be hidden from the main app. Your data is always kept safe.</p>
+
+        <div class="bg-gray-800 border border-gray-700 rounded-xl divide-y divide-gray-700/60">
+
+            <div class="flex items-center justify-between px-5 py-4">
+                <div>
+                    <p class="font-semibold text-sm">🦆 Shotguns</p>
+                    <p class="text-xs text-gray-400 mt-0.5">Shotgun inventory tab and add form</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="pref-feat_shotguns" class="sr-only peer" onchange="savePref('feat_shotguns', this.checked)">
+                    <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+            </div>
+
+            <div class="flex items-center justify-between px-5 py-4">
+                <div>
+                    <p class="font-semibold text-sm">🔫 Handguns</p>
+                    <p class="text-xs text-gray-400 mt-0.5">Handgun inventory tab and add form</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="pref-feat_handguns" class="sr-only peer" onchange="savePref('feat_handguns', this.checked)">
+                    <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+            </div>
+
+            <div class="flex items-center justify-between px-5 py-4">
+                <div>
+                    <p class="font-semibold text-sm">🛠️ Thompson Center</p>
+                    <p class="text-xs text-gray-400 mt-0.5">TC receiver and barrel inventory</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="pref-feat_tc" class="sr-only peer" onchange="savePref('feat_tc', this.checked)">
+                    <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+            </div>
+
+            <div class="flex items-center justify-between px-5 py-4">
+                <div>
+                    <p class="font-semibold text-sm">🔩 Reloading Components</p>
+                    <p class="text-xs text-gray-400 mt-0.5">Powder, primer, bullet, and casing inventory</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="pref-feat_reloading" class="sr-only peer" onchange="savePref('feat_reloading', this.checked)">
+                    <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+            </div>
+
+            <div class="flex items-center justify-between px-5 py-4">
+                <div>
+                    <p class="font-semibold text-sm">🧪 Ammunition & Range Sessions</p>
+                    <p class="text-xs text-gray-400 mt-0.5">Ammo log, handload records, and range session tracker</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="pref-feat_ammo_log" class="sr-only peer" onchange="savePref('feat_ammo_log', this.checked)">
+                    <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+            </div>
+
+        </div>
+    </div>
+
+</main>
+
+<script>
+function showToast(msg, type = 'success') {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `flex items-center gap-2 px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium pointer-events-auto transition-all opacity-0 translate-y-2 ${type === 'error' ? 'bg-red-900 text-red-100 border border-red-700' : 'bg-gray-700 text-white border border-gray-600'}`;
+    t.innerHTML = `<span>${type === 'error' ? '⚠️' : '✅'}</span><span>${msg}</span>`;
+    c.appendChild(t);
+    setTimeout(() => t.classList.remove('opacity-0', 'translate-y-2'), 50);
+    setTimeout(() => { t.classList.add('opacity-0'); setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+async function savePref(key, value) {
+    const res = await fetch('/api/preferences/', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: value })
+    });
+    if (res.ok) showToast('Preference saved.');
+    else showToast('Failed to save.', 'error');
+}
+
+async function loadPrefs() {
+    const res = await fetch('/api/preferences/');
+    if (!res.ok) return;
+    const prefs = await res.json();
+    for (const [key, value] of Object.entries(prefs)) {
+        const el = document.getElementById(`pref-${key}`);
+        if (el) el.checked = value === 'true';
+    }
+}
+
+loadPrefs();
+</script>
+</body>
+</html>
