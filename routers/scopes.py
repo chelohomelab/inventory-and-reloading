@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 
 import database as models
 from dependencies import get_db, save_uploaded_file
-from schemas import ScopeMountPayload
+from schemas import ScopeMountPayload, ScopePatchPayload
 
 router = APIRouter()
 
@@ -26,9 +26,11 @@ def _scope_dict(s: models.Scope) -> dict:
         "id": s.id,
         "brand": s.brand,
         "model": s.model,
+        "magnification": s.magnification,
         "units": s.units,
         "price_paid": s.price_paid,
         "image_path": s.image_path,
+        "image_path_2": s.image_path_2,
         "mounted_on": mounted_on,
         "mounted_firearm_id": mounted_firearm_id,
         "mounted_barrel_id": mounted_barrel_id,
@@ -59,17 +61,59 @@ def list_scopes(db: Session = Depends(get_db)):
 async def create_scope(
     brand: str = Form(...),
     model: str = Form(...),
+    magnification: str = Form(None),
     units: str = Form("MOA"),
     price: float = Form(0.0),
     image: UploadFile = File(None),
+    image_2: UploadFile = File(None),
     db: Session = Depends(get_db),
 ):
     img_path = await save_uploaded_file(image, "scope")
-    s = models.Scope(brand=brand, model=model, units=units, price_paid=price, image_path=img_path)
+    img_path_2 = await save_uploaded_file(image_2, "scope")
+    s = models.Scope(brand=brand, model=model, magnification=magnification or None,
+                     units=units, price_paid=price, image_path=img_path, image_path_2=img_path_2)
     db.add(s)
     db.commit()
     db.refresh(s)
     return _scope_dict(_load_scope(s.id, db))
+
+
+@router.patch("/scopes/{scope_id}")
+def patch_scope(scope_id: int, payload: ScopePatchPayload, db: Session = Depends(get_db)):
+    s = db.query(models.Scope).filter(models.Scope.id == scope_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    if payload.brand is not None:
+        s.brand = payload.brand
+    if payload.model is not None:
+        s.model = payload.model
+    if payload.magnification is not None:
+        s.magnification = payload.magnification or None
+    if payload.units is not None:
+        s.units = payload.units
+    if payload.price_paid is not None:
+        s.price_paid = payload.price_paid
+    db.commit()
+    return _scope_dict(_load_scope(scope_id, db))
+
+
+@router.post("/scopes/{scope_id}/update-photo/")
+async def update_scope_photo(
+    scope_id: int,
+    slot: int = Form(1),
+    image: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    s = db.query(models.Scope).filter(models.Scope.id == scope_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    img_path = await save_uploaded_file(image, "scope")
+    if slot == 2:
+        s.image_path_2 = img_path
+    else:
+        s.image_path = img_path
+    db.commit()
+    return _scope_dict(_load_scope(scope_id, db))
 
 
 @router.get("/available-mounts/")

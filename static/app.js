@@ -269,6 +269,65 @@ function toggleScopeInputState() {
     }
 }
 
+// ── Custom Autocomplete ──────────────────────────────────────────────────────
+// Replaces native <datalist> to avoid the Android Chrome full-screen picker
+// that covers adjacent fields. Inputs use data-ac="dl-id" instead of list="dl-id".
+
+let _acDropdown = null; // currently visible dropdown element
+
+function initCustomAC() {
+    document.querySelectorAll('input[data-ac]').forEach(input => {
+        const dlId = input.getAttribute('data-ac');
+        const wrap = input.parentElement;
+        if (getComputedStyle(wrap).position === 'static') wrap.style.position = 'relative';
+
+        const drop = document.createElement('div');
+        drop.className = 'hidden absolute left-0 right-0 z-50 bg-gray-800 border border-gray-600 rounded-b shadow-xl max-h-44 overflow-y-auto';
+        drop.style.top = '100%';
+        wrap.appendChild(drop);
+
+        function getVals() {
+            const dl = document.getElementById(dlId);
+            return dl ? Array.from(dl.options).map(o => o.value).filter(Boolean) : [];
+        }
+        function render(q) {
+            const all = getVals();
+            const filtered = (q ? all.filter(v => v.toLowerCase().includes(q.toLowerCase())) : all).slice(0, 10);
+            if (!filtered.length) { close(); return; }
+            drop.innerHTML = filtered.map(v =>
+                `<div class="px-3 py-2 cursor-pointer hover:bg-gray-700 active:bg-gray-600 text-sm text-white border-b border-gray-700/50 last:border-0"
+                      data-val="${escHtml(v)}">${escHtml(v)}</div>`
+            ).join('');
+            drop.classList.remove('hidden');
+            if (_acDropdown && _acDropdown !== drop) _acDropdown.classList.add('hidden');
+            _acDropdown = drop;
+        }
+        function close() {
+            drop.classList.add('hidden');
+            if (_acDropdown === drop) _acDropdown = null;
+        }
+
+        input.addEventListener('input', () => render(input.value));
+        input.addEventListener('focus', () => render(input.value));
+        input.addEventListener('blur',  () => setTimeout(close, 160));
+        drop.addEventListener('mousedown', e => {
+            const val = e.target.closest('[data-val]')?.getAttribute('data-val');
+            if (val) { input.value = val; input.dispatchEvent(new Event('input')); close(); }
+        });
+        drop.addEventListener('touchend', e => {
+            const val = e.target.closest('[data-val]')?.getAttribute('data-val');
+            if (val) { input.value = val; input.dispatchEvent(new Event('input')); close(); }
+        });
+    });
+
+    document.addEventListener('click', e => {
+        if (_acDropdown && !_acDropdown.contains(e.target)) {
+            _acDropdown.classList.add('hidden');
+            _acDropdown = null;
+        }
+    });
+}
+
 async function fetchInitialLookupData() {
     try {
         const res = await fetch('/lookups/');
@@ -408,19 +467,44 @@ async function loadTCInventory() {
                 const soldBadge = r.is_sold
                     ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-950 text-red-400 border border-red-800">SOLD</span>`
                     : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-400 border border-amber-800">RECEIVER</span>`;
-                const imgHtml = r.image_path
-                    ? `<img src="${r.image_path}" class="w-full h-full object-cover">`
-                    : `<div class="w-full h-full flex items-center justify-center text-4xl">🛠️</div>`;
+                const gallery = makePhotoGallery(`rec-${r.id}`, '🛠️', r.image_path, r.image_path_2);
                 return `
-                <div class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl">
-                    <div class="w-full h-36 bg-gray-950 overflow-hidden">${imgHtml}</div>
-                    <div class="p-3 space-y-2">
+                <div class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl flex flex-col">
+                    ${gallery}
+                    <div class="p-3 flex flex-col flex-1 gap-2">
                         <div class="flex justify-between items-center">${soldBadge}
                             <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-gray-900 text-gray-300 border border-gray-700">${r.platform}</span>
                         </div>
                         <p class="text-sm font-bold text-white">${r.platform} Receiver</p>
-                        <p class="text-xs text-gray-400">S/N: <span class="text-gray-200 font-mono">${r.serial_number || '—'}</span></p>
-                        <p class="text-xs text-gray-400">Cost: <span class="text-white font-mono">$${parseFloat(r.price_paid || 0).toFixed(2)}</span></p>
+                        <div class="text-xs text-gray-400 space-y-0.5">
+                            <p>S/N: <span class="text-gray-200 font-mono">${r.serial_number || '—'}</span></p>
+                            ${r.notes ? `<p class="text-gray-500 italic">${r.notes}</p>` : ''}
+                        </div>
+                        <!-- Inline edit -->
+                        <div id="rcedit-${r.id}" class="hidden border-t border-gray-600 pt-2 space-y-2">
+                            <p class="text-xs font-bold text-amber-400 uppercase tracking-wide">Edit Receiver</p>
+                            <select id="rcedit-plat-${r.id}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
+                                <option value="Encore" ${r.platform==='Encore'?'selected':''}>Encore</option>
+                                <option value="Contender" ${r.platform==='Contender'?'selected':''}>Contender</option>
+                            </select>
+                            <input id="rcedit-sn-${r.id}" value="${r.serial_number||''}" placeholder="Serial number" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
+                            <input id="rcedit-notes-${r.id}" value="${r.notes||''}" placeholder="Notes" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
+                            <input type="number" step="0.01" id="rcedit-price-${r.id}" value="${r.price_paid||0}" placeholder="Price" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
+                            <p class="text-[10px] text-gray-500">Replace photos (optional)</p>
+                            <input type="file" id="rcedit-p1-${r.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-amber-400 file:py-1 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <input type="file" id="rcedit-p2-${r.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-amber-400 file:py-1 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-2">
+                                <button onclick="saveTCReceiverEdit(${r.id})" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-1.5 rounded transition cursor-pointer">Save</button>
+                                <button onclick="document.getElementById('rcedit-${r.id}').classList.add('hidden')" class="px-3 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold py-1.5 rounded transition cursor-pointer">Cancel</button>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 mt-auto pt-1">
+                            <button onclick="document.getElementById('rcedit-${r.id}').classList.toggle('hidden')"
+                                class="flex-1 px-2 py-1.5 bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold rounded transition cursor-pointer">✏️ Edit</button>
+                        </div>
+                        <div class="flex justify-end">
+                            <span class="text-xs text-gray-500 font-mono">$${parseFloat(r.price_paid || 0).toFixed(2)}</span>
+                        </div>
                     </div>
                 </div>`;
             }).join('');
@@ -430,32 +514,139 @@ async function loadTCInventory() {
             barContainer.innerHTML = '<p class="text-gray-500 italic text-sm col-span-3">No barrels registered.</p>';
         } else {
             barContainer.innerHTML = barrels.map(b => {
-                const imgHtml = b.image_path
-                    ? `<img src="${b.image_path}" class="w-full h-full object-cover">`
-                    : `<div class="w-full h-full flex items-center justify-center text-4xl">🎯</div>`;
+                const gallery = makePhotoGallery(`bar-${b.id}`, '🎯', b.image_path, b.image_path_2);
                 const flags = [b.is_threaded && 'Threaded', b.has_muzzle_brake && 'Brake'].filter(Boolean).join(' · ');
                 return `
-                <div class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl hover:border-blue-400/60 transition">
-                    <div class="w-full h-36 bg-gray-950 overflow-hidden">${imgHtml}</div>
-                    <div class="p-3 space-y-2">
+                <div class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl flex flex-col hover:border-blue-400/60 transition">
+                    ${gallery}
+                    <div class="p-3 flex flex-col flex-1 gap-2">
                         <div class="flex justify-between items-center">
                             <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-400 border border-blue-800">BARREL</span>
                             <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800">${b.caliber}</span>
                         </div>
                         <p class="text-sm font-bold text-white">${b.tc_platform} · ${b.caliber}</p>
                         <div class="text-xs text-gray-400 space-y-0.5">
-                            ${b.barrel_length ? `<p>Length: <span class="text-gray-200">${b.barrel_length}</span></p>` : ''}
-                            ${b.twist_rate    ? `<p>Twist: <span class="text-gray-200 font-mono">${b.twist_rate}</span></p>` : ''}
+                            ${b.barrel_length  ? `<p>Length: <span class="text-gray-200">${b.barrel_length}</span></p>` : ''}
+                            ${b.twist_rate     ? `<p>Twist: <span class="text-gray-200 font-mono">${b.twist_rate}</span></p>` : ''}
                             ${b.hardware_color ? `<p>Finish: <span class="text-gray-200">${b.hardware_color}</span></p>` : ''}
                             ${flags ? `<p class="text-gray-500">${flags}</p>` : ''}
                         </div>
-                        <p class="text-xs text-gray-400 border-t border-gray-700 pt-1">Cost: <span class="text-white font-mono">$${parseFloat(b.price_paid || 0).toFixed(2)}</span></p>
+                        <!-- Inline edit -->
+                        <div id="baredit-${b.id}" class="hidden border-t border-gray-600 pt-2 space-y-2">
+                            <p class="text-xs font-bold text-amber-400 uppercase tracking-wide">Edit Barrel</p>
+                            <input id="baredit-cal-${b.id}" value="${b.caliber||''}" placeholder="Caliber" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
+                            <div class="grid grid-cols-2 gap-2">
+                                <input id="baredit-len-${b.id}" value="${b.barrel_length||''}" placeholder='Length e.g. 15"' class="bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
+                                <input id="baredit-twist-${b.id}" value="${b.twist_rate||''}" placeholder='Twist e.g. 1:12"' class="bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input id="baredit-color-${b.id}" value="${b.hardware_color||''}" placeholder="Finish" class="bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
+                                <input type="number" step="0.01" id="baredit-price-${b.id}" value="${b.price_paid||0}" placeholder="Price" class="bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <label class="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
+                                    <input type="checkbox" id="baredit-thr-${b.id}" ${b.is_threaded?'checked':''} class="accent-amber-500"> Threaded
+                                </label>
+                                <label class="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
+                                    <input type="checkbox" id="baredit-brk-${b.id}" ${b.has_muzzle_brake?'checked':''} class="accent-amber-500"> Muzzle Brake
+                                </label>
+                            </div>
+                            <p class="text-[10px] text-gray-500">Replace photos (optional)</p>
+                            <input type="file" id="baredit-p1-${b.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-1 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <input type="file" id="baredit-p2-${b.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-1 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-2">
+                                <button onclick="saveTCBarrelEdit(${b.id})" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-1.5 rounded transition cursor-pointer">Save</button>
+                                <button onclick="document.getElementById('baredit-${b.id}').classList.add('hidden')" class="px-3 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold py-1.5 rounded transition cursor-pointer">Cancel</button>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 mt-auto pt-1">
+                            <button onclick="document.getElementById('baredit-${b.id}').classList.toggle('hidden')"
+                                class="flex-1 px-2 py-1.5 bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold rounded transition cursor-pointer">✏️ Edit</button>
+                        </div>
+                        <div class="flex justify-end">
+                            <span class="text-xs text-gray-500 font-mono">$${parseFloat(b.price_paid || 0).toFixed(2)}</span>
+                        </div>
                     </div>
                 </div>`;
             }).join('');
         }
     } catch(err) {
         recContainer.innerHTML = '<p class="text-red-400 italic text-sm col-span-3">Failed to load TC inventory.</p>';
+    }
+}
+
+async function saveTCReceiverEdit(id) {
+    try {
+        await fetch(`/tc-receivers/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                platform: document.getElementById(`rcedit-plat-${id}`)?.value,
+                serial_number: document.getElementById(`rcedit-sn-${id}`)?.value.trim(),
+                notes: document.getElementById(`rcedit-notes-${id}`)?.value.trim(),
+                price_paid: parseFloat(document.getElementById(`rcedit-price-${id}`)?.value) || 0,
+            }),
+        });
+        for (const slot of [1, 2]) {
+            const file = document.getElementById(`rcedit-p${slot}-${id}`)?.files[0];
+            if (file) {
+                const fd = new FormData();
+                fd.append('image', file);
+                fd.append('slot', String(slot));
+                await fetch(`/tc-receivers/${id}/update-photo/`, { method: 'POST', body: fd });
+            }
+        }
+        showToast('Receiver updated.');
+        loadTCInventory();
+    } catch { showToast('Failed to save receiver.', 'error'); }
+}
+
+async function saveTCBarrelEdit(id) {
+    try {
+        await fetch(`/tc-barrels/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                caliber: document.getElementById(`baredit-cal-${id}`)?.value.trim(),
+                barrel_length: document.getElementById(`baredit-len-${id}`)?.value.trim(),
+                twist_rate: document.getElementById(`baredit-twist-${id}`)?.value.trim(),
+                hardware_color: document.getElementById(`baredit-color-${id}`)?.value.trim(),
+                price_paid: parseFloat(document.getElementById(`baredit-price-${id}`)?.value) || 0,
+                is_threaded: document.getElementById(`baredit-thr-${id}`)?.checked,
+                has_muzzle_brake: document.getElementById(`baredit-brk-${id}`)?.checked,
+            }),
+        });
+        for (const slot of [1, 2]) {
+            const file = document.getElementById(`baredit-p${slot}-${id}`)?.files[0];
+            if (file) {
+                const fd = new FormData();
+                fd.append('image', file);
+                fd.append('slot', String(slot));
+                await fetch(`/tc-barrels/${id}/update-photo/`, { method: 'POST', body: fd });
+            }
+        }
+        showToast('Barrel updated.');
+        loadTCInventory();
+    } catch { showToast('Failed to save barrel.', 'error'); }
+}
+
+function openQuickAdd(section) {
+    switchTab('add-tab');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (section === 'platforms') {
+        const formMap = { general: 'add-general', shotgun: 'add-shotgun', handgun: 'add-handgun', tc: 'add-tc-receiver' };
+        switchFormCategory('cat-platforms');
+        switchAddForm(formMap[currentPlatformTab] || 'add-general');
+    } else if (section === 'optics') {
+        switchFormCategory('cat-platforms');
+        switchAddForm('add-scope');
+    } else if (section === 'ammo') {
+        switchFormCategory('cat-ammunition');
+        toggleAmmoType(currentAmmoFilter);
+    } else if (section === 'components') {
+        const formMap = { powders: 'add-powder', primers: 'add-primer', bullets: 'add-bullet-comp', casings: 'add-casing' };
+        switchFormCategory('cat-components');
+        switchAddComponent(formMap[currentComponentFilter] || 'add-powder');
     }
 }
 
@@ -742,35 +933,87 @@ async function loadScopes() {
     }
 }
 
+function makePhotoGallery(uid, emoji, img1, img2) {
+    if (!img1 && !img2) {
+        return `<div class="w-full h-48 bg-gray-950 flex items-center justify-center text-5xl">${emoji}</div>`;
+    }
+    const photos = [img1, img2].filter(Boolean);
+    if (photos.length === 1) {
+        return `<div class="w-full h-48 bg-gray-950 overflow-hidden"><img src="${photos[0]}" class="w-full h-full object-cover"></div>`;
+    }
+    return `
+    <div class="w-full h-48 bg-gray-950 overflow-hidden relative">
+        <img id="gimg-${uid}" src="${photos[0]}" class="w-full h-full object-cover">
+        <div class="absolute bottom-2 right-2 flex gap-1.5">
+            <button onclick="gallerySw('${uid}','${photos[0]}',0)" id="gdot-${uid}-0"
+                class="w-2.5 h-2.5 rounded-full bg-white shadow cursor-pointer border border-gray-400 transition"></button>
+            <button onclick="gallerySw('${uid}','${photos[1]}',1)" id="gdot-${uid}-1"
+                class="w-2.5 h-2.5 rounded-full bg-white/40 shadow cursor-pointer border border-gray-400 transition"></button>
+        </div>
+    </div>`;
+}
+
+function gallerySw(uid, src, idx) {
+    const img = document.getElementById(`gimg-${uid}`);
+    if (img) img.src = src;
+    [0,1].forEach(i => {
+        const d = document.getElementById(`gdot-${uid}-${i}`);
+        if (d) { d.classList.toggle('bg-white', i === idx); d.classList.toggle('bg-white/40', i !== idx); }
+    });
+}
+
 function renderScopeCard(s) {
-    const imgHtml = s.image_path
-        ? `<img src="${s.image_path}" class="w-full h-full object-cover">`
-        : `<div class="w-full h-full flex items-center justify-center text-5xl">🔭</div>`;
+    const gallery = makePhotoGallery(`scope-${s.id}`, '🔭', s.image_path, s.image_path_2);
     const mountLabel = s.mounted_on
         ? `<span class="text-emerald-400 font-medium">${s.mounted_on}</span>`
         : `<span class="text-gray-500 italic">Unmounted</span>`;
     const mountBtnLabel = s.mounted_on ? '🔄 Change Mount' : '📍 Mount Scope';
+    const magBadge = s.magnification
+        ? `<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-950 text-purple-300 border border-purple-800">${s.magnification}</span>`
+        : '';
 
     return `
     <div id="scope-card-${s.id}"
         data-mount-type="${s.mount_type || ''}"
         data-mount-id="${s.mount_type === 'firearm' ? (s.mounted_firearm_id || '') : (s.mounted_barrel_id || '')}"
-        class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl">
-        <div class="w-full h-40 bg-gray-950 overflow-hidden">${imgHtml}</div>
-        <div class="p-4 space-y-2">
-            <div class="flex justify-between items-center">
+        class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl flex flex-col">
+        ${gallery}
+        <div class="p-4 flex flex-col flex-1 gap-2">
+            <div class="flex justify-between items-center flex-wrap gap-1">
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-400 border border-blue-800">OPTIC</span>
-                <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-gray-900 text-gray-300 border border-gray-700">${s.units || 'MOA'}</span>
+                <div class="flex gap-1 flex-wrap">${magBadge}<span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-gray-900 text-gray-300 border border-gray-700">${s.units || 'MOA'}</span></div>
             </div>
             <div>
                 <h3 class="text-base font-bold text-white">${s.brand || '—'}</h3>
                 <p class="text-sm text-amber-500">${s.model || '—'}</p>
             </div>
-            <div class="border-t border-gray-700 pt-2 space-y-1">
+            <div class="border-t border-gray-700 pt-2">
                 <p class="text-xs text-gray-400">📍 ${mountLabel}</p>
-                <p class="text-xs text-gray-400">Cost: <span class="text-white font-mono">$${parseFloat(s.price_paid || 0).toFixed(2)}</span></p>
             </div>
-            <!-- Mount editor (hidden until user clicks) -->
+            <!-- Inline edit form -->
+            <div id="scope-edit-${s.id}" class="hidden border-t border-gray-600 pt-3 space-y-2">
+                <p class="text-xs font-bold text-amber-400 uppercase tracking-wide">Edit Scope</p>
+                <input id="sedit-brand-${s.id}" value="${s.brand || ''}" placeholder="Brand" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
+                <input id="sedit-model-${s.id}" value="${s.model || ''}" placeholder="Model" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
+                <div class="grid grid-cols-2 gap-2">
+                    <input id="sedit-mag-${s.id}" value="${s.magnification || ''}" placeholder="Magnification e.g. 4-16x44" class="bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
+                    <select id="sedit-units-${s.id}" class="bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
+                        <option value="MOA" ${s.units === 'MOA' ? 'selected' : ''}>MOA</option>
+                        <option value="MRAD" ${s.units === 'MRAD' ? 'selected' : ''}>MRAD</option>
+                    </select>
+                </div>
+                <input type="number" step="0.01" id="sedit-price-${s.id}" value="${s.price_paid || 0}" placeholder="Price" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
+                <p class="text-[10px] text-gray-500">Replace photos (optional)</p>
+                <label class="text-[10px] text-gray-400">Photo 1</label>
+                <input type="file" id="sedit-p1-${s.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-1 file:px-2 file:rounded file:border-0 cursor-pointer">
+                <label class="text-[10px] text-gray-400">Photo 2</label>
+                <input type="file" id="sedit-p2-${s.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-1 file:px-2 file:rounded file:border-0 cursor-pointer">
+                <div class="flex gap-2">
+                    <button onclick="saveScopeEdit(${s.id})" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-1.5 rounded transition cursor-pointer">Save</button>
+                    <button onclick="document.getElementById('scope-edit-${s.id}').classList.add('hidden')" class="px-3 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold py-1.5 rounded transition cursor-pointer">Cancel</button>
+                </div>
+            </div>
+            <!-- Mount editor -->
             <div id="scope-editor-${s.id}" class="hidden border-t border-gray-600 pt-3 space-y-2">
                 <div class="flex gap-2 items-center flex-wrap">
                     <select id="scope-installed-${s.id}" onchange="toggleScopeMountSelect(${s.id})"
@@ -788,12 +1031,44 @@ function renderScopeCard(s) {
                     <button onclick="closeScopeMountEditor(${s.id})" class="px-3 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold py-1.5 rounded transition cursor-pointer">Cancel</button>
                 </div>
             </div>
-            <button onclick="openScopeMountEditor(${s.id})"
-                class="w-full mt-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">
-                ${mountBtnLabel}
-            </button>
+            <!-- Action buttons -->
+            <div class="flex gap-2 mt-auto pt-1">
+                <button onclick="document.getElementById('scope-edit-${s.id}').classList.toggle('hidden');document.getElementById('scope-editor-${s.id}').classList.add('hidden')"
+                    class="flex-1 px-2 py-1.5 bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold rounded transition cursor-pointer">✏️ Edit</button>
+                <button onclick="openScopeMountEditor(${s.id})"
+                    class="flex-1 px-2 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">${mountBtnLabel}</button>
+            </div>
+            <div class="flex justify-end">
+                <span class="text-xs text-gray-500 font-mono">$${parseFloat(s.price_paid || 0).toFixed(2)}</span>
+            </div>
         </div>
     </div>`;
+}
+
+async function saveScopeEdit(scopeId) {
+    const brand = document.getElementById(`sedit-brand-${scopeId}`)?.value.trim();
+    const model = document.getElementById(`sedit-model-${scopeId}`)?.value.trim();
+    const magnification = document.getElementById(`sedit-mag-${scopeId}`)?.value.trim();
+    const units = document.getElementById(`sedit-units-${scopeId}`)?.value;
+    const price_paid = parseFloat(document.getElementById(`sedit-price-${scopeId}`)?.value) || 0;
+    try {
+        await fetch(`/scopes/${scopeId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ brand, model, magnification, units, price_paid }),
+        });
+        for (const slot of [1, 2]) {
+            const file = document.getElementById(`sedit-p${slot}-${scopeId}`)?.files[0];
+            if (file) {
+                const fd = new FormData();
+                fd.append('image', file);
+                fd.append('slot', String(slot));
+                await fetch(`/scopes/${scopeId}/update-photo/`, { method: 'POST', body: fd });
+            }
+        }
+        showToast('Scope updated.');
+        loadScopes();
+    } catch { showToast('Failed to save scope.', 'error'); }
 }
 
 async function openScopeMountEditor(scopeId) {
@@ -2312,4 +2587,4 @@ async function applyPreferences() {
     } catch (_) {}
 }
 
-window.onload = () => { fetchInitialLookupData(); loadCatalog(); applyPreferences(); };
+window.onload = () => { initCustomAC(); fetchInitialLookupData(); loadCatalog(); applyPreferences(); };

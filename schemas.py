@@ -88,3 +88,28 @@ class SettingsPatch(BaseModel):
 class AdminUserPatch(BaseModel):
     is_admin: Optional[bool] = None
     is_active: Optional[bool] = None
+
+
+class ScopePatchPayload(BaseModel):
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    magnification: Optional[str] = None
+    units: Optional[str] = None
+    price_paid: Optional[float] = None
+
+
+class TCReceiverPatchPayload(BaseModel):
+    platform: Optional[str] = None
+    serial_number: Optional[str] = None
+    notes: Optional[str] = None
+    price_paid: Optional[float] = None
+
+
+class TCBarrelPatchPayload(BaseModel):
+    caliber: Optional[str] = None
+    twist_rate: Optional[str] = None
+    barrel_length: Optional[str] = None
+    hardware_color: Optional[str] = None
+    is_threaded: Optional[bool] = None
+    has_muzzle_brake: Optional[bool] = None
+    price_paid: Optional[float] = None

@@ -28,9 +28,11 @@ class Scope(Base):
     id = Column(Integer, primary_key=True, index=True)
     brand = Column(String)
     model = Column(String)
+    magnification = Column(String, nullable=True)   # e.g. "4-16x44"
     units = Column(String, default="MOA")
     price_paid = Column(Float, default=0.0)
     image_path = Column(String, nullable=True)
+    image_path_2 = Column(String, nullable=True)
 
     firearms = relationship("Firearm", back_populates="scope")
     barrels = relationship("Barrel", back_populates="scope")
@@ -49,8 +51,10 @@ class TCReceiver(Base):
     id = Column(Integer, primary_key=True, index=True)
     platform = Column(String)           # "Encore" or "Contender"
     serial_number = Column(String, nullable=True)
+    notes = Column(String, nullable=True)
     price_paid = Column(Float, default=0.0)
     image_path = Column(String, nullable=True)
+    image_path_2 = Column(String, nullable=True)
     is_sold = Column(Boolean, default=False)
     price_sold = Column(Float, nullable=True)
 
@@ -82,6 +86,7 @@ class Barrel(Base):
     price_paid = Column(Float, default=0.0)
     scope_id = Column(Integer, ForeignKey("scopes.id"), nullable=True)
     image_path = Column(String, nullable=True)
+    image_path_2 = Column(String, nullable=True)
     # TC-specific fields (null for regular rifle barrels)
     tc_platform = Column(String, nullable=True)     # "Encore" or "Contender"
     barrel_length = Column(String, nullable=True)
@@ -242,6 +247,15 @@ def init_db():
         _add_col('barrels', 'hardware_color', 'hardware_color VARCHAR')
         _add_col('barrels', 'is_threaded',    'is_threaded BOOLEAN DEFAULT FALSE')
         _add_col('barrels', 'has_muzzle_brake', 'has_muzzle_brake BOOLEAN DEFAULT FALSE')
+        _add_col('barrels', 'image_path_2',   'image_path_2 VARCHAR')
+
+    if 'scopes' in inspector.get_table_names():
+        _add_col('scopes', 'magnification', 'magnification VARCHAR')
+        _add_col('scopes', 'image_path_2',  'image_path_2 VARCHAR')
+
+    if 'tc_receivers' in inspector.get_table_names():
+        _add_col('tc_receivers', 'notes',        'notes VARCHAR')
+        _add_col('tc_receivers', 'image_path_2', 'image_path_2 VARCHAR')
 
     # Seed default threshold settings if they don't exist
     _defaults = {
