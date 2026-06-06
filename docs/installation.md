@@ -1,6 +1,6 @@
 # Installation Guide
 
-Prerequisites: a running Debian 12 LXC with Docker installed. See [LXC Setup](lxc-setup.md) if you haven't done that yet.
+Prerequisites: a running Debian 12 LXC with Python 3 and Git installed. See [LXC Setup](lxc-setup.md) if you haven't done that yet.
 
 ---
 
@@ -14,27 +14,47 @@ cd inventory-and-reloading
 
 ---
 
-## 2. Build and Start the Container
+## 2. Create a Virtual Environment and Install Dependencies
 
 ```bash
-docker compose up -d --build
-```
-
-Docker will:
-- Build the Python image
-- Create `data/` (SQLite database) and `uploads/` (photos) directories on the host
-- Start the app on port **8000**
-
-Verify it is running:
-
-```bash
-docker compose ps
-docker compose logs -f   # Ctrl+C to exit
+python3 -m venv venv
+venv/bin/pip install --no-cache-dir -r requirements.txt
 ```
 
 ---
 
-## 3. First-Time Setup
+## 3. Create Persistent Data Directories
+
+```bash
+mkdir -p data static/uploads
+```
+
+These directories survive updates since they are on the host filesystem:
+
+- `data/` — SQLite database
+- `static/uploads/` — photo uploads
+
+---
+
+## 4. Install and Enable the systemd Service
+
+```bash
+cp /opt/inventory-and-reloading/inventory.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable inventory
+systemctl start inventory
+```
+
+Check that it started cleanly:
+
+```bash
+systemctl status inventory
+journalctl -u inventory -f   # Ctrl+C to exit
+```
+
+---
+
+## 5. First-Time Setup
 
 Open a browser and navigate to:
 
@@ -46,33 +66,20 @@ Create the first admin account. After submitting you are redirected to the login
 
 ---
 
-## 4. Directory Structure After First Run
-
-```
-reloading-and-inventory/
-├── data/
-│   └── reloading.db      ← SQLite database (persistent)
-├── uploads/              ← Photo uploads (persistent)
-└── ...
-```
-
-Both `data/` and `uploads/` are mounted as Docker volumes, so they survive container rebuilds and updates.
-
----
-
-## 5. Updating the Application
+## 6. Updating the Application
 
 ```bash
-cd /opt/reloading-and-inventory
+cd /opt/inventory-and-reloading
 git pull
-docker compose up -d --build
+venv/bin/pip install --no-cache-dir -r requirements.txt
+systemctl restart inventory
 ```
 
-The database and uploads are untouched. The app is typically back online in under 30 seconds.
+The database and uploads are untouched. The app is typically back online in seconds.
 
 ---
 
-## 6. (Optional) HTTPS with a Reverse Proxy
+## 7. (Optional) HTTPS with a Reverse Proxy
 
 For HTTPS access from outside your LAN, put a reverse proxy in front of port 8000. Two common options on Proxmox:
 
@@ -101,14 +108,18 @@ Caddy handles TLS automatically via Let's Encrypt.
 
 ---
 
-## 7. Stopping / Removing the App
+## 8. Stopping / Removing the App
 
 ```bash
-# Stop (data preserved)
-docker compose down
+# Stop the service
+systemctl stop inventory
 
-# Stop and remove the image (data preserved)
-docker compose down --rmi all
+# Disable autostart
+systemctl disable inventory
+
+# Remove the service file
+rm /etc/systemd/system/inventory.service
+systemctl daemon-reload
 ```
 
 ---

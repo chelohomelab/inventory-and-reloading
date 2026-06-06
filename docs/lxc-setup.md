@@ -1,6 +1,7 @@
 # Proxmox LXC Setup
 
 This guide covers creating the Proxmox LXC container that will host the application.
+The app runs directly under Python — no Docker needed — so the LXC requires no elevated kernel privileges.
 
 ---
 
@@ -22,6 +23,7 @@ In the Proxmox web UI click **Create CT** and fill in:
 | Hostname | `firearm-inventory` |
 | Password | Set a strong root password |
 | Template | `debian-12-standard_*.tar.zst` |
+| Unprivileged container | **Yes** (default) |
 | Disk | 8 GB (expandable later) |
 | CPU | 1–2 cores |
 | Memory | 512 MB (1024 MB recommended) |
@@ -31,7 +33,9 @@ In the Proxmox web UI click **Create CT** and fill in:
 
 > **Tip:** Assign a static IP so the app URL never changes. Either configure it in the LXC network settings or set a DHCP reservation on your router.
 
-Click **Finish**. Start the container, then open a shell via the Proxmox console or SSH.
+No special features (nesting, keyctl, etc.) are required. Leave them all off.
+
+Click **Finish**, start the container, then open a shell via the Proxmox console or SSH.
 
 ---
 
@@ -43,52 +47,16 @@ apt update && apt upgrade -y
 
 ---
 
-## 4. Install Docker
+## 4. Install Python and Git
 
 ```bash
-# Install prerequisites
-apt install -y ca-certificates curl gnupg
-
-# Add Docker's official GPG key
-install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/debian/gpg \
-    | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-chmod a+r /etc/apt/keyrings/docker.gpg
-
-# Add the Docker repository
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-  https://download.docker.com/linux/debian \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
-  | tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# Install Docker Engine and Compose plugin
-apt update
-apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+apt install -y python3 python3-pip python3-venv git
 ```
 
 Verify:
 
 ```bash
-docker --version
-docker compose version
-```
-
----
-
-## 5. (Optional) Install Git
-
-```bash
-apt install -y git
-```
-
----
-
-## 6. Enable Docker on Boot
-
-```bash
-systemctl enable docker
-systemctl start docker
+python3 --version
 ```
 
 ---
