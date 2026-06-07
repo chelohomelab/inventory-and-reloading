@@ -192,12 +192,17 @@ function showToast(message, type = 'success') {
 }
 
 function openSidebar() {
-    document.getElementById('sidebar').classList.remove('-translate-x-full');
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.remove('hidden');
+    Object.assign(sidebar.style, { position: 'fixed', top: '0', left: '0', bottom: '0', display: 'flex', zIndex: '40' });
     document.getElementById('sidebar-overlay').classList.remove('hidden');
 }
 
 function closeSidebar() {
-    document.getElementById('sidebar').classList.add('-translate-x-full');
+    if (window.innerWidth >= 1024) return;
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.add('hidden');
+    sidebar.style.cssText = '';
     document.getElementById('sidebar-overlay').classList.add('hidden');
 }
 

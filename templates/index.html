@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Guns & Reloading</title>
+    <link rel="icon" type="image/png" href="/static/images/logo.png">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
-<body class="bg-gray-950 text-gray-100 font-sans antialiased select-none flex h-screen overflow-hidden">
+<body class="bg-gray-950 text-gray-100 font-sans antialiased select-none flex min-h-dvh lg:h-dvh lg:overflow-hidden">
 
     <div id="toast-container" class="fixed bottom-5 right-5 z-[100] space-y-2 pointer-events-none"></div>
 
@@ -29,48 +30,53 @@
         </div>
     </div>
 
-    <!-- Left Sidebar — always visible on lg+, slide-in drawer on mobile -->
-    <aside id="sidebar" class="w-64 bg-gray-900 border-r border-gray-800 flex flex-col shrink-0 z-40 fixed inset-y-0 left-0 -translate-x-full lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out">
+    <!-- Left Sidebar — always visible on lg+, hidden on mobile until hamburger tapped -->
+    <aside id="sidebar" class="w-64 bg-gray-900 border-r border-gray-800 flex flex-col shrink-0 z-40 hidden lg:flex lg:relative">
 
         <!-- Logo + title -->
-        <div class="p-5 border-b border-gray-800 text-center cursor-pointer hover:bg-gray-800/40 transition" onclick="switchTab('landing-tab'); closeSidebar()">
-            <img src="/static/images/logo.png" alt="G&R" class="h-12 w-auto mx-auto mb-2 drop-shadow-lg">
-            <h1 class="text-xl font-black text-amber-500 tracking-wide leading-tight">Guns &amp; Reloading</h1>
-            <p class="text-xs text-gray-500 mt-0.5 tracking-widest uppercase">Vault</p>
+        <div class="p-4 border-b border-gray-800 text-center cursor-pointer hover:bg-gray-800/40 transition" onclick="switchTab('landing-tab'); closeSidebar()">
+            <img src="/static/images/logo.png" alt="G&R" class="h-10 w-auto mx-auto mb-1.5 drop-shadow-lg">
+            <h1 class="text-lg font-black text-amber-500 tracking-wide leading-tight">Guns &amp; Reloading</h1>
+            <p class="text-[10px] text-gray-500 mt-0.5 tracking-widest uppercase">Vault</p>
         </div>
 
         <!-- Action buttons -->
-        <nav class="p-3 space-y-1.5 border-b border-gray-800">
+        <nav class="p-2.5 space-y-1 border-b border-gray-800">
             <button onclick="switchTab('catalog-tab'); closeSidebar()"
-                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700/50 hover:border-amber-500/40 transition cursor-pointer text-left">
-                <span class="text-xl">📦</span>
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700/50 hover:border-amber-500/40 transition cursor-pointer text-left">
+                <span class="text-lg">📦</span>
                 <div><div class="text-sm font-bold text-white">Inventory</div><div class="text-[10px] text-gray-500">Browse your vault</div></div>
             </button>
             <button id="nav-btn-measure" onclick="switchTab('measure-tab'); closeSidebar()"
-                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-950/60 hover:bg-blue-900/60 border border-blue-800/40 hover:border-blue-500/40 transition cursor-pointer text-left">
-                <span class="text-xl">🎯</span>
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-950/60 hover:bg-blue-900/60 border border-blue-800/40 hover:border-blue-500/40 transition cursor-pointer text-left">
+                <span class="text-lg">🎯</span>
                 <div><div class="text-sm font-bold text-white">Range Session</div><div class="text-[10px] text-blue-400/70">Log a shot string</div></div>
             </button>
             <button onclick="switchTab('add-tab'); closeSidebar()"
-                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-amber-950/60 hover:bg-amber-900/60 border border-amber-800/40 hover:border-amber-500/40 transition cursor-pointer text-left">
-                <span class="text-xl">⚙️</span>
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-amber-950/60 hover:bg-amber-900/60 border border-amber-800/40 hover:border-amber-500/40 transition cursor-pointer text-left">
+                <span class="text-lg">⚙️</span>
                 <div><div class="text-sm font-bold text-white">Add Inventory</div><div class="text-[10px] text-amber-500/70">Firearms &amp; gear</div></div>
             </button>
+            <button onclick="switchTab('add-tab'); switchFormCategory('cat-ammunition'); closeSidebar()"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-sky-950/60 hover:bg-sky-900/60 border border-sky-800/40 hover:border-sky-500/40 transition cursor-pointer text-left">
+                <span class="text-lg">🧪</span>
+                <div><div class="text-sm font-bold text-white">Add Ammunition</div><div class="text-[10px] text-sky-400/70">Factory &amp; handloads</div></div>
+            </button>
             <button onclick="switchTab('add-tab'); switchFormCategory('cat-components'); closeSidebar()"
-                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-800/40 hover:border-emerald-500/40 transition cursor-pointer text-left">
-                <span class="text-xl">🧪</span>
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-800/40 hover:border-emerald-500/40 transition cursor-pointer text-left">
+                <span class="text-lg">🔩</span>
                 <div><div class="text-sm font-bold text-white">Add Components</div><div class="text-[10px] text-emerald-500/70">Powder, primers, bullets</div></div>
             </button>
         </nav>
 
         <!-- Inventory stats -->
-        <div class="p-3 border-b border-gray-800">
-            <p class="text-[10px] text-gray-600 uppercase tracking-widest px-1 mb-2">Inventory</p>
-            <div id="landing-stats" class="grid grid-cols-2 gap-1.5">
-                <div class="bg-gray-800/60 rounded-lg py-2.5 text-center"><div class="text-sm">🔫</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Firearms</div></div>
-                <div class="bg-gray-800/60 rounded-lg py-2.5 text-center"><div class="text-sm">🔭</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Optics</div></div>
-                <div class="bg-gray-800/60 rounded-lg py-2.5 text-center"><div class="text-sm">🧪</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Ammo</div></div>
-                <div class="bg-gray-800/60 rounded-lg py-2.5 text-center"><div class="text-sm">🔩</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Components</div></div>
+        <div class="p-2.5 border-b border-gray-800">
+            <p class="text-[10px] text-gray-600 uppercase tracking-widest px-1 mb-1.5">Inventory</p>
+            <div id="landing-stats" class="grid grid-cols-2 gap-1">
+                <div class="bg-gray-800/60 rounded-lg py-2 text-center"><div class="text-sm">🔫</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Firearms</div></div>
+                <div class="bg-gray-800/60 rounded-lg py-2 text-center"><div class="text-sm">🔭</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Optics</div></div>
+                <div class="bg-gray-800/60 rounded-lg py-2 text-center"><div class="text-sm">🧪</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Ammo</div></div>
+                <div class="bg-gray-800/60 rounded-lg py-2 text-center"><div class="text-sm">🔩</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Components</div></div>
             </div>
         </div>
 
@@ -98,7 +104,7 @@
     <div id="sidebar-overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 hidden lg:hidden"></div>
 
     <!-- Right content area — background image fills this panel -->
-    <div class="flex-1 flex flex-col min-w-0 overflow-hidden" style="background-image: url('/static/images/background-2.png'); background-size: cover; background-position: center; background-color: #0f0f0f;">
+    <div class="flex-1 flex flex-col min-w-0 lg:min-h-0 lg:overflow-hidden" style="background-image: url('/static/images/background-2.png'); background-size: cover; background-position: center; background-color: #0f0f0f;">
 
         <!-- Mobile-only top bar (hidden on lg+) -->
         <header class="lg:hidden flex items-center gap-3 p-3 bg-gray-900/95 border-b border-gray-800 shrink-0 z-20">
@@ -111,7 +117,7 @@
             <span class="text-amber-500 font-bold text-sm">Guns &amp; Reloading</span>
         </header>
 
-        <main class="flex-1 overflow-y-auto p-4">
+        <main class="flex-1 p-4 lg:overflow-y-scroll lg:min-h-0" style="-webkit-overflow-scrolling: touch;">
 
         <!-- Landing / Home — content TBD -->
         <section id="landing-tab" class="min-h-[88vh]"></section>
@@ -354,14 +360,6 @@
         </section>
 
         <section id="add-tab" class="hidden space-y-6">
-            <div class="border-b border-gray-700 pb-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <h2 class="text-2xl font-bold">Add Inventory Vault Registration</h2>
-                <div class="flex flex-wrap gap-1 bg-gray-950 p-1 rounded-md border border-gray-800">
-                    <button onclick="switchFormCategory('cat-platforms')" id="btn-cat-platforms" class="px-4 py-1.5 text-xs font-bold rounded bg-amber-600 text-white cursor-pointer">Firearms & Optics</button>
-                    <button onclick="switchFormCategory('cat-ammunition')" id="btn-cat-ammunition" class="px-4 py-1.5 text-xs font-bold rounded text-gray-400 hover:text-gray-200 cursor-pointer">Ammunition</button>
-                    <button onclick="switchFormCategory('cat-components')" id="btn-cat-components" class="px-4 py-1.5 text-xs font-bold rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔩 Components</button>
-                </div>
-            </div>
 
             <div id="pane-platforms" class="space-y-4">
                 <!-- Add form sub-tabs -->
@@ -1037,6 +1035,6 @@
     <datalist id="dl-handload-bullet"></datalist>
     <datalist id="dl-handload-brass"></datalist>
 
-    <script src="/static/app.js?v=12"></script>
+    <script src="/static/app.js?v=14"></script>
 </body>
 </html>
