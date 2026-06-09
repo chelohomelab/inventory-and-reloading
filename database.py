@@ -33,6 +33,7 @@ class Scope(Base):
     price_paid = Column(Float, default=0.0)
     image_path = Column(String, nullable=True)
     image_path_2 = Column(String, nullable=True)
+    is_deleted = Column(Boolean, default=False)
 
     firearms = relationship("Firearm", back_populates="scope")
     barrels = relationship("Barrel", back_populates="scope")
@@ -57,6 +58,7 @@ class TCReceiver(Base):
     image_path_2 = Column(String, nullable=True)
     is_sold = Column(Boolean, default=False)
     price_sold = Column(Float, nullable=True)
+    is_deleted = Column(Boolean, default=False)
 
 class Firearm(Base):
     __tablename__ = "firearms"
@@ -70,6 +72,7 @@ class Firearm(Base):
     scope_id = Column(Integer, ForeignKey("scopes.id"), nullable=True)
     is_sold = Column(Boolean, default=False)
     price_sold = Column(Float, nullable=True)
+    is_deleted = Column(Boolean, default=False)
 
     scope = relationship("Scope", back_populates="firearms")
     barrels = relationship("Barrel", back_populates="firearm", cascade="all, delete-orphan")
@@ -93,6 +96,9 @@ class Barrel(Base):
     hardware_color = Column(String, nullable=True)
     is_threaded = Column(Boolean, default=False)
     has_muzzle_brake = Column(Boolean, default=False)
+    is_sold = Column(Boolean, default=False)
+    price_sold = Column(Float, nullable=True)
+    is_deleted = Column(Boolean, default=False)
 
     firearm = relationship("Firearm", back_populates="barrels")
     scope = relationship("Scope", back_populates="barrels")
@@ -276,6 +282,9 @@ def init_db():
         _add_col('barrels', 'is_threaded',    'is_threaded BOOLEAN DEFAULT FALSE')
         _add_col('barrels', 'has_muzzle_brake', 'has_muzzle_brake BOOLEAN DEFAULT FALSE')
         _add_col('barrels', 'image_path_2',   'image_path_2 VARCHAR')
+        _add_col('barrels', 'is_sold',        'is_sold BOOLEAN DEFAULT FALSE')
+        _add_col('barrels', 'price_sold',     'price_sold FLOAT')
+        _add_col('barrels', 'is_deleted',     'is_deleted BOOLEAN DEFAULT FALSE')
 
     if 'scopes' in inspector.get_table_names():
         _add_col('scopes', 'magnification', 'magnification VARCHAR')
@@ -284,6 +293,13 @@ def init_db():
     if 'tc_receivers' in inspector.get_table_names():
         _add_col('tc_receivers', 'notes',        'notes VARCHAR')
         _add_col('tc_receivers', 'image_path_2', 'image_path_2 VARCHAR')
+        _add_col('tc_receivers', 'is_deleted',   'is_deleted BOOLEAN DEFAULT FALSE')
+
+    if 'firearms' in inspector.get_table_names():
+        _add_col('firearms', 'is_deleted', 'is_deleted BOOLEAN DEFAULT FALSE')
+
+    if 'scopes' in inspector.get_table_names():
+        _add_col('scopes', 'is_deleted', 'is_deleted BOOLEAN DEFAULT FALSE')
 
     # Seed default threshold settings if they don't exist
     _defaults = {

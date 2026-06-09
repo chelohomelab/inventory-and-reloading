@@ -51,6 +51,71 @@ def admin_delete_user(user_id: int, request: Request, db: Session = Depends(get_
     return {"deleted": user_id}
 
 
+@router.get("/admin/trash-items")
+def admin_trash_items(request: Request, db: Session = Depends(get_db)):
+    _require_admin(request)
+    firearms = db.query(models.Firearm).filter(models.Firearm.is_deleted == True).all()
+    receivers = db.query(models.TCReceiver).filter(models.TCReceiver.is_deleted == True).all()
+    barrels = db.query(models.Barrel).filter(
+        models.Barrel.tc_platform.isnot(None), models.Barrel.is_deleted == True
+    ).all()
+    scopes = db.query(models.Scope).filter(models.Scope.is_deleted == True).all()
+    return {
+        "firearms": [{"id": g.id, "label": f"{g.brand} {g.model}", "frame_type": g.frame_type, "image": g.image_path_1} for g in firearms],
+        "tc_receivers": [{"id": r.id, "label": f"{r.platform} Receiver (S/N: {r.serial_number or '—'})", "image": r.image_path} for r in receivers],
+        "tc_barrels": [{"id": b.id, "label": f"{b.tc_platform} {b.caliber}", "frame_type": b.barrel_length or "", "image": b.image_path} for b in barrels],
+        "scopes": [{"id": s.id, "label": f"{s.brand} {s.model}", "image": s.image_path} for s in scopes],
+    }
+
+
+@router.delete("/admin/trash/firearms/{firearm_id}")
+def admin_perma_delete_firearm(firearm_id: int, request: Request, db: Session = Depends(get_db)):
+    _require_admin(request)
+    gun = db.query(models.Firearm).filter(models.Firearm.id == firearm_id, models.Firearm.is_deleted == True).first()
+    if not gun:
+        raise HTTPException(404, "Not found in trash")
+    db.delete(gun)
+    db.commit()
+    return {"deleted": firearm_id}
+
+
+@router.delete("/admin/trash/tc-receivers/{receiver_id}")
+def admin_perma_delete_receiver(receiver_id: int, request: Request, db: Session = Depends(get_db)):
+    _require_admin(request)
+    r = db.query(models.TCReceiver).filter(models.TCReceiver.id == receiver_id, models.TCReceiver.is_deleted == True).first()
+    if not r:
+        raise HTTPException(404, "Not found in trash")
+    db.delete(r)
+    db.commit()
+    return {"deleted": receiver_id}
+
+
+@router.delete("/admin/trash/scopes/{scope_id}")
+def admin_perma_delete_scope(scope_id: int, request: Request, db: Session = Depends(get_db)):
+    _require_admin(request)
+    s = db.query(models.Scope).filter(models.Scope.id == scope_id, models.Scope.is_deleted == True).first()
+    if not s:
+        raise HTTPException(404, "Not found in trash")
+    db.delete(s)
+    db.commit()
+    return {"deleted": scope_id}
+
+
+@router.delete("/admin/trash/tc-barrels/{barrel_id}")
+def admin_perma_delete_tc_barrel(barrel_id: int, request: Request, db: Session = Depends(get_db)):
+    _require_admin(request)
+    b = db.query(models.Barrel).filter(
+        models.Barrel.id == barrel_id,
+        models.Barrel.tc_platform.isnot(None),
+        models.Barrel.is_deleted == True,
+    ).first()
+    if not b:
+        raise HTTPException(404, "Not found in trash")
+    db.delete(b)
+    db.commit()
+    return {"deleted": barrel_id}
+
+
 @router.post("/admin/users/")
 async def admin_create_user(
     request: Request,

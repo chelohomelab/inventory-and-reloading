@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory — Guns &amp; Reloading</title>
+    <link rel="icon" type="image/png" href="/static/images/app-icon.png">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0f0f0f">
+    <meta name="mobile-web-app-capable" content="yes">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      #main-bg { background-image: url('/static/images/phone-background.png'); background-size: cover; background-position: center; background-color: #0f0f0f; }
+      @media (min-width: 1024px) { #main-bg { background-image: url('/static/images/background.png'); } }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 font-sans antialiased select-none flex min-h-dvh lg:h-dvh lg:overflow-hidden">
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[100] space-y-2 pointer-events-none"></div>
+
+    <input type="file" id="global-picture-replacer" accept="image/*" class="hidden" onchange="processPictureReplacement(this)">
+
+    <div id="sell-modal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-[110] hidden backdrop-blur-xs">
+        <div class="bg-gray-800 border border-gray-700 rounded-lg p-5 w-full max-w-sm shadow-2xl space-y-4">
+            <div>
+                <h3 class="text-sm font-bold uppercase tracking-wider text-amber-500">💰 Log Asset Sale Transaction</h3>
+                <p id="sell-modal-item-title" class="text-xs text-gray-400 mt-1 truncate">Item Name Placeholder</p>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Final Sold Price ($)</label>
+                <input type="number" id="modal-sold-price" step="0.01" placeholder="850.00" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+            </div>
+            <div class="flex justify-end space-x-2 text-xs font-bold">
+                <button onclick="closeSellModal()" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 cursor-pointer">Cancel</button>
+                <button onclick="submitAssetSale()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded text-white cursor-pointer">Confirm Sale</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Left Sidebar -->
+    <aside id="sidebar" class="w-64 bg-gray-900 border-r border-gray-800 flex flex-col shrink-0 z-40 hidden lg:flex lg:relative">
+
+        <!-- Logo + title -->
+        <div class="p-4 border-b border-gray-800 text-center cursor-pointer hover:bg-gray-800/40 transition" onclick="window.location.href='/'">
+            <img src="/static/images/logo.png" alt="G&R" class="h-10 w-auto mx-auto mb-1.5 drop-shadow-lg">
+            <h1 class="text-lg font-black text-amber-500 tracking-wide leading-tight">Guns &amp; Reloading</h1>
+            <p class="text-[10px] text-gray-500 mt-0.5 tracking-widest uppercase">Vault</p>
+        </div>
+
+        <!-- Action buttons -->
+        <nav class="p-2.5 space-y-1 border-b border-gray-800">
+            <a href="/inventory"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/40 transition text-left">
+                <span class="text-lg">📦</span>
+                <div><div class="text-sm font-bold text-amber-400">Inventory</div><div class="text-[10px] text-amber-500/60">Browse your vault</div></div>
+            </a>
+            <button id="nav-btn-measure" onclick="window.location.href='/?tab=measure-tab'"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-950/60 hover:bg-blue-900/60 border border-blue-800/40 hover:border-blue-500/40 transition cursor-pointer text-left">
+                <span class="text-lg">🎯</span>
+                <div><div class="text-sm font-bold text-white">Range Session</div><div class="text-[10px] text-blue-400/70">Log a shot string</div></div>
+            </button>
+            <button onclick="window.location.href='/?tab=add-tab&cat=platforms'"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-amber-950/60 hover:bg-amber-900/60 border border-amber-800/40 hover:border-amber-500/40 transition cursor-pointer text-left">
+                <span class="text-lg">⚙️</span>
+                <div><div class="text-sm font-bold text-white">Add Inventory</div><div class="text-[10px] text-amber-500/70">Firearms &amp; gear</div></div>
+            </button>
+            <button onclick="window.location.href='/?tab=add-tab&cat=ammunition'"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-sky-950/60 hover:bg-sky-900/60 border border-sky-800/40 hover:border-sky-500/40 transition cursor-pointer text-left">
+                <span class="text-lg">🧪</span>
+                <div><div class="text-sm font-bold text-white">Add Ammunition</div><div class="text-[10px] text-sky-400/70">Factory &amp; handloads</div></div>
+            </button>
+            <button onclick="window.location.href='/?tab=add-tab&cat=components'"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-800/40 hover:border-emerald-500/40 transition cursor-pointer text-left">
+                <span class="text-lg">🔩</span>
+                <div><div class="text-sm font-bold text-white">Add Components</div><div class="text-[10px] text-emerald-500/70">Powder, primers, bullets</div></div>
+            </button>
+        </nav>
+
+        <!-- Inventory stats -->
+        <div class="p-2.5 border-b border-gray-800">
+            <p class="text-[10px] text-gray-600 uppercase tracking-widest px-1 mb-1.5">Inventory</p>
+            <div id="landing-stats" class="grid grid-cols-2 gap-1">
+                <div class="bg-gray-800/60 rounded-lg py-2 text-center"><div class="text-sm">🔫</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Firearms</div></div>
+                <div class="bg-gray-800/60 rounded-lg py-2 text-center"><div class="text-sm">🔭</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Optics</div></div>
+                <div class="bg-gray-800/60 rounded-lg py-2 text-center"><div class="text-sm">🧪</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Ammo</div></div>
+                <div class="bg-gray-800/60 rounded-lg py-2 text-center"><div class="text-sm">🔩</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Components</div></div>
+            </div>
+        </div>
+
+        <div class="flex-1"></div>
+
+        <!-- User menu -->
+        <div class="p-3 border-t border-gray-800 relative">
+            <div id="user-menu" class="hidden absolute bottom-full left-3 right-3 mb-1 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl overflow-hidden">
+                {% if user.is_admin %}
+                <a href="/admin/users" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition">👤 Users</a>
+                <a href="/admin/trash" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition">🗑️ Trash</a>
+                {% endif %}
+                <a href="/profile/" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition">🛠️ Profile</a>
+                <a href="/logout" class="flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-900/40 transition">🚪 Sign Out</a>
+            </div>
+            <button onclick="toggleUserMenu()" class="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer">
+                <span class="text-sm">⚙️</span>
+                <span class="text-sm font-medium text-gray-300 flex-1 text-left">{{ user.username }}</span>
+                <span id="user-menu-arrow" class="text-gray-500 text-xs transition-transform duration-200">▲</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Sidebar overlay -->
+    <div id="sidebar-overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 hidden lg:hidden"></div>
+
+    <!-- Right content area -->
+    <div id="main-bg" class="flex-1 flex flex-col min-w-0 lg:min-h-0 lg:overflow-hidden">
+
+        <!-- Mobile top bar -->
+        <header class="lg:hidden flex items-center gap-3 p-3 bg-gray-900/95 border-b border-gray-800 shrink-0 z-20">
+            <button onclick="openSidebar()" class="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 cursor-pointer" aria-label="Open menu">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+            <img src="/static/images/logo.png" alt="G&R" class="h-7 w-auto">
+            <span class="text-amber-500 font-bold text-sm">Inventory Vault</span>
+        </header>
+
+        <main class="flex-1 p-4 lg:overflow-y-scroll lg:min-h-0" style="-webkit-overflow-scrolling: touch;">
+
+            <!-- Inventory section header + sub-navigation -->
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-gray-700 pb-3 gap-3">
+                <div class="flex flex-wrap items-center gap-3">
+                    <h2 class="text-2xl font-bold">Inventory Vault</h2>
+                    <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
+                        <button id="inv-btn-platforms" onclick="switchInventoryTab('platforms')" class="px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer">🔫 Platforms</button>
+                        <button id="inv-btn-optics" onclick="switchInventoryTab('optics')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔭 Optics</button>
+                        <button id="inv-btn-ammo" onclick="switchInventoryTab('ammo')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🧪 Ammunition</button>
+                        <button id="inv-btn-components" onclick="switchInventoryTab('components')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔩 Components</button>
+                    </div>
+                </div>
+                <span id="inventory-count" class="text-xs bg-gray-800 text-gray-400 font-mono px-2.5 py-1 rounded border border-gray-700 self-start sm:self-auto">0 Assets Logged</span>
+            </div>
+
+            <!-- Platforms pane -->
+            <div id="inv-pane-platforms" class="mt-4">
+                <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
+                            <button id="plat-btn-general" onclick="switchPlatformTab('general')" class="px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer">🔫 Rifles</button>
+                            <button id="plat-btn-shotgun" onclick="switchPlatformTab('shotgun')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🦆 Shotguns</button>
+                            <button id="plat-btn-handgun" onclick="switchPlatformTab('handgun')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔫 Handguns</button>
+                            <button id="plat-btn-tc" onclick="switchPlatformTab('tc')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🛠️ Thompson Center</button>
+                        </div>
+                        <div id="plat-collection-filter" class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
+                            <button onclick="setCollectionFilter()" id="btn-filter-sold" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">Sold</button>
+                        </div>
+                    </div>
+                    <button onclick="window.location.href='/?tab=add-tab&cat=platforms'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
+                </div>
+
+                <div id="plat-pane-general">
+                    <div id="catalog-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <p class="text-gray-400 col-span-3">Loading platforms...</p>
+                    </div>
+                </div>
+
+                <div id="plat-pane-tc" class="hidden space-y-8">
+                    <div>
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="text-xs font-bold uppercase tracking-wider text-amber-500">Receivers</span>
+                            <div class="flex-1 border-t border-gray-700/60"></div>
+                        </div>
+                        <div id="tc-receivers-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <p class="text-gray-500 italic text-sm col-span-3">Loading receivers...</p>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="text-xs font-bold uppercase tracking-wider text-blue-400">Barrels</span>
+                            <div class="flex-1 border-t border-gray-700/60"></div>
+                        </div>
+                        <div id="tc-barrels-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <p class="text-gray-500 italic text-sm col-span-3">Loading barrels...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Optics pane -->
+            <div id="inv-pane-optics" class="hidden mt-4">
+                <div class="flex justify-end mb-4">
+                    <button onclick="window.location.href='/?tab=add-tab&cat=platforms'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
+                </div>
+                <div id="scopes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <p class="text-gray-400 col-span-3 italic">Loading optics...</p>
+                </div>
+            </div>
+
+            <!-- Ammunition pane -->
+            <div id="inv-pane-ammo" class="hidden mt-4">
+                <div class="flex items-center justify-between gap-3 mb-4">
+                    <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
+                        <button id="ammo-btn-factory" onclick="switchAmmoFilter('factory')" class="px-3 py-1 rounded bg-gray-800 text-blue-400 cursor-pointer">Factory Loads</button>
+                        <button id="ammo-btn-handload" onclick="switchAmmoFilter('handload')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">Handloads</button>
+                    </div>
+                    <button onclick="window.location.href='/?tab=add-tab&cat=ammunition'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
+                </div>
+                <div id="ammo-container">
+                    <p class="text-gray-400 italic">Loading ammunition...</p>
+                </div>
+            </div>
+
+            <!-- Components pane -->
+            <div id="inv-pane-components" class="hidden mt-4">
+                <div id="low-stock-banner" class="hidden mb-4 bg-amber-900/30 border border-amber-700/60 rounded-lg px-4 py-3">
+                    <p class="text-amber-400 text-xs font-bold uppercase tracking-wider mb-2">⚠️ Low Stock Alerts</p>
+                    <div id="low-stock-list" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <div class="mb-4">
+                    <button type="button" onclick="toggleThresholdSettings()" class="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-amber-400 transition cursor-pointer">
+                        <span id="threshold-toggle-icon">▶</span> Alert Thresholds
+                    </button>
+                    <div id="threshold-panel" class="hidden mt-3 bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+                        <p class="text-xs text-gray-500 mb-3">Trigger a low-stock alert when quantity falls below these values.</p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Powder (lbs)</label>
+                                <input type="number" step="0.1" id="thresh-powder" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Primers (count)</label>
+                                <input type="number" id="thresh-primers" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Bullets (count)</label>
+                                <input type="number" id="thresh-bullets" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Casings (count)</label>
+                                <input type="number" id="thresh-casings" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                        </div>
+                        <button onclick="saveThresholds()" class="mt-3 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded cursor-pointer transition">Save Thresholds</button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                    <div class="flex flex-wrap bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
+                        <button id="comp-btn-powders" onclick="switchComponentFilter('powders')" class="px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer">🧪 Powders</button>
+                        <button id="comp-btn-primers" onclick="switchComponentFilter('primers')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔥 Primers</button>
+                        <button id="comp-btn-bullets" onclick="switchComponentFilter('bullets')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🎯 Bullets</button>
+                        <button id="comp-btn-casings" onclick="switchComponentFilter('casings')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">💊 Casings</button>
+                    </div>
+                    <button onclick="window.location.href='/?tab=add-tab&cat=components'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
+                </div>
+                <div id="components-container">
+                    <p class="text-gray-400 italic">Loading components...</p>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Autocomplete datalists -->
+    <datalist id="dl-caliber"></datalist>
+    <datalist id="dl-firearm-brand"></datalist>
+    <datalist id="dl-firearm-model"></datalist>
+    <datalist id="dl-scope-brand"></datalist>
+    <datalist id="dl-scope-model"></datalist>
+    <datalist id="dl-ammo-brand"></datalist>
+    <datalist id="dl-powder-brand"></datalist>
+    <datalist id="dl-powder-name"></datalist>
+    <datalist id="dl-primer-brand"></datalist>
+    <datalist id="dl-bullet-brand"></datalist>
+    <datalist id="dl-bullet-product-line"></datalist>
+    <datalist id="dl-casing-brand"></datalist>
+    <datalist id="dl-handload-powder"></datalist>
+    <datalist id="dl-handload-primer"></datalist>
+    <datalist id="dl-handload-bullet"></datalist>
+    <datalist id="dl-handload-brass"></datalist>
+
+    <script src="/static/app.js?v=17"></script>
+    <script>
+    window.onload = () => {
+        fetchInitialLookupData(); applyPreferences(); loadLandingStats(); initCustomAC();
+        const p = new URLSearchParams(location.search);
+        const inv = p.get('inv') || 'platforms';
+        switchInventoryTab(inv);
+        if (p.has('platform')) switchPlatformTab(p.get('platform'));
+        if (p.has('ammofilter')) switchAmmoFilter(p.get('ammofilter'));
+        if (p.has('comp')) switchComponentFilter(p.get('comp'));
+    };
+    </script>
+</body>
+</html>
