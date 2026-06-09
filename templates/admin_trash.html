@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trash — Guns & Reloading</title>
+    <link rel="icon" type="image/png" href="/static/images/app-icon.png">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0f0f0f">
+    <meta name="mobile-web-app-capable" content="yes">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      #main-bg { background-image: url('/static/images/phone-background.png'); background-size: cover; background-position: center; background-color: #0f0f0f; }
+      @media (min-width: 1024px) { #main-bg { background-image: url('/static/images/background.png'); } }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 font-sans antialiased select-none flex min-h-dvh lg:h-dvh lg:overflow-hidden">
+
+<div id="toast-container" class="fixed bottom-5 right-5 z-[100] space-y-2 pointer-events-none"></div>
+
+<!-- Confirm permanent delete modal -->
+<div id="perma-delete-modal" class="fixed inset-0 bg-black/75 flex items-center justify-center z-[110] hidden backdrop-blur-xs">
+    <div class="bg-gray-900 border border-red-800 rounded-xl shadow-2xl p-6 w-80 space-y-4">
+        <h3 class="text-base font-bold text-red-400 uppercase tracking-wide">Permanently Delete?</h3>
+        <p class="text-sm text-gray-300">This action <span class="font-bold text-white">cannot be undone</span>. The item will be erased from the database forever.</p>
+        <p id="perma-item-label" class="text-xs text-amber-400 font-mono truncate"></p>
+        <div class="flex gap-3 pt-1">
+            <button onclick="confirmPermaDelete()" class="flex-1 py-2 bg-red-700 hover:bg-red-600 text-white text-sm font-bold rounded transition cursor-pointer">Delete Forever</button>
+            <button onclick="closePermaModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-bold rounded transition cursor-pointer">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Left Sidebar -->
+<aside class="w-64 bg-gray-900 border-r border-gray-800 flex flex-col shrink-0 z-40 hidden lg:flex lg:relative">
+
+    <!-- Logo -->
+    <div class="p-4 border-b border-gray-800 text-center cursor-pointer hover:bg-gray-800/40 transition" onclick="window.location.href='/'">
+        <img src="/static/images/logo.png" alt="G&R" class="h-10 w-auto mx-auto mb-1.5 drop-shadow-lg">
+        <h1 class="text-lg font-black text-amber-500 tracking-wide leading-tight">Guns &amp; Reloading</h1>
+        <p class="text-[10px] text-gray-500 mt-0.5 tracking-widest uppercase">Vault</p>
+    </div>
+
+    <!-- Nav -->
+    <nav class="p-2.5 space-y-1 border-b border-gray-800">
+        <a href="/inventory"
+            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-800/60 hover:bg-amber-600/20 border border-gray-700/40 hover:border-amber-500/40 transition text-left">
+            <span class="text-lg">📦</span>
+            <div><div class="text-sm font-bold text-gray-200">Inventory</div><div class="text-[10px] text-gray-500">Browse your vault</div></div>
+        </a>
+    </nav>
+
+    <!-- Admin section -->
+    <div class="p-2.5 border-b border-gray-800">
+        <p class="text-[10px] text-gray-600 uppercase tracking-widest px-1 mb-1.5">Admin</p>
+        <a href="/admin/users" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-800/60 hover:bg-gray-700/60 border border-gray-700/40 transition text-left">
+            <span class="text-base">👤</span>
+            <div class="text-sm font-bold text-gray-300">Users</div>
+        </a>
+        <a href="/admin/trash" class="w-full flex items-center gap-3 px-3 py-2 mt-1 rounded-lg bg-red-950/40 hover:bg-red-900/40 border border-red-800/40 transition text-left">
+            <span class="text-base">🗑️</span>
+            <div class="text-sm font-bold text-red-400">Trash</div>
+        </a>
+    </div>
+
+    <div class="flex-1"></div>
+
+    <!-- User menu -->
+    <div class="p-3 border-t border-gray-800 relative">
+        <div id="user-menu" class="hidden absolute bottom-full left-3 right-3 mb-1 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl overflow-hidden">
+            <a href="/admin/users" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition">👤 Users</a>
+            <a href="/admin/trash" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition">🗑️ Trash</a>
+            <a href="/profile/" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition">🛠️ Profile</a>
+            <a href="/logout" class="flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-900/40 transition">🚪 Sign Out</a>
+        </div>
+        <button onclick="document.getElementById('user-menu').classList.toggle('hidden')" class="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer">
+            <span class="text-sm">⚙️</span>
+            <span class="text-sm font-medium text-gray-300 flex-1 text-left">{{ user.username }}</span>
+        </button>
+    </div>
+</aside>
+
+<!-- Mobile sidebar overlay (simplified) -->
+<div id="sidebar-overlay" onclick="document.getElementById('mobile-sidebar').classList.add('hidden');document.getElementById('sidebar-overlay').classList.add('hidden')" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 hidden lg:hidden"></div>
+<aside id="mobile-sidebar" class="fixed inset-y-0 left-0 w-64 bg-gray-900 border-r border-gray-800 flex flex-col z-40 hidden lg:hidden">
+    <div class="p-4 border-b border-gray-800 text-center cursor-pointer" onclick="window.location.href='/'">
+        <h1 class="text-lg font-black text-amber-500">Guns &amp; Reloading</h1>
+    </div>
+    <nav class="p-3 space-y-1">
+        <a href="/inventory" class="block px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-800">📦 Inventory</a>
+        <a href="/admin/users" class="block px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-800">👤 Users</a>
+        <a href="/admin/trash" class="block px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-900/30">🗑️ Trash</a>
+    </nav>
+    <div class="mt-auto p-3 border-t border-gray-800">
+        <a href="/logout" class="block px-3 py-2 rounded-lg text-sm text-red-400">🚪 Sign Out</a>
+    </div>
+</aside>
+
+<!-- Right content area -->
+<div id="main-bg" class="flex-1 flex flex-col min-w-0 lg:min-h-0 lg:overflow-hidden">
+
+    <!-- Mobile top bar -->
+    <header class="lg:hidden flex items-center gap-3 p-3 bg-gray-900/95 border-b border-gray-800 shrink-0 z-20">
+        <button onclick="document.getElementById('mobile-sidebar').classList.toggle('hidden');document.getElementById('sidebar-overlay').classList.toggle('hidden')" class="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 cursor-pointer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <img src="/static/images/logo.png" alt="G&R" class="h-7 w-auto">
+        <span class="text-amber-500 font-bold text-sm">🗑️ Trash</span>
+    </header>
+
+    <main class="flex-1 p-4 lg:overflow-y-scroll lg:min-h-0 space-y-6" style="-webkit-overflow-scrolling: touch;">
+
+        <!-- Header -->
+        <div class="flex items-center gap-3">
+            <div>
+                <h2 class="text-2xl font-bold text-white">🗑️ Trash</h2>
+                <p class="text-sm text-gray-400 mt-0.5">Items moved to trash are hidden from inventory. Restore them or permanently delete.</p>
+            </div>
+        </div>
+
+        <!-- Breadcrumb -->
+        <div class="flex items-center gap-2 text-xs text-gray-500">
+            <a href="/admin/users" class="text-gray-400 hover:text-amber-400 transition">Admin</a>
+            <span>›</span>
+            <span class="text-gray-300">Trash</span>
+        </div>
+
+        <!-- Firearms section -->
+        <section class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 space-y-3">
+            <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider">🔫 Firearms / Platforms</h3>
+            <div id="trash-firearms"><p class="text-gray-500 italic text-sm">Loading…</p></div>
+        </section>
+
+        <!-- TC Receivers section -->
+        <section class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 space-y-3">
+            <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider">🛠️ TC Receivers</h3>
+            <div id="trash-tc-receivers"><p class="text-gray-500 italic text-sm">Loading…</p></div>
+        </section>
+
+        <!-- TC Barrels section -->
+        <section class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 space-y-3">
+            <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider">🎯 TC Barrels</h3>
+            <div id="trash-tc-barrels"><p class="text-gray-500 italic text-sm">Loading…</p></div>
+        </section>
+
+        <!-- Scopes section -->
+        <section class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 space-y-3">
+            <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider">🔭 Optics</h3>
+            <div id="trash-scopes"><p class="text-gray-500 italic text-sm">Loading…</p></div>
+        </section>
+
+    </main>
+</div>
+
+<script>
+function showToast(msg, type = 'success') {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `pointer-events-auto px-4 py-2 rounded shadow text-sm font-medium ${type === 'error' ? 'bg-red-800 text-white' : 'bg-gray-800 text-amber-400 border border-amber-700'}`;
+    t.innerText = msg;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+}
+
+let permaTarget = null;
+
+function openPermaModal(type, id, label, el) {
+    permaTarget = { type, id, label, el };
+    document.getElementById('perma-item-label').innerText = label;
+    document.getElementById('perma-delete-modal').classList.remove('hidden');
+}
+
+function closePermaModal() {
+    document.getElementById('perma-delete-modal').classList.add('hidden');
+    permaTarget = null;
+}
+
+async function confirmPermaDelete() {
+    if (!permaTarget) return;
+    const { type, id, label, el } = permaTarget;
+    closePermaModal();
+    const urlMap = {
+        firearms: `/admin/trash/firearms/${id}`,
+        'tc-receivers': `/admin/trash/tc-receivers/${id}`,
+        'tc-barrels': `/admin/trash/tc-barrels/${id}`,
+        scopes: `/admin/trash/scopes/${id}`,
+    };
+    try {
+        const res = await fetch(urlMap[type], { method: 'DELETE' });
+        if (res.ok) { el.remove(); showToast(`"${label}" permanently deleted.`); }
+        else showToast('Failed to delete.', 'error');
+    } catch { showToast('Network error.', 'error'); }
+}
+
+async function restoreItem(type, id, label, el) {
+    const urlMap = {
+        firearms: `/firearms/${id}/restore`,
+        'tc-receivers': `/tc-receivers/${id}/restore`,
+        'tc-barrels': `/tc-barrels/${id}/restore`,
+        scopes: `/scopes/${id}/restore`,
+    };
+    try {
+        const res = await fetch(urlMap[type], { method: 'POST' });
+        if (res.ok) { el.remove(); showToast(`"${label}" restored to inventory.`); }
+        else showToast('Failed to restore.', 'error');
+    } catch { showToast('Network error.', 'error'); }
+}
+
+function makeTrashRow(type, item) {
+    const div = document.createElement('div');
+    div.className = 'flex items-center gap-3 bg-gray-800/80 border border-gray-700 rounded-lg px-4 py-3';
+    const thumb = item.image
+        ? `<img src="${item.image}" class="w-12 h-12 rounded object-cover flex-shrink-0 border border-gray-700">`
+        : `<div class="w-12 h-12 rounded bg-gray-900 flex items-center justify-center flex-shrink-0 border border-gray-700 text-gray-600 text-xl">📦</div>`;
+    div.innerHTML = `
+        ${thumb}
+        <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-white truncate">${item.label}</p>
+            ${item.frame_type ? `<p class="text-xs text-gray-500">${item.frame_type}</p>` : ''}
+        </div>
+        <div class="flex gap-2 flex-shrink-0">
+            <button class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded transition cursor-pointer restore-btn">Restore</button>
+            <button class="px-3 py-1.5 bg-red-900 hover:bg-red-700 text-white text-xs font-bold rounded transition cursor-pointer perma-btn">Delete Forever</button>
+        </div>`;
+    div.querySelector('.restore-btn').onclick = () => restoreItem(type, item.id, item.label, div);
+    div.querySelector('.perma-btn').onclick = () => openPermaModal(type, item.id, item.label, div);
+    return div;
+}
+
+function renderSection(containerId, type, items) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = '';
+    if (!items || items.length === 0) {
+        el.innerHTML = '<p class="text-gray-500 italic text-sm">No items.</p>';
+    } else {
+        items.forEach(item => el.appendChild(makeTrashRow(type, item)));
+    }
+}
+
+async function loadTrash() {
+    try {
+        const res = await fetch('/admin/trash-items');
+        if (!res.ok) { showToast('Failed to load trash.', 'error'); return; }
+        const data = await res.json();
+        renderSection('trash-firearms', 'firearms', data.firearms);
+        renderSection('trash-tc-receivers', 'tc-receivers', data.tc_receivers);
+        renderSection('trash-tc-barrels', 'tc-barrels', data.tc_barrels);
+        renderSection('trash-scopes', 'scopes', data.scopes);
+    } catch { showToast('Failed to load trash.', 'error'); }
+}
+
+loadTrash();
+</script>
+
+</body>
+</html>

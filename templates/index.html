@@ -49,11 +49,11 @@
 
         <!-- Action buttons -->
         <nav class="p-2.5 space-y-1 border-b border-gray-800">
-            <button onclick="switchTab('catalog-tab'); closeSidebar()"
-                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700/50 hover:border-amber-500/40 transition cursor-pointer text-left">
+            <a href="/inventory"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700/50 hover:border-amber-500/40 transition text-left">
                 <span class="text-lg">📦</span>
                 <div><div class="text-sm font-bold text-white">Inventory</div><div class="text-[10px] text-gray-500">Browse your vault</div></div>
-            </button>
+            </a>
             <button id="nav-btn-measure" onclick="switchTab('measure-tab'); closeSidebar()"
                 class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-950/60 hover:bg-blue-900/60 border border-blue-800/40 hover:border-blue-500/40 transition cursor-pointer text-left">
                 <span class="text-lg">🎯</span>
@@ -95,6 +95,7 @@
             <div id="user-menu" class="hidden absolute bottom-full left-3 right-3 mb-1 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl overflow-hidden">
                 {% if user.is_admin %}
                 <a href="/admin/users" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition">👤 Users</a>
+                <a href="/admin/trash" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition">🗑️ Trash</a>
                 {% endif %}
                 <a href="/profile/" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition">🛠️ Profile</a>
                 <a href="/logout" class="flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-900/40 transition">🚪 Sign Out</a>
@@ -128,148 +129,6 @@
 
         <!-- Landing / Home — content TBD -->
         <section id="landing-tab" class="min-h-[88vh]"></section>
-
-        <section id="catalog-tab" class="space-y-4 hidden">
-            <!-- Inventory section header + sub-navigation -->
-            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-gray-700 pb-3 gap-3">
-                <div class="flex flex-wrap items-center gap-3">
-                    <h2 class="text-2xl font-bold">Inventory Vault</h2>
-                    <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
-                        <button id="inv-btn-platforms" onclick="switchInventoryTab('platforms')" class="px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer">🔫 Platforms</button>
-                        <button id="inv-btn-optics" onclick="switchInventoryTab('optics')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔭 Optics</button>
-                        <button id="inv-btn-ammo" onclick="switchInventoryTab('ammo')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🧪 Ammunition</button>
-                        <button id="inv-btn-components" onclick="switchInventoryTab('components')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔩 Components</button>
-                    </div>
-                </div>
-                <span id="inventory-count" class="text-xs bg-gray-800 text-gray-400 font-mono px-2.5 py-1 rounded border border-gray-700 self-start sm:self-auto">0 Assets Logged</span>
-            </div>
-
-            <!-- Platforms pane -->
-            <div id="inv-pane-platforms">
-                <!-- General / TC sub-tabs -->
-                <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
-                    <div class="flex items-center gap-3 flex-wrap">
-                        <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
-                            <button id="plat-btn-general" onclick="switchPlatformTab('general')" class="px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer">🔫 Rifles</button>
-                            <button id="plat-btn-shotgun" onclick="switchPlatformTab('shotgun')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🦆 Shotguns</button>
-                            <button id="plat-btn-handgun" onclick="switchPlatformTab('handgun')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔫 Handguns</button>
-                            <button id="plat-btn-tc" onclick="switchPlatformTab('tc')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🛠️ Thompson Center</button>
-                        </div>
-                        <!-- Sold filter toggle -->
-                        <div id="plat-collection-filter" class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
-                            <button onclick="setCollectionFilter()" id="btn-filter-sold" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">Sold</button>
-                        </div>
-                    </div>
-                    <button onclick="openQuickAdd('platforms')" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
-                </div>
-
-                <!-- General rifles grid -->
-                <div id="plat-pane-general">
-                    <div id="catalog-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <p class="text-gray-400 col-span-3">Loading platforms...</p>
-                    </div>
-                </div>
-
-                <!-- Thompson Center pane -->
-                <div id="plat-pane-tc" class="hidden space-y-8">
-                    <!-- Receivers -->
-                    <div>
-                        <div class="flex items-center gap-3 mb-3">
-                            <span class="text-xs font-bold uppercase tracking-wider text-amber-500">Receivers</span>
-                            <div class="flex-1 border-t border-gray-700/60"></div>
-                        </div>
-                        <div id="tc-receivers-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <p class="text-gray-500 italic text-sm col-span-3">Loading receivers...</p>
-                        </div>
-                    </div>
-                    <!-- Barrels -->
-                    <div>
-                        <div class="flex items-center gap-3 mb-3">
-                            <span class="text-xs font-bold uppercase tracking-wider text-blue-400">Barrels</span>
-                            <div class="flex-1 border-t border-gray-700/60"></div>
-                        </div>
-                        <div id="tc-barrels-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <p class="text-gray-500 italic text-sm col-span-3">Loading barrels...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Optics pane -->
-            <div id="inv-pane-optics" class="hidden">
-                <div class="flex justify-end mb-4">
-                    <button onclick="openQuickAdd('optics')" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
-                </div>
-                <div id="scopes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <p class="text-gray-400 col-span-3 italic">Loading optics...</p>
-                </div>
-            </div>
-
-            <!-- Ammunition pane -->
-            <div id="inv-pane-ammo" class="hidden">
-                <div class="flex items-center justify-between gap-3 mb-4">
-                    <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
-                        <button id="ammo-btn-factory" onclick="switchAmmoFilter('factory')" class="px-3 py-1 rounded bg-gray-800 text-blue-400 cursor-pointer">Factory Loads</button>
-                        <button id="ammo-btn-handload" onclick="switchAmmoFilter('handload')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">Handloads</button>
-                    </div>
-                    <button onclick="openQuickAdd('ammo')" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
-                </div>
-                <div id="ammo-container">
-                    <p class="text-gray-400 italic">Loading ammunition...</p>
-                </div>
-            </div>
-
-            <!-- Components pane -->
-            <div id="inv-pane-components" class="hidden">
-                <!-- Low stock banner (hidden until populated) -->
-                <div id="low-stock-banner" class="hidden mb-4 bg-amber-900/30 border border-amber-700/60 rounded-lg px-4 py-3">
-                    <p class="text-amber-400 text-xs font-bold uppercase tracking-wider mb-2">⚠️ Low Stock Alerts</p>
-                    <div id="low-stock-list" class="flex flex-wrap gap-2"></div>
-                </div>
-
-                <!-- Alert Threshold Settings (collapsible) -->
-                <div class="mb-4">
-                    <button type="button" onclick="toggleThresholdSettings()" class="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-amber-400 transition cursor-pointer">
-                        <span id="threshold-toggle-icon">▶</span> Alert Thresholds
-                    </button>
-                    <div id="threshold-panel" class="hidden mt-3 bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-                        <p class="text-xs text-gray-500 mb-3">Trigger a low-stock alert when quantity falls below these values.</p>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">Powder (lbs)</label>
-                                <input type="number" step="0.1" id="thresh-powder" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">Primers (count)</label>
-                                <input type="number" id="thresh-primers" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">Bullets (count)</label>
-                                <input type="number" id="thresh-bullets" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">Casings (count)</label>
-                                <input type="number" id="thresh-casings" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
-                            </div>
-                        </div>
-                        <button onclick="saveThresholds()" class="mt-3 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded cursor-pointer transition">Save Thresholds</button>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
-                    <div class="flex flex-wrap bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
-                        <button id="comp-btn-powders" onclick="switchComponentFilter('powders')" class="px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer">🧪 Powders</button>
-                        <button id="comp-btn-primers" onclick="switchComponentFilter('primers')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔥 Primers</button>
-                        <button id="comp-btn-bullets" onclick="switchComponentFilter('bullets')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🎯 Bullets</button>
-                        <button id="comp-btn-casings" onclick="switchComponentFilter('casings')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">💊 Casings</button>
-                    </div>
-                    <button onclick="openQuickAdd('components')" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
-                </div>
-                <div id="components-container">
-                    <p class="text-gray-400 italic">Loading components...</p>
-                </div>
-            </div>
-        </section>
 
         <section id="measure-tab" class="hidden space-y-4">
             <div class="flex justify-between items-center border-b border-gray-700 pb-2">
@@ -1042,6 +901,6 @@
     <datalist id="dl-handload-bullet"></datalist>
     <datalist id="dl-handload-brass"></datalist>
 
-    <script src="/static/app.js?v=15"></script>
+    <script src="/static/app.js?v=17"></script>
 </body>
 </html>

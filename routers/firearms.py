@@ -138,9 +138,31 @@ async def update_firearm_photo(
     return gun
 
 
+@router.post("/firearms/{firearm_id}/trash")
+def trash_firearm(firearm_id: int, db: Session = Depends(get_db)):
+    gun = db.query(models.Firearm).filter(models.Firearm.id == firearm_id).first()
+    if not gun:
+        raise HTTPException(status_code=404, detail="Firearm not found")
+    gun.is_deleted = True
+    db.commit()
+    return {"id": gun.id, "is_deleted": True}
+
+
+@router.post("/firearms/{firearm_id}/restore")
+def restore_firearm(firearm_id: int, db: Session = Depends(get_db)):
+    gun = db.query(models.Firearm).filter(models.Firearm.id == firearm_id).first()
+    if not gun:
+        raise HTTPException(status_code=404, detail="Firearm not found")
+    gun.is_deleted = False
+    db.commit()
+    return {"id": gun.id, "is_deleted": False}
+
+
 @router.get("/catalog/")
 def get_catalog(frame_type: Optional[str] = None, db: Session = Depends(get_db)):
-    query = db.query(models.Firearm).options(joinedload(models.Firearm.barrels))
+    query = db.query(models.Firearm).options(joinedload(models.Firearm.barrels)).filter(
+        models.Firearm.is_deleted == False
+    )
     if frame_type:
         if frame_type == "Rifle":
             # Catch-all: rifles + any unknown/legacy frame_type values

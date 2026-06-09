@@ -19,6 +19,7 @@ def _receiver_dict(r: models.TCReceiver) -> dict:
         "image_path_2": r.image_path_2,
         "is_sold": r.is_sold,
         "price_sold": r.price_sold,
+        "is_deleted": getattr(r, "is_deleted", False),
     }
 
 
@@ -36,12 +37,35 @@ def _barrel_dict(b: models.Barrel) -> dict:
         "image_path": b.image_path,
         "image_path_2": b.image_path_2,
         "scope_id": b.scope_id,
+        "is_sold": getattr(b, "is_sold", False),
+        "price_sold": getattr(b, "price_sold", None),
+        "is_deleted": getattr(b, "is_deleted", False),
     }
 
 
 @router.get("/tc-receivers/")
 def list_tc_receivers(db: Session = Depends(get_db)):
-    return [_receiver_dict(r) for r in db.query(models.TCReceiver).all()]
+    return [_receiver_dict(r) for r in db.query(models.TCReceiver).filter(models.TCReceiver.is_deleted == False).all()]
+
+
+@router.post("/tc-receivers/{receiver_id}/trash")
+def trash_tc_receiver(receiver_id: int, db: Session = Depends(get_db)):
+    r = db.query(models.TCReceiver).filter(models.TCReceiver.id == receiver_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="TC Receiver not found")
+    r.is_deleted = True
+    db.commit()
+    return {"id": r.id, "is_deleted": True}
+
+
+@router.post("/tc-receivers/{receiver_id}/restore")
+def restore_tc_receiver(receiver_id: int, db: Session = Depends(get_db)):
+    r = db.query(models.TCReceiver).filter(models.TCReceiver.id == receiver_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="TC Receiver not found")
+    r.is_deleted = False
+    db.commit()
+    return {"id": r.id, "is_deleted": False}
 
 
 @router.post("/tc-receivers/")
@@ -127,8 +151,49 @@ def get_tc_barrel(barrel_id: int, db: Session = Depends(get_db)):
 
 @router.get("/tc-barrels/")
 def list_tc_barrels(db: Session = Depends(get_db)):
-    barrels = db.query(models.Barrel).filter(models.Barrel.tc_platform.isnot(None)).all()
+    barrels = db.query(models.Barrel).filter(
+        models.Barrel.tc_platform.isnot(None),
+        models.Barrel.is_deleted == False,
+    ).all()
     return [_barrel_dict(b) for b in barrels]
+
+
+@router.post("/tc-barrels/{barrel_id}/mark-sold/")
+def mark_tc_barrel_sold(barrel_id: int, payload: SoldPayload, db: Session = Depends(get_db)):
+    b = db.query(models.Barrel).filter(
+        models.Barrel.id == barrel_id, models.Barrel.tc_platform.isnot(None)
+    ).first()
+    if not b:
+        raise HTTPException(status_code=404, detail="TC Barrel not found")
+    b.is_sold = payload.is_sold
+    b.price_sold = payload.price_sold
+    db.commit()
+    db.refresh(b)
+    return _barrel_dict(b)
+
+
+@router.post("/tc-barrels/{barrel_id}/trash")
+def trash_tc_barrel(barrel_id: int, db: Session = Depends(get_db)):
+    b = db.query(models.Barrel).filter(
+        models.Barrel.id == barrel_id, models.Barrel.tc_platform.isnot(None)
+    ).first()
+    if not b:
+        raise HTTPException(status_code=404, detail="TC Barrel not found")
+    b.is_deleted = True
+    db.commit()
+    return {"id": b.id, "is_deleted": True}
+
+
+@router.post("/tc-barrels/{barrel_id}/restore")
+def restore_tc_barrel(barrel_id: int, db: Session = Depends(get_db)):
+    b = db.query(models.Barrel).filter(
+        models.Barrel.id == barrel_id, models.Barrel.tc_platform.isnot(None)
+    ).first()
+    if not b:
+        raise HTTPException(status_code=404, detail="TC Barrel not found")
+    b.is_deleted = False
+    db.commit()
+    return {"id": b.id, "is_deleted": False}
 
 
 @router.post("/tc-barrels/")

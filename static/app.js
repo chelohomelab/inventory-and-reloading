@@ -50,6 +50,7 @@ let cropDragState = { active: false, mode: null, startX: 0, startY: 0, origRect:
 // UI Pipeline Filters state trackers
 let currentCollectionFilter = "active"; // "active" or "sold"
 let activeItemIdForSaleLog = null;
+let activeItemTypeForSaleLog = "firearm"; // "firearm" or "tc-receiver"
 let activeItemIdForPictureReplacement = null;
 let currentInventoryTab = "platforms";
 let currentAmmoFilter = "factory";
@@ -266,12 +267,13 @@ async function processPictureReplacement(inputElement) {
 }
 
 // Sale Modal Controller Interfaces
-function openSellModal(itemId, currentTitle) {
+function openSellModal(itemId, currentTitle, itemType = 'firearm') {
     activeItemIdForSaleLog = itemId;
+    activeItemTypeForSaleLog = itemType;
     const titleEl = document.getElementById('sell-modal-item-title');
     const priceEl = document.getElementById('modal-sold-price');
     const modalEl = document.getElementById('sell-modal');
-    
+
     if (titleEl) titleEl.innerText = currentTitle;
     if (priceEl) priceEl.value = "";
     if (modalEl) modalEl.classList.remove('hidden');
@@ -290,8 +292,14 @@ async function submitAssetSale() {
         return;
     }
 
+    const endpoint = activeItemTypeForSaleLog === 'tc-receiver'
+        ? `/tc-receivers/${activeItemIdForSaleLog}/mark-sold/`
+        : activeItemTypeForSaleLog === 'tc-barrel'
+        ? `/tc-barrels/${activeItemIdForSaleLog}/mark-sold/`
+        : `/firearms/${activeItemIdForSaleLog}/mark-sold/`;
+
     try {
-        const response = await fetch(`/firearms/${activeItemIdForSaleLog}/mark-sold/`, {
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ is_sold: true, price_sold: soldPrice })
@@ -300,12 +308,36 @@ async function submitAssetSale() {
         if (response.ok) {
             showToast("Asset status moved to Sold Registry.");
             closeSellModal();
-            loadCatalog();
+            if (activeItemTypeForSaleLog === 'tc-receiver' || activeItemTypeForSaleLog === 'tc-barrel') loadTCInventory();
+            else loadCatalog();
         } else {
             showToast("Failed to log sale. Server returned an error.", "error");
         }
     } catch(err) {
         showToast("Failed to log sale. Check your connection and try again.", "error");
+    }
+}
+
+async function trashItem(type, id, name) {
+    if (!confirm(`Move "${name}" to trash?\n\nIt will be hidden from inventory and can be restored later from Admin › Trash.`)) return;
+    const urlMap = {
+        firearm: `/firearms/${id}/trash`,
+        'tc-receiver': `/tc-receivers/${id}/trash`,
+        'tc-barrel': `/tc-barrels/${id}/trash`,
+        scope: `/scopes/${id}/trash`,
+    };
+    try {
+        const res = await fetch(urlMap[type], { method: 'POST' });
+        if (res.ok) {
+            showToast(`"${name}" moved to trash.`);
+            if (type === 'tc-receiver' || type === 'tc-barrel') loadTCInventory();
+            else if (type === 'scope') loadScopeInventory();
+            else loadCatalog();
+        } else {
+            showToast('Failed to move to trash.', 'error');
+        }
+    } catch {
+        showToast('Network error.', 'error');
     }
 }
 
@@ -435,14 +467,14 @@ async function populateScopeSelect() {
 }
 
 function switchTab(tabId) {
-    ['landing-tab', 'catalog-tab', 'measure-tab', 'add-tab'].forEach(id => {
+    if (tabId === 'catalog-tab') { window.location.href = '/inventory'; return; }
+    ['landing-tab', 'measure-tab', 'add-tab'].forEach(id => {
         document.getElementById(id)?.classList.add('hidden');
     });
 
     const target = document.getElementById(tabId);
     if (target) target.classList.remove('hidden');
 
-    if (tabId === 'catalog-tab') switchInventoryTab(currentInventoryTab);
     if (tabId === 'measure-tab') setupMeasureDropdowns();
 }
 
@@ -544,6 +576,10 @@ async function loadTCInventory() {
                         <div class="flex gap-2 mt-auto pt-1">
                             <button onclick="document.getElementById('rcedit-${r.id}').classList.toggle('hidden')"
                                 class="flex-1 px-2 py-1.5 bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold rounded transition cursor-pointer">✏️ Edit</button>
+                            ${r.is_sold
+                                ? `<span class="px-2 py-1.5 text-xs text-red-400 font-mono">Sold $${parseFloat(r.price_sold||0).toFixed(2)}</span>`
+                                : `<button onclick="openSellModal(${r.id},'${r.platform} Receiver','tc-receiver')" class="px-2 py-1.5 bg-gray-700 hover:bg-emerald-800 text-gray-300 hover:text-white text-xs font-bold rounded transition cursor-pointer">$ Sell</button>`}
+                            <button onclick="trashItem('tc-receiver',${r.id},'${r.platform} Receiver')" class="px-2 py-1.5 bg-gray-700 hover:bg-red-900 text-gray-400 hover:text-red-300 text-xs font-bold rounded transition cursor-pointer" title="Move to trash">🗑️</button>
                         </div>
                         <div class="flex justify-end">
                             <span class="text-xs text-gray-500 font-mono">$${parseFloat(r.price_paid || 0).toFixed(2)}</span>
@@ -559,6 +595,10 @@ async function loadTCInventory() {
             barContainer.innerHTML = barrels.map(b => {
                 const gallery = makePhotoGallery(`bar-${b.id}`, '🎯', b.image_path, b.image_path_2, 'cover');
                 const flags = [b.is_threaded && 'Threaded', b.has_muzzle_brake && 'Brake'].filter(Boolean).join(' · ');
+                const barrelLabel = `${b.tc_platform} ${b.caliber}`;
+                const barrelSoldBtn = b.is_sold
+                    ? `<span class="text-xs text-red-400 font-mono">Sold $${parseFloat(b.price_sold||0).toFixed(2)}</span>`
+                    : `<button onclick="event.stopPropagation();openSellModal(${b.id},'${barrelLabel.replace(/'/g,"\\'")}','tc-barrel')" class="px-2 py-1 bg-gray-700 hover:bg-emerald-800 text-gray-300 hover:text-white text-xs font-bold rounded transition cursor-pointer">$ Sell</button>`;
                 return `
                 <div class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl flex flex-col hover:border-blue-400/60 transition cursor-pointer" onclick="window.location.href='tc-barrel-detail.html?id=${b.id}'">
                     ${gallery}
@@ -574,8 +614,11 @@ async function loadTCInventory() {
                             ${b.hardware_color ? `<p>Finish: <span class="text-gray-200">${b.hardware_color}</span></p>` : ''}
                             ${flags ? `<p class="text-gray-500">${flags}</p>` : ''}
                         </div>
-                        <div class="flex justify-end mt-auto">
+                        <div class="flex items-center gap-2 mt-auto pt-1 border-t border-gray-700">
+                            ${barrelSoldBtn}
+                            <div class="flex-1"></div>
                             <span class="text-xs text-gray-500 font-mono">$${parseFloat(b.price_paid || 0).toFixed(2)}</span>
+                            <button onclick="event.stopPropagation();trashItem('tc-barrel',${b.id},'${barrelLabel.replace(/'/g,"\\'")}');" class="px-2 py-1 bg-gray-700 hover:bg-red-900 text-gray-400 hover:text-red-300 text-xs font-bold rounded transition cursor-pointer" title="Move to trash">🗑️</button>
                         </div>
                     </div>
                 </div>`;
@@ -1156,10 +1199,13 @@ function renderScopeCard(s) {
                     <button onclick="closeScopeMountEditor(${s.id})" class="px-3 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold py-1.5 rounded transition cursor-pointer">Cancel</button>
                 </div>
             </div>
-            <button onclick="openScopeMountEditor(${s.id})"
-                class="w-full mt-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">
-                ${mountBtnLabel}
-            </button>
+            <div class="flex gap-2 mt-1">
+                <button onclick="openScopeMountEditor(${s.id})"
+                    class="flex-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">
+                    ${mountBtnLabel}
+                </button>
+                <button onclick="trashItem('scope',${s.id},'${(s.brand+' '+s.model).replace(/'/g,"\\'")}'); event.stopPropagation();" class="px-3 py-1.5 bg-gray-700 hover:bg-red-900 text-gray-400 hover:text-red-300 text-xs font-bold rounded transition cursor-pointer" title="Move to trash">🗑️</button>
+            </div>
         </div>
     </div>`;
 }
@@ -2299,8 +2345,13 @@ async function loadCatalog(frameType = currentFrameType()) {
         const targetSrc = gun.image_path_1 || "/static/images/placeholder.jpg";
         const caliberDisplay = gun.caliber || (gun.frame_type === "Barrel Only" ? "Modular Frame" : "Multi-Caliber Base");
 
+        const detailPage = gun.frame_type === 'Shotgun' ? 'shotgun-detail.html' : gun.frame_type === 'Pistol' ? 'handgun-detail.html' : 'firearm-detail.html';
+        const gunLabel = `${gun.brand} ${gun.model}`;
+        const soldBtnMarkup = gun.is_sold
+            ? `<span class="text-xs text-red-400 font-mono">Sold $${parseFloat(gun.price_sold || 0).toFixed(2)}</span>`
+            : `<button onclick="openSellModal(${gun.id},'${gunLabel.replace(/'/g,"\\'")}','firearm')" class="px-2 py-1 bg-gray-700 hover:bg-emerald-800 text-gray-300 hover:text-white text-xs font-bold rounded transition cursor-pointer">$ Sell</button>`;
         content.innerHTML = `
-            <div class="w-full h-44 bg-gray-950 relative overflow-hidden cursor-pointer" onclick="window.location.href='firearm-detail.html?id=${gun.id}'">
+            <div class="w-full h-44 bg-gray-950 relative overflow-hidden cursor-pointer" onclick="window.location.href='${detailPage}?id=${gun.id}'">
                 <img src="${targetSrc}" class="w-full h-full object-cover">
             </div>
             <div class="p-4 space-y-3">
@@ -2308,9 +2359,14 @@ async function loadCatalog(frameType = currentFrameType()) {
                     ${statusLabelMarkup}
                     <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800">${caliberDisplay}</span>
                 </div>
-                <div class="flex justify-between items-center gap-2 cursor-pointer hover:text-amber-400 transition" onclick="window.location.href='firearm-detail.html?id=${gun.id}'">
-                    <h3 class="text-base font-bold text-white tracking-tight">${gun.brand} ${gun.model}</h3>
+                <div class="flex justify-between items-center gap-2 cursor-pointer hover:text-amber-400 transition" onclick="window.location.href='${detailPage}?id=${gun.id}'">
+                    <h3 class="text-base font-bold text-white tracking-tight">${gunLabel}</h3>
                     <span class="text-xs text-gray-400 font-mono whitespace-nowrap">$${parseFloat(gun.price_paid || 0).toFixed(2)}</span>
+                </div>
+                <div class="flex gap-2 pt-1 border-t border-gray-700">
+                    ${soldBtnMarkup}
+                    <div class="flex-1"></div>
+                    <button onclick="trashItem('firearm',${gun.id},'${gunLabel.replace(/'/g,"\\'")}'); event.stopPropagation();" class="px-2 py-1 bg-gray-700 hover:bg-red-900 text-gray-400 hover:text-red-300 text-xs font-bold rounded transition cursor-pointer" title="Move to trash">🗑️</button>
                 </div>
             </div>
         `;
@@ -2477,8 +2533,7 @@ if (tcReceiverForm) {
             if (res.ok) {
                 e.target.reset();
                 showToast('TC Receiver registered.');
-                switchTab('catalog-tab');
-                switchPlatformTab('tc');
+                window.location.href = '/inventory?inv=platforms&platform=tc';
             } else {
                 showToast('Failed to register TC Receiver.', 'error');
             }
@@ -2499,8 +2554,7 @@ if (tcBarrelForm) {
             if (res.ok) {
                 e.target.reset();
                 showToast('TC Barrel registered.');
-                switchTab('catalog-tab');
-                switchPlatformTab('tc');
+                window.location.href = '/inventory?inv=platforms&platform=tc';
             } else {
                 showToast('Failed to register TC Barrel.', 'error');
             }
@@ -2572,8 +2626,7 @@ if (addScopeForm) {
             if (mountSel) { mountSel.innerHTML = '<option value="">Loading platforms…</option>'; mountSel.classList.add('hidden'); }
 
             showToast('Scope registered.');
-            switchTab('catalog-tab');
-            switchInventoryTab('optics');
+            window.location.href = '/inventory?inv=optics';
         } catch (err) { showToast('Error saving scope.', 'error'); }
     });
 }
@@ -2649,7 +2702,7 @@ if (powderForm) {
             const res = await fetch('/components/powders/', { method: 'POST', body: fd });
             if (res.ok) {
                 await Promise.all([saveLookupValue('powder_brand', fd.get('brand')), saveLookupValue('powder_name', fd.get('name'))]);
-                e.target.reset(); _resetPW('pw-powder'); showToast('Powder logged.'); switchTab('catalog-tab'); switchInventoryTab('components'); switchComponentFilter('powders');
+                e.target.reset(); _resetPW('pw-powder'); showToast('Powder logged.'); window.location.href = '/inventory?inv=components&comp=powders';
             } else showToast('Failed to log powder.', 'error');
         } catch(_) { showToast('Error saving powder.', 'error'); }
     });
@@ -2667,7 +2720,7 @@ if (primerForm) {
             const res = await fetch('/components/primers/', { method: 'POST', body: fd });
             if (res.ok) {
                 await saveLookupValue('primer_brand', fd.get('brand'));
-                e.target.reset(); _resetPW('pw-primer'); showToast('Primers logged.'); switchTab('catalog-tab'); switchInventoryTab('components'); switchComponentFilter('primers');
+                e.target.reset(); _resetPW('pw-primer'); showToast('Primers logged.'); window.location.href = '/inventory?inv=components&comp=primers';
             } else showToast('Failed to log primers.', 'error');
         } catch(_) { showToast('Error saving primers.', 'error'); }
     });
@@ -2689,7 +2742,7 @@ if (bulletCompForm) {
                     saveLookupValue('bullet_product_line', fd.get('product_line')),
                     saveLookupValue('caliber', fd.get('caliber')),
                 ]);
-                e.target.reset(); _resetPW('pw-bullet'); showToast('Bullets logged.'); switchTab('catalog-tab'); switchInventoryTab('components'); switchComponentFilter('bullets');
+                e.target.reset(); _resetPW('pw-bullet'); showToast('Bullets logged.'); window.location.href = '/inventory?inv=components&comp=bullets';
             } else showToast('Failed to log bullets.', 'error');
         } catch(_) { showToast('Error saving bullets.', 'error'); }
     });
@@ -2710,7 +2763,7 @@ if (casingForm) {
                     saveLookupValue('casing_brand', fd.get('brand')),
                     saveLookupValue('caliber', fd.get('caliber')),
                 ]);
-                e.target.reset(); _resetPW('pw-casing'); showToast('Casings logged.'); switchTab('catalog-tab'); switchInventoryTab('components'); switchComponentFilter('casings');
+                e.target.reset(); _resetPW('pw-casing'); showToast('Casings logged.'); window.location.href = '/inventory?inv=components&comp=casings';
             } else showToast('Failed to log casings.', 'error');
         } catch(_) { showToast('Error saving casings.', 'error'); }
     });
@@ -2763,10 +2816,6 @@ async function loadLandingStats() {
 window.onload = () => {
     fetchInitialLookupData(); applyPreferences(); loadLandingStats(); initCustomAC();
     const p = new URLSearchParams(location.search);
-    if (p.has('tab')) {
-        switchTab(p.get('tab'));
-        if (p.has('inv')) switchInventoryTab(p.get('inv'));
-        if (p.has('platform')) switchPlatformTab(p.get('platform'));
-        if (p.has('ammofilter')) switchAmmoFilter(p.get('ammofilter'));
-    }
+    if (p.has('tab')) switchTab(p.get('tab'));
+    if (p.has('cat')) { switchTab('add-tab'); switchFormCategory('cat-' + p.get('cat')); }
 };

@@ -52,9 +52,30 @@ def list_scopes(db: Session = Depends(get_db)):
     scopes = (
         db.query(models.Scope)
         .options(joinedload(models.Scope.firearms), joinedload(models.Scope.barrels))
+        .filter(models.Scope.is_deleted == False)
         .all()
     )
     return [_scope_dict(s) for s in scopes]
+
+
+@router.post("/scopes/{scope_id}/trash")
+def trash_scope(scope_id: int, db: Session = Depends(get_db)):
+    s = db.query(models.Scope).filter(models.Scope.id == scope_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    s.is_deleted = True
+    db.commit()
+    return {"id": s.id, "is_deleted": True}
+
+
+@router.post("/scopes/{scope_id}/restore")
+def restore_scope(scope_id: int, db: Session = Depends(get_db)):
+    s = db.query(models.Scope).filter(models.Scope.id == scope_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    s.is_deleted = False
+    db.commit()
+    return {"id": s.id, "is_deleted": False}
 
 
 @router.post("/scopes/")

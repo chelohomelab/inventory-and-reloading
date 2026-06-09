@@ -21,11 +21,11 @@
             <div class="flex items-center space-x-2 text-sm">
                 <a href="/"><img src="/static/images/logo.png" alt="Inventory" class="h-6 w-auto hover:opacity-80 transition inline-block"></a>
                 <span class="text-gray-500">/</span>
-                <a id="breadcrumb-type-link" href="/?tab=catalog-tab&inv=ammo" class="text-gray-400 hover:text-amber-400 transition text-xs">Ammunition</a>
+                <a id="breadcrumb-type-link" href="/inventory?inv=ammo" class="text-gray-400 hover:text-amber-400 transition text-xs">Ammunition</a>
                 <span class="text-gray-500">/</span>
                 <span id="breadcrumb-name" class="text-gray-400 font-mono truncate max-w-xs">Loading...</span>
             </div>
-            <a id="back-btn" href="/?tab=catalog-tab&inv=ammo" class="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-white font-bold transition">← Ammunition</a>
+            <a id="back-btn" href="/inventory?inv=ammo" class="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-white font-bold transition">← Ammunition</a>
         </div>
     </nav>
 
@@ -251,7 +251,7 @@
 
             document.getElementById('breadcrumb-name').innerText = name;
             const _ammoFilter = isHandload ? 'handloads' : 'factory';
-            const _ammoBackHref = `/?tab=catalog-tab&inv=ammo&ammofilter=${_ammoFilter}`;
+            const _ammoBackHref = `/inventory?inv=ammo&ammofilter=${_ammoFilter}`;
             const _btl = document.getElementById('breadcrumb-type-link');
             _btl.innerText = isHandload ? 'Handloads' : 'Factory';
             _btl.href = _ammoBackHref;

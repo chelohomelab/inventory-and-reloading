@@ -29,3 +29,23 @@ async def ammo_detail(request: Request):
 @router.get("/tc-barrel-detail.html", response_class=HTMLResponse)
 async def tc_barrel_detail(request: Request):
     return templates.TemplateResponse("tc-barrel-detail.html", {"request": request, "user": request.state.user})
+
+
+@router.get("/inventory", response_class=HTMLResponse)
+async def inventory(request: Request):
+    return templates.TemplateResponse("inventory.html", {"request": request, "user": request.state.user})
+
+
+@router.get("/shotgun-detail.html", response_class=HTMLResponse)
+async def shotgun_detail(request: Request):
+    return templates.TemplateResponse("shotgun-detail.html", {"request": request, "user": request.state.user})
+
+
+@router.get("/handgun-detail.html", response_class=HTMLResponse)
+async def handgun_detail(request: Request):
+    return templates.TemplateResponse("handgun-detail.html", {"request": request, "user": request.state.user})
+
+
+@router.get("/admin/trash", response_class=HTMLResponse)
+async def admin_trash(request: Request):
+    return templates.TemplateResponse("admin_trash.html", {"request": request, "user": request.state.user})
