@@ -513,7 +513,7 @@ async function loadTCInventory() {
                 const soldBadge = r.is_sold
                     ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-950 text-red-400 border border-red-800">SOLD</span>`
                     : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-400 border border-amber-800">RECEIVER</span>`;
-                const gallery = makePhotoGallery(`rec-${r.id}`, '🛠️', r.image_path, r.image_path_2);
+                const gallery = makePhotoGallery(`rec-${r.id}`, '🛠️', r.image_path, r.image_path_2, 'cover');
                 return `
                 <div class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl flex flex-col">
                     ${gallery}
@@ -557,7 +557,7 @@ async function loadTCInventory() {
             barContainer.innerHTML = '<p class="text-gray-500 italic text-sm col-span-3">No barrels registered.</p>';
         } else {
             barContainer.innerHTML = barrels.map(b => {
-                const gallery = makePhotoGallery(`bar-${b.id}`, '🎯', b.image_path, b.image_path_2);
+                const gallery = makePhotoGallery(`bar-${b.id}`, '🎯', b.image_path, b.image_path_2, 'cover');
                 const flags = [b.is_threaded && 'Threaded', b.has_muzzle_brake && 'Brake'].filter(Boolean).join(' · ');
                 return `
                 <div class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl flex flex-col hover:border-blue-400/60 transition cursor-pointer" onclick="window.location.href='tc-barrel-detail.html?id=${b.id}'">
@@ -679,17 +679,17 @@ async function refreshLowStockBanner() {
     } catch(_) {}
 }
 
-function makePhotoGallery(uid, emoji, img1, img2) {
+function makePhotoGallery(uid, emoji, img1, img2, fit = 'contain') {
     if (!img1 && !img2) {
         return `<div class="w-full h-48 bg-gray-950 flex items-center justify-center text-5xl">${emoji}</div>`;
     }
     const photos = [img1, img2].filter(Boolean);
     if (photos.length === 1) {
-        return `<div class="w-full h-48 bg-gray-950 overflow-hidden"><img src="${photos[0]}" class="w-full h-full object-contain"></div>`;
+        return `<div class="w-full h-48 bg-gray-950 overflow-hidden"><img src="${photos[0]}" class="w-full h-full object-${fit}"></div>`;
     }
     return `
     <div class="w-full h-48 bg-gray-950 overflow-hidden relative">
-        <img id="gimg-${uid}" src="${photos[0]}" class="w-full h-full object-contain">
+        <img id="gimg-${uid}" src="${photos[0]}" class="w-full h-full object-${fit}">
         <div class="absolute bottom-2 right-2 flex gap-1.5">
             <button onclick="event.stopPropagation(); gallerySw('${uid}','${photos[0]}',0)" id="gdot-${uid}-0"
                 class="w-2.5 h-2.5 rounded-full bg-white shadow cursor-pointer border border-gray-400 transition"></button>
@@ -2301,7 +2301,7 @@ async function loadCatalog(frameType = currentFrameType()) {
 
         content.innerHTML = `
             <div class="w-full h-44 bg-gray-950 relative overflow-hidden cursor-pointer" onclick="window.location.href='firearm-detail.html?id=${gun.id}'">
-                <img src="${targetSrc}" class="w-full h-full object-contain">
+                <img src="${targetSrc}" class="w-full h-full object-cover">
             </div>
             <div class="p-4 space-y-3">
                 <div class="flex justify-between items-center">
@@ -2760,4 +2760,13 @@ async function loadLandingStats() {
     } catch (_) {}
 }
 
-window.onload = () => { fetchInitialLookupData(); applyPreferences(); loadLandingStats(); };
+window.onload = () => {
+    fetchInitialLookupData(); applyPreferences(); loadLandingStats(); initCustomAC();
+    const p = new URLSearchParams(location.search);
+    if (p.has('tab')) {
+        switchTab(p.get('tab'));
+        if (p.has('inv')) switchInventoryTab(p.get('inv'));
+        if (p.has('platform')) switchPlatformTab(p.get('platform'));
+        if (p.has('ammofilter')) switchAmmoFilter(p.get('ammofilter'));
+    }
+};
