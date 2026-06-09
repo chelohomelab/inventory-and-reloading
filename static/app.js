@@ -59,6 +59,8 @@ function currentFrameType() {
     return { general: 'Rifle', shotgun: 'Shotgun', handgun: 'Pistol' }[currentPlatformTab] || 'Rifle';
 }
 let currentComponentFilter = "powders"; // "powders", "primers", "bullets"
+let currentPlatformSort = "brand";
+let currentOpticSort = "brand";
 
 // ── Photo widget (multi-select + primary toggle) ──────────────────────────────
 const _pw = {}; // widget state: widgetId -> { files: File[], primary: 0 }
@@ -1108,7 +1110,8 @@ async function loadScopes() {
 
     try {
         const res = await fetch('/scopes/');
-        const scopes = res.ok ? await res.json() : [];
+        const raw = res.ok ? await res.json() : [];
+        const scopes = applySortFn(raw, currentOpticSort);
         document.getElementById('inventory-count').innerText = `${scopes.length} Optic${scopes.length !== 1 ? 's' : ''} Registered`;
 
         if (scopes.length === 0) {
@@ -1521,6 +1524,25 @@ function renderAmmoCard(ammo) {
             ${detail ? `<div class="border-t border-gray-700/60 pt-2 space-y-0.5">${detail}</div>` : ''}
         </div>
     </div>`;
+}
+
+function applySortFn(arr, sort) {
+    return [...arr].sort((a, b) => {
+        if (sort === 'caliber') return (a.caliber || '').localeCompare(b.caliber || '');
+        if (sort === 'price_asc') return (a.price_paid || 0) - (b.price_paid || 0);
+        if (sort === 'price_desc') return (b.price_paid || 0) - (a.price_paid || 0);
+        return (a.brand || '').localeCompare(b.brand || '');
+    });
+}
+
+function setPlatformSort(val) {
+    currentPlatformSort = val;
+    loadCatalog();
+}
+
+function setOpticSort(val) {
+    currentOpticSort = val;
+    loadScopes();
 }
 
 function switchFormCategory(targetCat) {
@@ -2448,7 +2470,8 @@ async function loadCatalog(frameType = currentFrameType()) {
         container.innerHTML = '<p class="text-red-400 italic text-sm">Failed to load catalog.</p>';
         return;
     }
-    const inventory = all.filter(g => currentCollectionFilter === 'sold' ? g.is_sold : !g.is_sold);
+    const filtered = all.filter(g => currentCollectionFilter === 'sold' ? g.is_sold : !g.is_sold);
+    const inventory = applySortFn(filtered, currentPlatformSort);
 
     document.getElementById('inventory-count').innerText = `${inventory.length} Platform${inventory.length !== 1 ? 's' : ''} Logged`;
     container.innerHTML = '';
@@ -2483,6 +2506,7 @@ async function loadCatalog(frameType = currentFrameType()) {
                     <h3 class="text-base font-bold text-white tracking-tight">${gunLabel}</h3>
                     <span class="text-xs text-gray-400 font-mono whitespace-nowrap">$${parseFloat(gun.price_paid || 0).toFixed(2)}</span>
                 </div>
+                ${gun.serial_number ? `<p class="text-[10px] text-gray-500 font-mono">S/N: ${gun.serial_number}</p>` : ''}
                 <div class="flex gap-2 pt-1 border-t border-gray-700">
                     ${soldBtnMarkup}
                     <div class="flex-1"></div>
@@ -2941,6 +2965,7 @@ window.onload = () => {
         switchTab('add-tab');
         const cat = p.get('cat');
         if (cat === 'optics') { switchFormCategory('cat-platforms'); switchAddForm('add-scope'); }
+        else if (cat === 'tc-barrel') { switchFormCategory('cat-platforms'); switchAddForm('add-tc-barrel'); }
         else switchFormCategory('cat-' + cat);
     }
 };

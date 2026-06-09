@@ -13,6 +13,7 @@ class FirearmPatchPayload(BaseModel):
     caliber: Optional[str] = None
     scope_optic: Optional[str] = None
     price_paid: Optional[float] = None
+    serial_number: Optional[str] = None
 
 
 class ScopeMountPayload(BaseModel):

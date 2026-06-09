@@ -23,13 +23,15 @@ async def create_firearm(
     frame_type: str = Form(...),
     twist_rate: str = Form(None),
     scope_optic: str = Form(None),
+    serial_number: str = Form(None),
     image_1: UploadFile = File(None),
     db: Session = Depends(get_db),
 ):
     img_path = await save_uploaded_file(image_1, "firearm")
     new_gun = models.Firearm(
         brand=brand, model=model, price_paid=price,
-        frame_type=frame_type, image_path_1=img_path,
+        frame_type=frame_type, serial_number=serial_number or None,
+        image_path_1=img_path,
     )
     db.add(new_gun)
     db.flush()
@@ -84,6 +86,8 @@ def patch_firearm(firearm_id: int, payload: FirearmPatchPayload, db: Session = D
         primary = db.query(models.Barrel).filter(models.Barrel.firearm_id == firearm_id).first()
         if primary:
             primary.caliber = payload.caliber
+    if payload.serial_number is not None:
+        gun.serial_number = payload.serial_number or None
     if payload.scope_optic is not None:
         optic = payload.scope_optic.strip()
         if not optic or optic.lower() == "none":
@@ -186,6 +190,7 @@ def get_catalog(frame_type: Optional[str] = None, db: Session = Depends(get_db))
             "is_sold": getattr(gun, "is_sold", False),
             "price_sold": getattr(gun, "price_sold", None),
             "caliber": barrel.caliber if barrel else None,
+            "serial_number": getattr(gun, "serial_number", None),
         })
     return result
 

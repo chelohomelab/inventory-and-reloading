@@ -67,6 +67,7 @@ class Firearm(Base):
     brand = Column(String)
     model = Column(String)
     frame_type = Column(String, default="Rifle")
+    serial_number = Column(String, nullable=True)
     price_paid = Column(Float, default=0.0)
     image_path_1 = Column(String, nullable=True)
     image_path_2 = Column(String, nullable=True)
@@ -275,6 +276,7 @@ def init_db():
 
     if 'firearms' in inspector.get_table_names():
         _add_col('firearms', 'image_path_2', 'image_path_2 VARCHAR')
+        _add_col('firearms', 'serial_number', 'serial_number VARCHAR')
 
     if 'barrels' in inspector.get_table_names():
         _add_col('barrels', 'tc_platform',    'tc_platform VARCHAR')
