@@ -1039,11 +1039,12 @@ async function saveScopeEdit(scopeId) {
     const magnification = document.getElementById(`sedit-mag-${scopeId}`)?.value.trim();
     const units = document.getElementById(`sedit-units-${scopeId}`)?.value;
     const price_paid = parseFloat(document.getElementById(`sedit-price-${scopeId}`)?.value) || 0;
+    const quantity = parseInt(document.getElementById(`sedit-qty-${scopeId}`)?.value) || 1;
     try {
         await fetch(`/scopes/${scopeId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ brand, model, magnification, units, price_paid }),
+            body: JSON.stringify({ brand, model, magnification, units, price_paid, quantity }),
         });
         showToast('Scope updated.');
         loadScopes();
@@ -1122,21 +1123,76 @@ async function loadScopes() {
 
 function renderScopeCard(s) {
     const gallery = makePhotoGallery(`scp-${s.id}`, '🔭', s.image_path, s.image_path_2);
-    const mountLabel = s.mounted_on
-        ? `<span class="text-emerald-400 font-medium">${s.mounted_on}</span>`
-        : `<span class="text-gray-500 italic">Unmounted</span>`;
-    const mountBtnLabel = s.mounted_on ? '🔄 Change Mount' : '📍 Mount Scope';
+    const qty = s.quantity || 1;
+    const mounts = s.mounts || [];
+    const mountCount = mounts.length;
+    const slotsLeft = qty - mountCount;
     const photoCount = (s.image_path ? 1 : 0) + (s.image_path_2 ? 1 : 0);
+    const firstMount = mounts[0] || null;
+
+    const qtyBadge = qty > 1
+        ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-400 border border-amber-800">QTY: ${qty}</span>`
+        : '';
+
+    // Mounts section
+    let mountsHtml;
+    if (qty === 1) {
+        const mountLabel = firstMount
+            ? `<span class="text-emerald-400 font-medium">${firstMount.label}</span>`
+            : `<span class="text-gray-500 italic">Unmounted</span>`;
+        mountsHtml = `<p class="text-xs text-gray-400">📍 ${mountLabel}</p>`;
+    } else {
+        const mountItems = mounts.map(m => `
+            <div class="flex items-center justify-between gap-1">
+                <span class="text-xs text-emerald-400 truncate min-w-0">📍 ${m.label}</span>
+                <button onclick="removeScopeMount(${s.id},'${m.type}',${m.id})"
+                    class="shrink-0 text-[10px] px-1.5 py-0.5 bg-gray-700 hover:bg-red-900 text-gray-400 hover:text-red-300 rounded cursor-pointer transition" title="Uninstall">✕</button>
+            </div>`).join('');
+        const openSlots = slotsLeft > 0
+            ? `<p class="text-xs text-gray-600 italic">${slotsLeft} open slot${slotsLeft > 1 ? 's' : ''}</p>` : '';
+        mountsHtml = `<div class="space-y-1">
+            <p class="text-[10px] text-gray-500 font-mono">${mountCount}/${qty} installed</p>
+            ${mountItems}${openSlots}
+        </div>`;
+    }
+
+    // Action buttons
+    const changeMountBtn = qty === 1 ? `
+        <button onclick="openScopeMountEditor(${s.id})"
+            class="flex-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">
+            ${firstMount ? '🔄 Change Mount' : '📍 Mount Scope'}
+        </button>` : '';
+    const addInstallBtn = (qty > 1 && slotsLeft > 0) ? `
+        <button id="scope-add-install-btn-${s.id}" onclick="openAddScopeMount(${s.id})"
+            class="flex-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">
+            📍 Add Install
+        </button>` : '';
+
+    // Add-mount editor (for multi-qty scopes)
+    const addMountEditor = qty > 1 ? `
+        <div id="scope-add-mount-editor-${s.id}" class="hidden border-t border-gray-600 pt-3 space-y-2">
+            <p class="text-xs text-gray-400 font-medium">Install on platform:</p>
+            <select id="scope-add-mount-sel-${s.id}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-xs text-white focus:outline-none">
+                <option value="">Loading…</option>
+            </select>
+            <div class="flex gap-2">
+                <button onclick="saveAddScopeMount(${s.id})" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-1.5 rounded transition cursor-pointer">Install</button>
+                <button onclick="closeAddScopeMount(${s.id})" class="px-3 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold py-1.5 rounded transition cursor-pointer">Cancel</button>
+            </div>
+        </div>` : '';
 
     return `
     <div id="scope-card-${s.id}"
-        data-mount-type="${s.mount_type || ''}"
-        data-mount-id="${s.mount_type === 'firearm' ? (s.mounted_firearm_id || '') : (s.mounted_barrel_id || '')}"
+        data-mount-type="${firstMount ? firstMount.type : ''}"
+        data-mount-id="${firstMount ? firstMount.id : ''}"
         class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl">
         ${gallery}
         <div class="p-4 space-y-2">
             <div class="flex justify-between items-center">
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-400 border border-blue-800">OPTIC</span>
+                <div class="flex items-center gap-1">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-400 border border-blue-800">OPTIC</span>
+                    ${qtyBadge}
+                </div>
                 <div class="flex items-center gap-1">
                     <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-gray-900 text-gray-300 border border-gray-700">${s.units || 'MOA'}</span>
                     <button onclick="toggleScopeEditPanel(${s.id})" title="Edit scope" class="p-1 rounded bg-gray-700 hover:bg-amber-600 text-gray-400 hover:text-white transition cursor-pointer">
@@ -1154,7 +1210,7 @@ function renderScopeCard(s) {
                 <span class="text-xs text-gray-400 font-mono whitespace-nowrap">$${parseFloat(s.price_paid || 0).toFixed(2)}</span>
             </div>
             <div class="border-t border-gray-700 pt-2 space-y-1">
-                <p class="text-xs text-gray-400">📍 ${mountLabel}</p>
+                ${mountsHtml}
             </div>
             <!-- Edit panel (hidden) -->
             <div id="scope-edit-panel-${s.id}" class="hidden border-t border-gray-600 pt-3 space-y-2">
@@ -1166,7 +1222,14 @@ function renderScopeCard(s) {
                         <option value="MOA" ${(s.units||'MOA')==='MOA'?'selected':''}>MOA</option>
                         <option value="MRAD" ${s.units==='MRAD'?'selected':''}>MRAD</option>
                     </select>
-                    <input id="sedit-price-${s.id}" type="number" step="0.01" value="${s.price_paid||0}" placeholder="Price" class="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none">
+                    <div class="flex items-center flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 gap-1">
+                        <span class="text-xs text-gray-400">$</span>
+                        <input id="sedit-price-${s.id}" type="number" step="0.01" value="${s.price_paid||0}" placeholder="Price" class="flex-1 bg-transparent text-xs text-white focus:outline-none min-w-0">
+                    </div>
+                </div>
+                <div class="flex gap-2 items-center">
+                    <label class="text-xs text-gray-400 whitespace-nowrap">Qty owned:</label>
+                    <input id="sedit-qty-${s.id}" type="number" min="1" value="${qty}" class="w-20 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none">
                 </div>
                 <div class="flex gap-2">
                     <button onclick="saveScopeEdit(${s.id})" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-1.5 rounded transition cursor-pointer">Save</button>
@@ -1181,16 +1244,17 @@ function renderScopeCard(s) {
                 </div>
                 ${s.image_path && s.image_path_2 ? `<button onclick="swapScopePhotos(${s.id})" class="w-full py-1 bg-amber-800 hover:bg-amber-700 text-white text-[10px] font-bold rounded transition cursor-pointer">⭐ Make Primary</button>` : ''}
             </div>
-            <!-- Mount editor (hidden until user clicks) -->
+            ${addMountEditor}
+            <!-- Mount editor for qty=1 (hidden until user clicks) -->
             <div id="scope-editor-${s.id}" class="hidden border-t border-gray-600 pt-3 space-y-2">
                 <div class="flex gap-2 items-center flex-wrap">
                     <select id="scope-installed-${s.id}" onchange="toggleScopeMountSelect(${s.id})"
                         class="bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
-                        <option value="yes" ${s.mount_type ? 'selected' : ''}>Installed</option>
-                        <option value="no" ${!s.mount_type ? 'selected' : ''}>Unmounted</option>
+                        <option value="yes" ${firstMount ? 'selected' : ''}>Installed</option>
+                        <option value="no" ${!firstMount ? 'selected' : ''}>Unmounted</option>
                     </select>
                     <select id="scope-mount-select-${s.id}"
-                        class="flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none ${!s.mount_type ? 'hidden' : ''}">
+                        class="flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none ${!firstMount ? 'hidden' : ''}">
                         <option value="">Loading…</option>
                     </select>
                 </div>
@@ -1200,10 +1264,8 @@ function renderScopeCard(s) {
                 </div>
             </div>
             <div class="flex gap-2 mt-1">
-                <button onclick="openScopeMountEditor(${s.id})"
-                    class="flex-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">
-                    ${mountBtnLabel}
-                </button>
+                ${changeMountBtn}
+                ${addInstallBtn}
                 <button onclick="trashItem('scope',${s.id},'${(s.brand+' '+s.model).replace(/'/g,"\\'")}'); event.stopPropagation();" class="px-3 py-1.5 bg-gray-700 hover:bg-red-900 text-gray-400 hover:text-red-300 text-xs font-bold rounded transition cursor-pointer" title="Move to trash">🗑️</button>
             </div>
         </div>
@@ -1323,6 +1385,64 @@ async function saveScopeMount(scopeId) {
 
 function closeScopeMountEditor(scopeId) {
     document.getElementById(`scope-editor-${scopeId}`)?.classList.add('hidden');
+}
+
+async function openAddScopeMount(scopeId) {
+    const editor = document.getElementById(`scope-add-mount-editor-${scopeId}`);
+    const select = document.getElementById(`scope-add-mount-sel-${scopeId}`);
+    if (!editor || !select) return;
+    editor.classList.remove('hidden');
+    document.getElementById(`scope-add-install-btn-${scopeId}`)?.classList.add('hidden');
+    try {
+        const res = await fetch(`/available-mounts/?for_scope_id=${scopeId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        let opts = `<option value="">-- Select Platform --</option>`;
+        if (data.firearms.length > 0) {
+            opts += `<optgroup label="── Rifles ──">` +
+                data.firearms.map(f => `<option value="firearm:${f.id}">${f.label}</option>`).join('') +
+                `</optgroup>`;
+        }
+        if (data.tc_barrels.length > 0) {
+            opts += `<optgroup label="── TC Barrels ──">` +
+                data.tc_barrels.map(b => `<option value="barrel:${b.id}">${b.label}</option>`).join('') +
+                `</optgroup>`;
+        }
+        select.innerHTML = opts;
+    } catch(_) {}
+}
+
+function closeAddScopeMount(scopeId) {
+    document.getElementById(`scope-add-mount-editor-${scopeId}`)?.classList.add('hidden');
+    document.getElementById(`scope-add-install-btn-${scopeId}`)?.classList.remove('hidden');
+}
+
+async function saveAddScopeMount(scopeId) {
+    const select = document.getElementById(`scope-add-mount-sel-${scopeId}`);
+    if (!select || !select.value) { showToast('Select a platform first.', 'warn'); return; }
+    const [type, id] = select.value.split(':');
+    try {
+        const res = await fetch(`/scopes/${scopeId}/add-mount`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mount_type: type, mount_id: parseInt(id) }),
+        });
+        if (res.ok) { showToast('Scope installed.'); loadScopes(); }
+        else { const e = await res.json(); showToast(e.detail || 'Failed to install.', 'error'); }
+    } catch(_) { showToast('Error installing scope.', 'error'); }
+}
+
+async function removeScopeMount(scopeId, mountType, mountId) {
+    if (!confirm('Uninstall this scope from the platform?')) return;
+    try {
+        const res = await fetch(`/scopes/${scopeId}/remove-mount`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mount_type: mountType, mount_id: mountId }),
+        });
+        if (res.ok) { showToast('Scope uninstalled.'); loadScopes(); }
+        else showToast('Failed to uninstall.', 'error');
+    } catch(_) { showToast('Error removing mount.', 'error'); }
 }
 
 async function loadAmmoInventory(type) {
@@ -2817,5 +2937,10 @@ window.onload = () => {
     fetchInitialLookupData(); applyPreferences(); loadLandingStats(); initCustomAC();
     const p = new URLSearchParams(location.search);
     if (p.has('tab')) switchTab(p.get('tab'));
-    if (p.has('cat')) { switchTab('add-tab'); switchFormCategory('cat-' + p.get('cat')); }
+    if (p.has('cat')) {
+        switchTab('add-tab');
+        const cat = p.get('cat');
+        if (cat === 'optics') { switchFormCategory('cat-platforms'); switchAddForm('add-scope'); }
+        else switchFormCategory('cat-' + cat);
+    }
 };

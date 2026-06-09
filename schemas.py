@@ -97,6 +97,7 @@ class ScopePatchPayload(BaseModel):
     magnification: Optional[str] = None
     units: Optional[str] = None
     price_paid: Optional[float] = None
+    quantity: Optional[int] = None
 
 
 class TCReceiverPatchPayload(BaseModel):

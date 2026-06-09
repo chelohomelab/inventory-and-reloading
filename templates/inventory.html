@@ -188,7 +188,7 @@
             <!-- Optics pane -->
             <div id="inv-pane-optics" class="hidden mt-4">
                 <div class="flex justify-end mb-4">
-                    <button onclick="window.location.href='/?tab=add-tab&cat=platforms'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
+                    <button onclick="window.location.href='/?tab=add-tab&cat=optics'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
                 </div>
                 <div id="scopes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <p class="text-gray-400 col-span-3 italic">Loading optics...</p>
@@ -279,7 +279,7 @@
     <datalist id="dl-handload-bullet"></datalist>
     <datalist id="dl-handload-brass"></datalist>
 
-    <script src="/static/app.js?v=17"></script>
+    <script src="/static/app.js?v=20"></script>
     <script>
     window.onload = () => {
         fetchInitialLookupData(); applyPreferences(); loadLandingStats(); initCustomAC();

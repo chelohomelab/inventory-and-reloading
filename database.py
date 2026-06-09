@@ -34,6 +34,7 @@ class Scope(Base):
     image_path = Column(String, nullable=True)
     image_path_2 = Column(String, nullable=True)
     is_deleted = Column(Boolean, default=False)
+    quantity = Column(Integer, default=1)
 
     firearms = relationship("Firearm", back_populates="scope")
     barrels = relationship("Barrel", back_populates="scope")
@@ -289,6 +290,7 @@ def init_db():
     if 'scopes' in inspector.get_table_names():
         _add_col('scopes', 'magnification', 'magnification VARCHAR')
         _add_col('scopes', 'image_path_2',  'image_path_2 VARCHAR')
+        _add_col('scopes', 'quantity',      'quantity INTEGER DEFAULT 1')
 
     if 'tc_receivers' in inspector.get_table_names():
         _add_col('tc_receivers', 'notes',        'notes VARCHAR')
