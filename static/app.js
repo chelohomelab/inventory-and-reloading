@@ -511,15 +511,18 @@ function switchPlatformTab(tab) {
     });
     const tcBtn = document.getElementById('plat-btn-tc');
 
+    const mainAddBtn = document.getElementById('plat-main-add-btn');
     if (tab === 'tc') {
         genPane?.classList.add('hidden');
         tcPane?.classList.remove('hidden');
         if (tcBtn) tcBtn.className = "px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer";
+        if (mainAddBtn) mainAddBtn.classList.add('hidden');
         loadTCInventory();
     } else {
         genPane?.classList.remove('hidden');
         tcPane?.classList.add('hidden');
         if (tcBtn) tcBtn.className = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+        if (mainAddBtn) mainAddBtn.classList.remove('hidden');
         const activeBtn = document.getElementById(`plat-btn-${tab}`);
         if (activeBtn) activeBtn.className = "px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer";
         loadCatalog(currentFrameType());
@@ -2966,6 +2969,7 @@ window.onload = () => {
         const cat = p.get('cat');
         if (cat === 'optics') { switchFormCategory('cat-platforms'); switchAddForm('add-scope'); }
         else if (cat === 'tc-barrel') { switchFormCategory('cat-platforms'); switchAddForm('add-tc-barrel'); }
+        else if (cat === 'tc-receiver') { switchFormCategory('cat-platforms'); switchAddForm('add-tc-receiver'); }
         else switchFormCategory('cat-' + cat);
     }
 };

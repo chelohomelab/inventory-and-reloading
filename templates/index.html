@@ -252,7 +252,7 @@
                             <input type="text" name="model" id="rifle-model-input" data-ac="dl-firearm-model" oninput="handleBrandOrModelChange()" required autocomplete="off" placeholder="e.g., T3x, 110, 10/22" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Caliber</label>
                             <input type="text" name="caliber" data-ac="dl-caliber" required autocomplete="off" placeholder="e.g., 6.5 Creedmoor, .308 Win" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
@@ -260,13 +260,6 @@
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Twist Rate</label>
                             <input type="text" name="twist_rate" placeholder='e.g., 1:10"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">Scope Installed</label>
-                            <select name="scope_optic" id="rifle-optic-select" onchange="handleDynamicDropdown(this, 'optics')" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
-                                <option value="None">None</option>
-                                <option value="ADD_NEW" class="text-amber-400 font-bold">+ Add New Scope...</option>
-                            </select>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -921,6 +914,6 @@
     <datalist id="dl-handload-bullet"></datalist>
     <datalist id="dl-handload-brass"></datalist>
 
-    <script src="/static/app.js?v=21"></script>
+    <script src="/static/app.js?v=24"></script>
 </body>
 </html>

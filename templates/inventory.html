@@ -161,7 +161,7 @@
                             <option value="price_asc">Price ↑</option>
                             <option value="price_desc">Price ↓</option>
                         </select>
-                        <button onclick="window.location.href='/?tab=add-tab&cat=platforms'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
+                        <button id="plat-main-add-btn" onclick="window.location.href='/?tab=add-tab&cat=platforms'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
                     </div>
                 </div>
 
@@ -176,6 +176,7 @@
                         <div class="flex items-center gap-3 mb-3">
                             <span class="text-xs font-bold uppercase tracking-wider text-amber-500">Receivers</span>
                             <div class="flex-1 border-t border-gray-700/60"></div>
+                            <button onclick="window.location.href='/?tab=add-tab&cat=tc-receiver'" class="px-3 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
                         </div>
                         <div id="tc-receivers-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <p class="text-gray-500 italic text-sm col-span-3">Loading receivers...</p>
@@ -293,7 +294,7 @@
     <datalist id="dl-handload-bullet"></datalist>
     <datalist id="dl-handload-brass"></datalist>
 
-    <script src="/static/app.js?v=21"></script>
+    <script src="/static/app.js?v=24"></script>
     <script>
     window.onload = () => {
         fetchInitialLookupData(); applyPreferences(); loadLandingStats(); initCustomAC();
