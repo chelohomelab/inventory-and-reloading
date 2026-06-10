@@ -8,12 +8,32 @@ from dependencies import get_db, save_uploaded_file
 router = APIRouter()
 
 
+def _deduct_ammo_rounds(ammo, rounds: int):
+    if rounds <= 0:
+        return
+    remaining = rounds
+    open_rds = ammo.qty_open or 0
+    take = min(remaining, open_rds)
+    ammo.qty_open = open_rds - take
+    remaining -= take
+    if remaining > 0:
+        rpb = ammo.rounds_per_box or 20
+        sealed = ammo.qty_sealed or 0
+        while remaining > 0 and sealed > 0:
+            sealed -= 1
+            take = min(remaining, rpb)
+            ammo.qty_open = rpb - take
+            remaining -= take
+        ammo.qty_sealed = sealed
+
+
 @router.post("/performance-log/")
 async def log_group(
     barrel_id: int = Form(...),
     ammo_id: int = Form(...),
     date: str = Form(...),
     velocities_csv: str = Form(None),
+    rounds_fired: int = Form(None),
     group_size: float = Form(None),
     target_image: UploadFile = File(None),
     db: Session = Depends(get_db),
@@ -26,11 +46,15 @@ async def log_group(
     img_path = await save_uploaded_file(target_image, "target")
     metrics  = math_engine.calculate_shot_metrics(velocities_csv)
 
+    vel_list = [v for v in (velocities_csv or '').split(',') if v.strip()]
+    actual_rounds = rounds_fired if rounds_fired is not None else len(vel_list)
+
     log = models.ShotString(
         barrel_id=barrel_id,
         ammo_id=ammo_id,
         date_shot=date,
         velocities=velocities_csv,
+        rounds_fired=actual_rounds,
         avg_velocity=metrics["avg"],
         extreme_spread=metrics["es"],
         standard_deviation=metrics["sd"],
@@ -40,6 +64,11 @@ async def log_group(
     db.add(log)
     db.commit()
     db.refresh(log)
+
+    if actual_rounds > 0:
+        _deduct_ammo_rounds(ammo, actual_rounds)
+        db.commit()
+
     return log
 
 
@@ -72,7 +101,7 @@ def get_logs_for_ammo(ammo_id: int, db: Session = Depends(get_db)):
             "firearm_name": f"{firearm.brand} {firearm.model}" if firearm else "Unknown",
             "firearm_id": firearm.id if firearm else None,
             "caliber": s.barrel.caliber if s.barrel else "—",
-            "shots": len(vel_list),
+            "shots": s.rounds_fired or len(vel_list),
             "avg_velocity": s.avg_velocity,
             "group_size_inches": s.group_size_inches,
             "target_image_path": s.target_image_path,
@@ -99,7 +128,7 @@ def get_logs_for_tc_barrel(barrel_id: int, db: Session = Depends(get_db)):
             "caliber": s.barrel.caliber if s.barrel else "—",
             "load_name": f"{s.ammo.brand} {s.ammo.line_or_powder or ''} {s.ammo.bullet_weight}gr".strip(),
             "bullet_bc": getattr(s.ammo, "bullet_bc", None),
-            "shots": len(vel_list),
+            "shots": s.rounds_fired or len(vel_list),
             "avg_velocity": s.avg_velocity,
             "extreme_spread": s.extreme_spread,
             "standard_deviation": s.standard_deviation,
@@ -132,7 +161,7 @@ def get_logs_for_firearm(firearm_id: int, db: Session = Depends(get_db)):
             "caliber": s.barrel.caliber,
             "load_name": f"{s.ammo.brand} {s.ammo.line_or_powder or ''} {s.ammo.bullet_weight}gr".strip(),
             "bullet_bc": getattr(s.ammo, "bullet_bc", None),
-            "shots": len(vel_list),
+            "shots": s.rounds_fired or len(vel_list),
             "avg_velocity": s.avg_velocity,
             "extreme_spread": s.extreme_spread,
             "standard_deviation": s.standard_deviation,

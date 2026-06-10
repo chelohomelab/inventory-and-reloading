@@ -41,8 +41,14 @@
                 <div id="photo-panel" class="hidden bg-gray-900 border border-gray-700 rounded-lg p-3 space-y-2">
                     <p class="text-xs font-bold text-amber-400 uppercase tracking-wide">📷 Update Photos</p>
                     <div class="flex gap-2 items-center">
-                        <input type="file" id="photo-slot" accept="image/*" class="flex-1 text-[10px] text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
-                        <button onclick="uploadDetailPhoto()" class="px-2 py-1 bg-blue-800 hover:bg-blue-700 text-white text-[10px] font-bold rounded cursor-pointer transition">Upload</button>
+                            <div class="flex gap-1.5 flex-1">
+                                <button type="button" onclick="document.getElementById('photo-slot-cam').click()" class="flex-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer transition">📷 Camera</button>
+                                <button type="button" onclick="document.getElementById('photo-slot').click()" class="flex-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer transition">🖼 Gallery</button>
+                            </div>
+                            <button onclick="uploadDetailPhoto()" class="px-2 py-1 bg-blue-800 hover:bg-blue-700 text-white text-[10px] font-bold rounded cursor-pointer transition">Upload</button>
+                        </div>
+                        <input type="file" id="photo-slot" accept="image/*" class="hidden">
+                        <input type="file" accept="image/*" capture="environment" id="photo-slot-cam" onchange="_camToInput('photo-slot-cam','photo-slot')" class="hidden">
                     </div>
                 </div>
             </div>
@@ -228,6 +234,16 @@
     </main>
 
     <script>
+        function _camToInput(camId, targetId) {
+            const cam = document.getElementById(camId);
+            const file = cam?.files[0];
+            if (!file) return;
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            const target = document.getElementById(targetId);
+            if (target) target.files = dt.files;
+            cam.value = '';
+        }
         let currentFirearmId = null;
         let currentPhotoCount = 0;
         let customDistances = new Set();

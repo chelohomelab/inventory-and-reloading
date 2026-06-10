@@ -30,6 +30,11 @@ class AmmoPatchPayload(BaseModel):
     line_or_powder: Optional[str] = None
     charge_weight: Optional[float] = None
     coal: Optional[float] = None
+    qty_sealed: Optional[int] = None
+    qty_open: Optional[int] = None
+    price_paid: Optional[float] = None
+    rounds_per_box: Optional[int] = None
+    ammo_category: Optional[str] = None
 
 
 class PowderPatch(BaseModel):
@@ -116,3 +121,7 @@ class TCBarrelPatchPayload(BaseModel):
     is_threaded: Optional[bool] = None
     has_muzzle_brake: Optional[bool] = None
     price_paid: Optional[float] = None
+
+
+class UseRoundsPayload(BaseModel):
+    rounds: int

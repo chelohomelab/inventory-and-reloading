@@ -44,9 +44,14 @@
                     <div id="photo-panel" class="hidden bg-gray-900 border border-gray-700 rounded-lg p-3 space-y-2">
                         <p class="text-xs font-bold text-amber-400 uppercase tracking-wide">📷 Update Photos</p>
                         <div class="flex gap-2 items-center">
-                            <input type="file" id="photo-slot" accept="image/*" class="flex-1 text-[10px] text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1.5 flex-1">
+                                <button type="button" onclick="document.getElementById('photo-slot-cam').click()" class="flex-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer transition">📷 Camera</button>
+                                <button type="button" onclick="document.getElementById('photo-slot').click()" class="flex-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer transition">🖼 Gallery</button>
+                            </div>
                             <button onclick="uploadDetailPhoto()" class="px-2 py-1 bg-blue-800 hover:bg-blue-700 text-white text-[10px] font-bold rounded cursor-pointer transition">Upload</button>
                         </div>
+                        <input type="file" id="photo-slot" accept="image/*" class="hidden">
+                        <input type="file" accept="image/*" capture="environment" id="photo-slot-cam" onchange="_camToInput('photo-slot-cam','photo-slot')" class="hidden">
                     </div>
                 </div>
                 <!-- Info column -->
@@ -107,6 +112,18 @@
                     </div>
                 </div>
 
+                <div class="text-xs">
+                    <label class="block text-gray-400 mb-1">Ammo Type / Category</label>
+                    <select id="ef-category" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                        <option value="">Select type…</option>
+                        <option value="centerfire">Centerfire (Rifle)</option>
+                        <option value="handgun">Handgun / Pistol</option>
+                        <option value="rimfire">Rimfire</option>
+                        <option value="shotgun">Shotgun</option>
+                        <option value="muzzleloader">Muzzleloader</option>
+                    </select>
+                </div>
+
                 <div id="handload-fields" class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs hidden">
                     <div>
                         <label class="block text-gray-400 mb-1">Charge Weight (gr)</label>
@@ -127,6 +144,24 @@
                     </button>
                 </div>
             </form>
+        </div>
+
+        <!-- Stock & Use Rounds -->
+        <div id="stock-section" class="bg-gray-800 border border-gray-700 rounded-xl p-5 shadow-xl hidden">
+            <div class="flex justify-between items-start flex-wrap gap-4">
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2">📦 On Hand</h3>
+                    <div id="stock-display" class="text-center"></div>
+                </div>
+                <div class="flex-1 min-w-[180px]">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Log Rounds Used</h3>
+                    <div class="flex gap-2 items-center">
+                        <input type="number" id="use-rounds-input" min="1" placeholder="# rounds" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                        <button onclick="logRoundsUsed()" class="px-3 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded cursor-pointer transition">Log</button>
+                    </div>
+                    <p class="text-[10px] text-gray-600 mt-1">For shots fired outside a recorded range session</p>
+                </div>
+            </div>
         </div>
 
         <!-- Range Sessions -->
@@ -158,6 +193,17 @@
     </main>
 
     <script>
+        function _camToInput(camId, targetId) {
+            const cam = document.getElementById(camId);
+            const file = cam?.files[0];
+            if (!file) return;
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            const target = document.getElementById(targetId);
+            if (target) target.files = dt.files;
+            cam.value = '';
+        }
+
         let currentAmmoId = null;
         let currentPhotoCount = 0;
         let ammoData = null;
@@ -291,6 +337,29 @@
             cells += cell('Range Sessions', a.usage_count !== undefined ? a.usage_count : '—', 'text-blue-400');
             grid.innerHTML = cells;
 
+            // Show stock section for all ammo
+            document.getElementById('stock-section')?.classList.remove('hidden');
+
+            // Stock display
+            const stockEl = document.getElementById('stock-display');
+            if (stockEl) {
+                const sealed = a.qty_sealed || 0;
+                const open = a.qty_open || 0;
+                const rpb = a.rounds_per_box || 20;
+                const total = sealed * rpb + open;
+                if (total > 0 || sealed > 0 || open > 0) {
+                    const parts = [];
+                    if (sealed) parts.push(`${sealed} box${sealed !== 1 ? 'es' : ''}`);
+                    if (open) parts.push(`${open} loose`);
+                    stockEl.innerHTML = `
+                        <span class="text-2xl font-bold font-mono text-blue-400">${total}</span>
+                        <span class="text-sm text-gray-400 ml-1">rounds</span>
+                        <p class="text-[11px] text-gray-500 mt-0.5">${parts.join(' + ')}</p>`;
+                } else {
+                    stockEl.innerHTML = `<span class="text-gray-600 text-sm">No stock recorded</span>`;
+                }
+            }
+
             // Photo gallery
             renderImageGallery([a.image_path, a.image_path_2].filter(Boolean));
 
@@ -301,6 +370,7 @@
             document.getElementById('ef-bullet-type').value = a.bullet_type || '';
             document.getElementById('ef-weight').value = a.bullet_weight || '';
             document.getElementById('ef-bc').value = a.bullet_bc != null ? a.bullet_bc : '';
+            document.getElementById('ef-category').value = a.ammo_category || '';
             if (isHandload) {
                 document.getElementById('handload-fields').classList.remove('hidden');
                 document.getElementById('ef-charge').value = a.charge_weight || '';
@@ -318,6 +388,7 @@
                 bullet_type: document.getElementById('ef-bullet-type').value.trim(),
                 bullet_weight: parseFloat(document.getElementById('ef-weight').value) || null,
                 bullet_bc: isNaN(bcVal) ? null : bcVal,
+                ammo_category: document.getElementById('ef-category').value || null,
             };
             if (ammoData?.is_handload) {
                 payload.charge_weight = parseFloat(document.getElementById('ef-charge').value) || null;
@@ -344,6 +415,28 @@
             } catch(err) {
                 showToast('Error contacting server.', 'error');
             }
+        }
+
+        async function logRoundsUsed() {
+            const input = document.getElementById('use-rounds-input');
+            const rounds = parseInt(input?.value);
+            if (!rounds || rounds <= 0) { showToast('Enter a valid round count.', 'error'); return; }
+            try {
+                const res = await fetch(`/ammo/${currentAmmoId}/use-rounds/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rounds })
+                });
+                if (res.ok) {
+                    const updated = await res.json();
+                    ammoData = { ...ammoData, ...updated };
+                    renderAmmoProfile(ammoData);
+                    input.value = '';
+                    showToast(`${rounds} rounds logged.`);
+                } else {
+                    showToast('Failed to log rounds.', 'error');
+                }
+            } catch { showToast('Error contacting server.', 'error'); }
         }
 
         async function deleteLoad() {

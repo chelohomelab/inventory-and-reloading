@@ -102,7 +102,29 @@ function _getPWFiles(wid) {
 function _resetPW(wid) {
     _pw[wid] = { files: [], primary: 0 };
     const el = document.getElementById(`${wid}-input`); if (el) el.value = '';
+    const cam = document.getElementById(`${wid}-cam`); if (cam) cam.value = '';
     const pr = document.getElementById(`${wid}-preview`); if (pr) { pr.innerHTML = ''; pr.classList.add('hidden'); }
+}
+
+function handlePWCamera(wid) {
+    const cam = document.getElementById(`${wid}-cam`);
+    const file = cam?.files[0];
+    if (!file) return;
+    const existing = (_pw[wid]?.files) || [];
+    _pw[wid] = { files: [...existing, file].slice(0, 2), primary: _pw[wid]?.primary || 0 };
+    _renderPW(wid);
+    cam.value = '';
+}
+
+function _camToInput(camId, targetId) {
+    const cam = document.getElementById(camId);
+    const file = cam?.files[0];
+    if (!file) return;
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    const target = document.getElementById(targetId);
+    if (target) target.files = dt.files;
+    cam.value = '';
 }
 
 // ── Custom Autocomplete ───────────────────────────────────────────────────────
@@ -789,11 +811,21 @@ function renderPowderCard(p) {
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="text-[10px] text-gray-500">Replace Photo 1</label>
-                            <input type="file" id="cpow1-${p.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-emerald-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1 mt-0.5">
+                                <button type="button" onclick="document.getElementById('cpow1-cam-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
+                                <button type="button" onclick="document.getElementById('cpow1-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
+                            </div>
+                            <input type="file" id="cpow1-${p.id}" accept="image/*" class="hidden">
+                            <input type="file" capture="environment" accept="image/*" id="cpow1-cam-${p.id}" onchange="_camToInput('cpow1-cam-${p.id}','cpow1-${p.id}')" class="hidden">
                         </div>
                         <div>
                             <label class="text-[10px] text-gray-500">Replace Photo 2</label>
-                            <input type="file" id="cpow2-${p.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-emerald-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1 mt-0.5">
+                                <button type="button" onclick="document.getElementById('cpow2-cam-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
+                                <button type="button" onclick="document.getElementById('cpow2-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
+                            </div>
+                            <input type="file" id="cpow2-${p.id}" accept="image/*" class="hidden">
+                            <input type="file" capture="environment" accept="image/*" id="cpow2-cam-${p.id}" onchange="_camToInput('cpow2-cam-${p.id}','cpow2-${p.id}')" class="hidden">
                         </div>
                     </div>
                     <button onclick="uploadCompPhotos('powders','pow',${p.id})" class="w-full text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 py-1 rounded cursor-pointer">Save Photos</button>
@@ -841,11 +873,21 @@ function renderPrimerCard(p, lowThreshold = 200) {
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="text-[10px] text-gray-500">Replace Photo 1</label>
-                            <input type="file" id="cpri1-${p.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-orange-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1 mt-0.5">
+                                <button type="button" onclick="document.getElementById('cpri1-cam-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
+                                <button type="button" onclick="document.getElementById('cpri1-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
+                            </div>
+                            <input type="file" id="cpri1-${p.id}" accept="image/*" class="hidden">
+                            <input type="file" capture="environment" accept="image/*" id="cpri1-cam-${p.id}" onchange="_camToInput('cpri1-cam-${p.id}','cpri1-${p.id}')" class="hidden">
                         </div>
                         <div>
                             <label class="text-[10px] text-gray-500">Replace Photo 2</label>
-                            <input type="file" id="cpri2-${p.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-orange-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1 mt-0.5">
+                                <button type="button" onclick="document.getElementById('cpri2-cam-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
+                                <button type="button" onclick="document.getElementById('cpri2-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
+                            </div>
+                            <input type="file" id="cpri2-${p.id}" accept="image/*" class="hidden">
+                            <input type="file" capture="environment" accept="image/*" id="cpri2-cam-${p.id}" onchange="_camToInput('cpri2-cam-${p.id}','cpri2-${p.id}')" class="hidden">
                         </div>
                     </div>
                     <button onclick="uploadCompPhotos('primers','pri',${p.id})" class="w-full text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 py-1 rounded cursor-pointer">Save Photos</button>
@@ -881,6 +923,7 @@ function renderBulletCard(b, lowThreshold = 100) {
             </div>
             <div class="bg-gray-900/60 rounded-lg p-3 text-center">
                 <p class="text-2xl font-bold font-mono ${qtyColor}">${(b.quantity??0).toLocaleString()} <span class="text-sm text-gray-400">count</span></p>
+                ${(b.qty_sealed || b.qty_open) ? `<p class="text-[10px] text-gray-500 mt-0.5">${[b.qty_sealed ? `${b.qty_sealed} sealed box${b.qty_sealed!==1?'es':''}` : '', b.qty_open ? `${b.qty_open} open` : ''].filter(Boolean).join(' + ')}</p>` : ''}
                 <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">${low ? '⚠️ Low Stock' : 'On Hand'}</p>
             </div>
             <div class="border-t border-gray-700 pt-2">
@@ -898,11 +941,21 @@ function renderBulletCard(b, lowThreshold = 100) {
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="text-[10px] text-gray-500">Replace Photo 1</label>
-                            <input type="file" id="cbul1-${b.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1 mt-0.5">
+                                <button type="button" onclick="document.getElementById('cbul1-cam-${b.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
+                                <button type="button" onclick="document.getElementById('cbul1-${b.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
+                            </div>
+                            <input type="file" id="cbul1-${b.id}" accept="image/*" class="hidden">
+                            <input type="file" capture="environment" accept="image/*" id="cbul1-cam-${b.id}" onchange="_camToInput('cbul1-cam-${b.id}','cbul1-${b.id}')" class="hidden">
                         </div>
                         <div>
                             <label class="text-[10px] text-gray-500">Replace Photo 2</label>
-                            <input type="file" id="cbul2-${b.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1 mt-0.5">
+                                <button type="button" onclick="document.getElementById('cbul2-cam-${b.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
+                                <button type="button" onclick="document.getElementById('cbul2-${b.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
+                            </div>
+                            <input type="file" id="cbul2-${b.id}" accept="image/*" class="hidden">
+                            <input type="file" capture="environment" accept="image/*" id="cbul2-cam-${b.id}" onchange="_camToInput('cbul2-cam-${b.id}','cbul2-${b.id}')" class="hidden">
                         </div>
                     </div>
                     <button onclick="uploadCompPhotos('bullets','bul',${b.id})" class="w-full text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 py-1 rounded cursor-pointer">Save Photos</button>
@@ -956,11 +1009,21 @@ function renderCasingCard(c, lowThreshold = 50) {
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="text-[10px] text-gray-500">Replace Photo 1</label>
-                            <input type="file" id="ccas1-${c.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-purple-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1 mt-0.5">
+                                <button type="button" onclick="document.getElementById('ccas1-cam-${c.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
+                                <button type="button" onclick="document.getElementById('ccas1-${c.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
+                            </div>
+                            <input type="file" id="ccas1-${c.id}" accept="image/*" class="hidden">
+                            <input type="file" capture="environment" accept="image/*" id="ccas1-cam-${c.id}" onchange="_camToInput('ccas1-cam-${c.id}','ccas1-${c.id}')" class="hidden">
                         </div>
                         <div>
                             <label class="text-[10px] text-gray-500">Replace Photo 2</label>
-                            <input type="file" id="ccas2-${c.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-purple-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1 mt-0.5">
+                                <button type="button" onclick="document.getElementById('ccas2-cam-${c.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
+                                <button type="button" onclick="document.getElementById('ccas2-${c.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
+                            </div>
+                            <input type="file" id="ccas2-${c.id}" accept="image/*" class="hidden">
+                            <input type="file" capture="environment" accept="image/*" id="ccas2-cam-${c.id}" onchange="_camToInput('ccas2-cam-${c.id}','ccas2-${c.id}')" class="hidden">
                         </div>
                     </div>
                     <button onclick="uploadCompPhotos('casings','cas',${c.id})" class="w-full text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 py-1 rounded cursor-pointer">Save Photos</button>
@@ -1245,9 +1308,14 @@ function renderScopeCard(s) {
             <!-- Photo panel (hidden) -->
             <div id="scope-photo-panel-${s.id}" class="hidden border-t border-gray-600 pt-2 space-y-1.5">
                 <div class="flex gap-2 items-center">
-                    <input type="file" id="sedit-photo-${s.id}" accept="image/*" class="flex-1 text-[10px] text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                    <div class="flex gap-1.5 flex-1">
+                        <button type="button" onclick="document.getElementById('sedit-photo-cam-${s.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer">📷 Camera</button>
+                        <button type="button" onclick="document.getElementById('sedit-photo-${s.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer">🖼 Gallery</button>
+                    </div>
                     <button onclick="saveScopePhoto(${s.id}, ${photoCount})" class="px-2 py-1 bg-blue-800 hover:bg-blue-700 text-white text-[10px] font-bold rounded cursor-pointer transition">Upload</button>
                 </div>
+                <input type="file" id="sedit-photo-${s.id}" accept="image/*" class="hidden">
+                <input type="file" capture="environment" accept="image/*" id="sedit-photo-cam-${s.id}" onchange="_camToInput('sedit-photo-cam-${s.id}','sedit-photo-${s.id}')" class="hidden">
                 ${s.image_path && s.image_path_2 ? `<button onclick="swapScopePhotos(${s.id})" class="w-full py-1 bg-amber-800 hover:bg-amber-700 text-white text-[10px] font-bold rounded transition cursor-pointer">⭐ Make Primary</button>` : ''}
             </div>
             ${addMountEditor}
@@ -1468,26 +1536,40 @@ async function loadAmmoInventory(type) {
             return;
         }
 
-        // Group by caliber
-        const groups = {};
+        // Group by category → caliber
+        const CAT_ORDER = ['centerfire', 'handgun', 'rimfire', 'shotgun', 'muzzleloader'];
+        const CAT_LABELS = { centerfire: 'Centerfire · Rifle', handgun: 'Handgun · Pistol', rimfire: 'Rimfire', shotgun: 'Shotgun', muzzleloader: 'Muzzleloader' };
+        const CAT_COLORS = { centerfire: 'text-blue-400', handgun: 'text-purple-400', rimfire: 'text-emerald-400', shotgun: 'text-orange-400', muzzleloader: 'text-yellow-600' };
+        const catGroups = {};
         filtered.forEach(a => {
+            const cat = a.ammo_category || 'centerfire';
+            if (!catGroups[cat]) catGroups[cat] = {};
             const cal = a.caliber || 'Unknown Caliber';
-            if (!groups[cal]) groups[cal] = [];
-            groups[cal].push(a);
+            if (!catGroups[cat][cal]) catGroups[cat][cal] = [];
+            catGroups[cat][cal].push(a);
         });
 
-        container.innerHTML = Object.entries(groups).sort(([a],[b]) => a.localeCompare(b)).map(([cal, loads]) => `
+        container.innerHTML = CAT_ORDER.filter(c => catGroups[c]).map(cat => {
+            const calHtml = Object.entries(catGroups[cat]).sort(([a],[b]) => a.localeCompare(b)).map(([cal, loads]) => `
+                <div class="mb-6">
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="text-xs font-bold uppercase tracking-wider text-amber-500 font-mono">${cal}</span>
+                        <span class="text-[10px] text-gray-500">${loads.length} load${loads.length !== 1 ? 's' : ''}</span>
+                        <div class="flex-1 border-t border-gray-700/60"></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${loads.map(renderAmmoCard).join('')}
+                    </div>
+                </div>`).join('');
+            return `
             <div class="mb-8">
-                <div class="flex items-center gap-3 mb-3">
-                    <span class="text-xs font-bold uppercase tracking-wider text-amber-500 font-mono">${cal}</span>
-                    <span class="text-[10px] text-gray-500">${loads.length} load${loads.length !== 1 ? 's' : ''}</span>
-                    <div class="flex-1 border-t border-gray-700/60"></div>
+                <div class="flex items-center gap-3 mb-4">
+                    <span class="text-sm font-bold uppercase tracking-wider ${CAT_COLORS[cat]}">${CAT_LABELS[cat]}</span>
+                    <div class="flex-1 border-t border-gray-600/40"></div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    ${loads.map(renderAmmoCard).join('')}
-                </div>
-            </div>`
-        ).join('');
+                ${calHtml}
+            </div>`;
+        }).join('');
     } catch(err) {
         container.innerHTML = '<p class="text-red-400 italic text-sm">Failed to load ammunition.</p>';
     }
@@ -1511,6 +1593,24 @@ function renderAmmoCard(ammo) {
         if (line) detail += `<p class="text-[11px] text-gray-400">Line: <span class="text-gray-200">${line}</span></p>`;
     }
 
+    let stockLine = '';
+    if (!isHandload) {
+        const sealed = ammo.qty_sealed || 0;
+        const open = ammo.qty_open || 0;
+        const rpb = ammo.rounds_per_box || 20;
+        const price = ammo.price_paid || 0;
+        const parts = [];
+        if (sealed) parts.push(`${sealed} box${sealed !== 1 ? 'es' : ''}`);
+        if (open) parts.push(`${open} loose`);
+        if (parts.length) {
+            const total = sealed * rpb + open;
+            stockLine = `<div class="bg-gray-900/60 rounded p-2 text-center mt-1">
+                <p class="text-sm font-bold font-mono text-blue-400">${total} <span class="text-xs text-gray-400">rds</span></p>
+                <p class="text-[10px] text-gray-500">${parts.join(' + ')}${price ? ` · $${price.toFixed(2)}/box` : ''}</p>
+            </div>`;
+        }
+    }
+
     return `
     <div onclick="window.location.href='ammo-detail.html?id=${ammo.id}'"
          class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden hover:border-amber-500/60 transition cursor-pointer shadow-lg">
@@ -1525,6 +1625,7 @@ function renderAmmoCard(ammo) {
                 <p class="text-[11px] text-gray-400">${ammo.bullet_type || '—'}</p>
             </div>
             ${detail ? `<div class="border-t border-gray-700/60 pt-2 space-y-0.5">${detail}</div>` : ''}
+            ${stockLine}
         </div>
     </div>`;
 }
@@ -2438,6 +2539,7 @@ async function commitSessionToDatabase() {
         formData.append('ammo_id', defaultAmmoId);
         formData.append('date', sessionDate);
         formData.append('velocities_csv', velocitiesCsv);
+        formData.append('rounds_fired', String(g.shots.length));
         formData.append('group_size', g.size);
         if (groupBlob) formData.append('target_image', groupBlob, 'target.jpg');
 
@@ -2589,6 +2691,7 @@ if (factoryAmmoForm) {
         const { f1: af1, f2: af2 } = _getPWFiles('pw-ammo-factory');
         if (af1) formData.set('image', af1, af1.name);
         if (af2) formData.set('image_2', af2, af2.name);
+        if (_lastScannedUpc) { formData.set('upc', _lastScannedUpc); _lastScannedUpc = null; }
         try {
             const response = await fetch('/ammo/', { method: 'POST', body: formData });
             if (response.ok) {
@@ -2596,7 +2699,7 @@ if (factoryAmmoForm) {
                     saveLookupValue('ammo_brand', formData.get('brand')),
                     saveLookupValue('caliber',    formData.get('caliber')),
                 ]);
-                e.target.reset(); _resetPW('pw-ammo-factory');
+                e.target.reset(); _resetPW('pw-ammo-factory'); _showPendingUpc(null);
                 showToast('Factory load registered.');
             } else {
                 showToast('Failed to save ammo load.', 'error');
@@ -2845,6 +2948,7 @@ if (powderForm) {
         const { f1, f2 } = _getPWFiles('pw-powder');
         if (f1) fd.set('image_1', f1, f1.name);
         if (f2) fd.set('image_2', f2, f2.name);
+        if (_lastScannedUpc) { fd.set('upc', _lastScannedUpc); _lastScannedUpc = null; }
         try {
             const res = await fetch('/components/powders/', { method: 'POST', body: fd });
             if (res.ok) {
@@ -2863,6 +2967,7 @@ if (primerForm) {
         const { f1, f2 } = _getPWFiles('pw-primer');
         if (f1) fd.set('image_1', f1, f1.name);
         if (f2) fd.set('image_2', f2, f2.name);
+        if (_lastScannedUpc) { fd.set('upc', _lastScannedUpc); _lastScannedUpc = null; }
         try {
             const res = await fetch('/components/primers/', { method: 'POST', body: fd });
             if (res.ok) {
@@ -2881,6 +2986,7 @@ if (bulletCompForm) {
         const { f1, f2 } = _getPWFiles('pw-bullet');
         if (f1) fd.set('image_1', f1, f1.name);
         if (f2) fd.set('image_2', f2, f2.name);
+        if (_lastScannedUpc) { fd.set('upc', _lastScannedUpc); _lastScannedUpc = null; }
         try {
             const res = await fetch('/components/bullets/', { method: 'POST', body: fd });
             if (res.ok) {
@@ -2903,6 +3009,7 @@ if (casingForm) {
         const { f1, f2 } = _getPWFiles('pw-casing');
         if (f1) fd.set('image_1', f1, f1.name);
         if (f2) fd.set('image_2', f2, f2.name);
+        if (_lastScannedUpc) { fd.set('upc', _lastScannedUpc); _lastScannedUpc = null; }
         try {
             const res = await fetch('/components/casings/', { method: 'POST', body: fd });
             if (res.ok) {
@@ -2958,6 +3065,221 @@ async function loadLandingStats() {
                 <div class="text-[9px] text-gray-500 uppercase tracking-wide">${s.label}</div>
             </div>`).join('');
     } catch (_) {}
+}
+
+// ── Barcode Scanner ────────────────────────────────────────────────────────────
+
+let _barcodeFormTarget = null;
+let _lastScannedUpc = null;
+let _barcodeReader = null;
+let _barcodeStream = null;
+let _barcodeAnimFrame = null;
+
+function openBarcodeScanner(formTarget) {
+    _barcodeFormTarget = formTarget;
+    document.getElementById('barcode-modal').classList.remove('hidden');
+    document.getElementById('barcode-status').textContent = '';
+
+    const isSecure = location.protocol === 'https:' ||
+                     location.hostname === 'localhost' ||
+                     location.hostname === '127.0.0.1';
+
+    document.getElementById('barcode-video-wrap').classList.remove('hidden');
+    document.getElementById('barcode-subtitle').textContent = 'Point camera at barcode — detected automatically';
+    _startLiveScanner();
+}
+
+async function _startLiveScanner() {
+    const video = document.getElementById('barcode-video');
+    const status = document.getElementById('barcode-status');
+
+    let permState = 'prompt';
+    try {
+        const ps = await navigator.permissions.query({ name: 'camera' });
+        permState = ps.state;
+        ps.onchange = () => {
+            if (ps.state === 'granted') { status.textContent = ''; _startLiveScanner(); }
+        };
+    } catch (_) {}
+
+    if (permState === 'denied') {
+        document.getElementById('barcode-video-wrap').classList.add('hidden');
+        status.innerHTML = '🔒 Camera access is blocked.<br>Open <strong>Chrome</strong> → ⋮ menu → Settings → Site settings → Camera → find this site → Allow. Then tap: <button onclick="_startLiveScanner()" style="background:#d97706;color:#fff;border:none;padding:4px 12px;border-radius:5px;font-size:11px;font-weight:bold;cursor:pointer;">Retry</button>';
+        return;
+    }
+
+    status.textContent = permState === 'prompt' ? 'Allow camera access when prompted…' : 'Starting camera…';
+    try {
+        _barcodeStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+        });
+        video.srcObject = _barcodeStream;
+        await video.play();
+        status.textContent = 'Camera active — point at barcode';
+
+        // Prefer native BarcodeDetector (Android Chrome) — more reliable than ZXing
+        if ('BarcodeDetector' in window) {
+            const detector = new BarcodeDetector({
+                formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39']
+            });
+            const scanFrame = async () => {
+                if (!_barcodeStream) return;
+                try {
+                    const barcodes = await detector.detect(video);
+                    if (barcodes.length > 0) {
+                        const code = barcodes[0].rawValue;
+                        closeBarcodeScanner();
+                        triggerBarcodeLookup(code);
+                        return;
+                    }
+                } catch (_) {}
+                _barcodeAnimFrame = requestAnimationFrame(scanFrame);
+            };
+            _barcodeAnimFrame = requestAnimationFrame(scanFrame);
+            return;
+        }
+
+        // ZXing fallback (desktop / older browsers)
+        if (typeof ZXing === 'undefined') { status.textContent = 'Scanner ready — enter barcode manually if needed'; return; }
+        const hints = new Map();
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+            ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
+            ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E,
+            ZXing.BarcodeFormat.CODE_128,
+        ]);
+        _barcodeReader = new ZXing.BrowserMultiFormatReader(hints);
+        const cb = (result) => {
+            if (result) { _barcodeReader.reset(); closeBarcodeScanner(); triggerBarcodeLookup(result.getText()); }
+        };
+        if (typeof _barcodeReader.decodeFromVideoElementContinuously === 'function') {
+            _barcodeReader.decodeFromVideoElementContinuously(video, cb);
+        } else {
+            _barcodeReader.decodeFromVideoElement(video, cb);
+        }
+    } catch (e) {
+        document.getElementById('barcode-video-wrap').classList.add('hidden');
+        if (e.name === 'NotAllowedError') {
+            status.innerHTML = '🔒 Camera access denied.<br>Open <strong>Chrome</strong> → ⋮ menu → Settings → Site settings → Camera → find this site → Allow. Then tap: <button onclick="_startLiveScanner()" style="background:#d97706;color:#fff;border:none;padding:4px 12px;border-radius:5px;font-size:11px;font-weight:bold;cursor:pointer;">Retry</button>';
+        } else {
+            status.textContent = 'Camera unavailable — enter barcode manually below.';
+        }
+    }
+}
+
+function closeBarcodeScanner() {
+    document.getElementById('barcode-modal').classList.add('hidden');
+    document.getElementById('barcode-video-wrap').classList.add('hidden');
+    if (_barcodeAnimFrame) { cancelAnimationFrame(_barcodeAnimFrame); _barcodeAnimFrame = null; }
+    if (_barcodeReader) { try { _barcodeReader.reset(); } catch (_) {} _barcodeReader = null; }
+    if (_barcodeStream) { _barcodeStream.getTracks().forEach(t => t.stop()); _barcodeStream = null; }
+    document.getElementById('barcode-manual-input').value = '';
+    document.getElementById('barcode-status').textContent = '';
+    // Blur active element so focus doesn't return to a form field and trigger autocomplete
+    document.activeElement?.blur();
+}
+
+function _showPendingUpc(upc) {
+    const row = document.getElementById('ammo-factory-upc-row');
+    const disp = document.getElementById('ammo-factory-upc-display');
+    if (row && disp) { disp.value = upc || ''; row.classList.toggle('hidden', !upc); }
+}
+
+async function triggerBarcodeLookup(upc) {
+    upc = (upc || '').trim();
+    if (!upc) return;
+    const status = document.getElementById('barcode-status');
+    if (status) status.textContent = 'Looking up barcode…';
+    try {
+        const resp = await fetch(`/barcode/lookup?upc=${encodeURIComponent(upc)}`);
+        if (!resp.ok) {
+            // UPC not in DB — save it and open the factory form so user can fill manually
+            _lastScannedUpc = upc;
+            closeBarcodeScanner();
+            switchTab('add-tab');
+            switchFormCategory('cat-ammunition');
+            toggleAmmoType('factory');
+            _showPendingUpc(upc);
+            showToast('UPC not found — fill in the details and save to register it', 'info');
+            return;
+        }
+        const data = await resp.json();
+        _fillFormFromBarcode(data);
+        showToast(`Found: ${data.title || upc}`, 'success');
+    } catch (e) {
+        showToast('Lookup failed — check connection', 'error');
+    } finally {
+        closeBarcodeScanner();
+    }
+}
+
+// Maps product_type → { category, form } for auto-navigation
+const _PRODUCT_TYPE_FORM = {
+    'ammo':   { cat: 'cat-ammunition', form: null, fill: 'ammo-factory' },
+    'bullet': { cat: 'cat-components', form: 'add-bullet-comp', fill: 'bullet-comp' },
+    'powder': { cat: 'cat-components', form: 'add-powder',      fill: 'powder' },
+    'primer': { cat: 'cat-components', form: 'add-primer',      fill: 'primer' },
+    'casing': { cat: 'cat-components', form: 'add-casing',      fill: 'casing' },
+};
+
+function _fillFormFromBarcode(data) {
+    _lastScannedUpc = data.upc || null;
+    // Auto-navigate to the correct form if the detected product type differs
+    const detected = data.product_type;
+    if (detected && _PRODUCT_TYPE_FORM[detected]) {
+        const { cat, form, fill } = _PRODUCT_TYPE_FORM[detected];
+        if (fill !== _barcodeFormTarget) {
+            switchTab('add-tab');
+            switchFormCategory(cat);
+            if (cat === 'cat-ammunition') toggleAmmoType('factory');
+            if (form) switchAddComponent(form);
+            _barcodeFormTarget = fill;
+        }
+    }
+
+    if (_barcodeFormTarget === 'ammo-factory') {
+        _setIfEmpty('ammo-factory-brand', data.brand);
+        _setIfEmpty('ammo-factory-model', data.product_line);
+        _setIfEmpty('ammo-factory-caliber', data.caliber);
+        _setIfEmpty('ammo-factory-bullet-type', data.bullet_type);
+        _setIfEmpty('ammo-factory-weight', data.weight_gr);
+        _setIfEmpty('ammo-factory-bc', data.bc_g1);
+        _setIfEmpty('ammo-factory-rpb', data.rounds_per_box);
+        if (data.ammo_category) { const catSel = document.getElementById('ammo-factory-cat'); if (catSel && !catSel.value) catSel.value = data.ammo_category; }
+    } else if (_barcodeFormTarget === 'bullet-comp') {
+        _setIfEmpty('bullet-comp-brand', data.brand);
+        _setIfEmpty('bullet-comp-product-line', data.product_line);
+        _setIfEmpty('bullet-comp-caliber', data.caliber);
+        _setIfEmpty('bullet-comp-weight', data.weight_gr);
+        _setIfEmpty('bullet-comp-bullet-type', data.bullet_type);
+        _setIfEmpty('bullet-comp-bc-g1', data.bc_g1);
+        _setIfEmpty('bullet-comp-bc-g7', data.bc_g7);
+    } else if (_barcodeFormTarget === 'powder') {
+        _setIfEmpty('powder-brand', data.brand);
+        _setIfEmpty('powder-name', data.powder_name);
+    } else if (_barcodeFormTarget === 'primer') {
+        _setIfEmpty('primer-brand', data.brand);
+        _setIfEmpty('primer-model', data.primer_model);
+        if (data.primer_type) {
+            const sel = document.getElementById('primer-type');
+            if (sel && !sel.value) {
+                for (const opt of sel.options) {
+                    if (opt.text === data.primer_type) { sel.value = opt.value; break; }
+                }
+            }
+        }
+    } else if (_barcodeFormTarget === 'casing') {
+        _setIfEmpty('casing-brand', data.brand);
+        _setIfEmpty('casing-caliber', data.caliber);
+        _setIfEmpty('casing-quantity', data.rounds_per_box);
+    }
+    // Close any open autocomplete dropdown after programmatic fill
+    if (_acDropdown) { _acDropdown.classList.add('hidden'); _acDropdown = null; }
+}
+
+function _setIfEmpty(id, value) {
+    if (value === null || value === undefined) return;
+    const el = document.getElementById(id);
+    if (el && !el.value) el.value = value;
 }
 
 window.onload = () => {

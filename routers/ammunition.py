@@ -3,7 +3,27 @@ from sqlalchemy.orm import Session
 
 import database as models
 from dependencies import get_db, save_uploaded_file
-from schemas import AmmoPatchPayload
+from schemas import AmmoPatchPayload, UseRoundsPayload
+from routers.barcode import upsert_upc_cache
+
+
+def _deduct_ammo_rounds(ammo, rounds: int):
+    if rounds <= 0:
+        return
+    remaining = rounds
+    open_rds = ammo.qty_open or 0
+    take = min(remaining, open_rds)
+    ammo.qty_open = open_rds - take
+    remaining -= take
+    if remaining > 0:
+        rpb = ammo.rounds_per_box or 20
+        sealed = ammo.qty_sealed or 0
+        while remaining > 0 and sealed > 0:
+            sealed -= 1
+            take = min(remaining, rpb)
+            ammo.qty_open = rpb - take
+            remaining -= take
+        ammo.qty_sealed = sealed
 
 router = APIRouter()
 
@@ -20,8 +40,13 @@ def _ammo_dict(a: models.Ammo) -> dict:
         "bullet_bc": getattr(a, "bullet_bc", None),
         "charge_weight": a.charge_weight,
         "coal": a.coal,
+        "qty_sealed": getattr(a, "qty_sealed", 0) or 0,
+        "qty_open": getattr(a, "qty_open", 0) or 0,
+        "price_paid": getattr(a, "price_paid", 0.0) or 0.0,
+        "rounds_per_box": getattr(a, "rounds_per_box", 20) or 20,
         "image_path": a.image_path,
         "image_path_2": getattr(a, "image_path_2", None),
+        "ammo_category": getattr(a, "ammo_category", None),
     }
 
 
@@ -39,12 +64,22 @@ async def add_ammo(
     coal: float = Form(None),
     caliber: str = Form(None),
     bullet_bc: float = Form(None),
+    qty_sealed: int = Form(0),
+    qty_open: int = Form(0),
+    price_paid: float = Form(0.0),
+    rounds_per_box: int = Form(20),
+    upc: str = Form(None),
+    ammo_category: str = Form(None),
     image: UploadFile = File(None),
     image_2: UploadFile = File(None),
     db: Session = Depends(get_db),
 ):
     img_path = await save_uploaded_file(image, "ammo")
     img2 = await save_uploaded_file(image_2, "ammo")
+    if not img_path and upc:
+        cached = db.query(models.UpcCache).filter(models.UpcCache.upc == upc).first()
+        if cached and cached.image_path:
+            img_path = cached.image_path
     a = models.Ammo(
         brand=recipe_name or brand or "Unknown",
         caliber=caliber,
@@ -55,10 +90,31 @@ async def add_ammo(
         line_or_powder=ammo_model or powder_id,
         charge_weight=powder_charge,
         coal=coal,
+        qty_sealed=qty_sealed,
+        qty_open=qty_open,
+        price_paid=price_paid,
+        rounds_per_box=rounds_per_box,
         image_path=img_path,
         image_path_2=img2,
+        ammo_category=ammo_category,
     )
     db.add(a)
+    db.commit()
+    db.refresh(a)
+    if not a.is_handload:
+        upsert_upc_cache(db, upc, product_type="ammo",
+                         brand=brand, product_line=ammo_model, caliber=caliber,
+                         weight_gr=bullet_weight, bullet_type=bullet_id or bullet_type,
+                         bc_g1=bullet_bc, rounds_per_box=rounds_per_box)
+    return _ammo_dict(a)
+
+
+@router.post("/ammo/{ammo_id}/use-rounds/")
+def use_ammo_rounds(ammo_id: int, payload: UseRoundsPayload, db: Session = Depends(get_db)):
+    a = db.query(models.Ammo).filter(models.Ammo.id == ammo_id).first()
+    if not a:
+        raise HTTPException(status_code=404, detail="Ammo not found")
+    _deduct_ammo_rounds(a, payload.rounds)
     db.commit()
     db.refresh(a)
     return _ammo_dict(a)

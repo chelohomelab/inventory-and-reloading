@@ -155,6 +155,8 @@ class BulletInventory(Base):
     bc_g1 = Column(Float, nullable=True)
     bc_g7 = Column(Float, nullable=True)
     quantity = Column(Integer, default=0)
+    qty_sealed = Column(Integer, default=0)
+    qty_open = Column(Integer, default=0)
     price_paid = Column(Float, default=0.0)       # per box/unit price
     notes = Column(String, nullable=True)
     image_path = Column(String, nullable=True)
@@ -173,8 +175,13 @@ class Ammo(Base):
     bullet_bc = Column(Float, nullable=True)
     charge_weight = Column(Float, nullable=True)
     coal = Column(Float, nullable=True)
+    qty_sealed = Column(Integer, default=0)
+    qty_open = Column(Integer, default=0)
+    price_paid = Column(Float, default=0.0)
+    rounds_per_box = Column(Integer, default=20)
     image_path = Column(String, nullable=True)
     image_path_2 = Column(String, nullable=True)
+    ammo_category = Column(String, nullable=True)
 
     shot_strings = relationship("ShotString", back_populates="ammo")
 
@@ -187,6 +194,7 @@ class ShotString(Base):
     
     # Raw data from the chronograph
     velocities = Column(String, nullable=True) # e.g., "3010,2995,3005"
+    rounds_fired = Column(Integer, nullable=True)
     
     # --- NEW: Automated Math Columns ---
     avg_velocity = Column(Float, nullable=True)
@@ -200,6 +208,26 @@ class ShotString(Base):
     
     barrel = relationship("Barrel", back_populates="shot_strings")
     ammo = relationship("Ammo", back_populates="shot_strings")
+
+class UpcCache(Base):
+    __tablename__ = "upc_cache"
+    upc          = Column(String, primary_key=True)
+    title        = Column(String, nullable=True)
+    product_type = Column(String, nullable=True)
+    brand        = Column(String, nullable=True)
+    product_line = Column(String, nullable=True)
+    caliber      = Column(String, nullable=True)
+    weight_gr    = Column(Float,  nullable=True)
+    bullet_type  = Column(String, nullable=True)
+    bc_g1        = Column(Float,  nullable=True)
+    bc_g7        = Column(Float,  nullable=True)
+    rounds_per_box = Column(Integer, nullable=True)
+    primer_type  = Column(String, nullable=True)
+    primer_model = Column(String, nullable=True)
+    powder_name  = Column(String, nullable=True)
+    image_path   = Column(String, nullable=True)
+    updated_at   = Column(String, nullable=True)
+
 
 class LookupValue(Base):
     __tablename__ = "lookup_values"
@@ -258,6 +286,11 @@ def init_db():
     if 'ammo' in inspector.get_table_names():
         _add_col('ammo', 'caliber', 'caliber VARCHAR')
         _add_col('ammo', 'bullet_bc', 'bullet_bc FLOAT')
+        _add_col('ammo', 'qty_sealed', 'qty_sealed INTEGER DEFAULT 0')
+        _add_col('ammo', 'qty_open', 'qty_open INTEGER DEFAULT 0')
+        _add_col('ammo', 'price_paid', 'price_paid FLOAT DEFAULT 0.0')
+        _add_col('ammo', 'rounds_per_box', 'rounds_per_box INTEGER DEFAULT 20')
+        _add_col('ammo', 'ammo_category', 'ammo_category VARCHAR')
 
     for tbl, col in [
         ('casing_inventory', 'image_path'),
@@ -288,6 +321,13 @@ def init_db():
         _add_col('barrels', 'is_sold',        'is_sold BOOLEAN DEFAULT FALSE')
         _add_col('barrels', 'price_sold',     'price_sold FLOAT')
         _add_col('barrels', 'is_deleted',     'is_deleted BOOLEAN DEFAULT FALSE')
+
+    if 'bullet_inventory' in inspector.get_table_names():
+        _add_col('bullet_inventory', 'qty_sealed', 'qty_sealed INTEGER DEFAULT 0')
+        _add_col('bullet_inventory', 'qty_open', 'qty_open INTEGER DEFAULT 0')
+
+    if 'shot_strings' in inspector.get_table_names():
+        _add_col('shot_strings', 'rounds_fired', 'rounds_fired INTEGER')
 
     if 'scopes' in inspector.get_table_names():
         _add_col('scopes', 'magnification', 'magnification VARCHAR')
