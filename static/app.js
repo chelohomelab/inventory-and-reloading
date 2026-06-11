@@ -58,7 +58,11 @@ let currentPlatformTab = "general"; // "general", "shotgun", "handgun", or "tc"
 function currentFrameType() {
     return { general: 'Rifle', shotgun: 'Shotgun', handgun: 'Pistol' }[currentPlatformTab] || 'Rifle';
 }
-let currentComponentFilter = "powders"; // "powders", "primers", "bullets"
+let currentComponentFilter = "powders"; // "powders", "primers", "bullets", "casings"
+let currentComponentMode = "reloading"; // "reloading" or "muzzleloader"
+let currentAmmoCategoryFilter = null; // active category for factory view
+let currentPlatformSort = "brand";
+let currentOpticSort = "brand";
 
 // ── Photo widget (multi-select + primary toggle) ──────────────────────────────
 const _pw = {}; // widget state: widgetId -> { files: File[], primary: 0 }
@@ -100,7 +104,29 @@ function _getPWFiles(wid) {
 function _resetPW(wid) {
     _pw[wid] = { files: [], primary: 0 };
     const el = document.getElementById(`${wid}-input`); if (el) el.value = '';
+    const cam = document.getElementById(`${wid}-cam`); if (cam) cam.value = '';
     const pr = document.getElementById(`${wid}-preview`); if (pr) { pr.innerHTML = ''; pr.classList.add('hidden'); }
+}
+
+function handlePWCamera(wid) {
+    const cam = document.getElementById(`${wid}-cam`);
+    const file = cam?.files[0];
+    if (!file) return;
+    const existing = (_pw[wid]?.files) || [];
+    _pw[wid] = { files: [...existing, file].slice(0, 2), primary: _pw[wid]?.primary || 0 };
+    _renderPW(wid);
+    cam.value = '';
+}
+
+function _camToInput(camId, targetId) {
+    const cam = document.getElementById(camId);
+    const file = cam?.files[0];
+    if (!file) return;
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    const target = document.getElementById(targetId);
+    if (target) target.files = dt.files;
+    cam.value = '';
 }
 
 // ── Custom Autocomplete ───────────────────────────────────────────────────────
@@ -480,7 +506,7 @@ function switchTab(tabId) {
 
 function switchInventoryTab(tab) {
     currentInventoryTab = tab;
-    const tabs = ['platforms', 'optics', 'ammo', 'components'];
+    const tabs = ['platforms', 'optics', 'ammo', 'components', 'handloads'];
     tabs.forEach(t => {
         document.getElementById(`inv-pane-${t}`)?.classList.add('hidden');
         const btn = document.getElementById(`inv-btn-${t}`);
@@ -494,6 +520,7 @@ function switchInventoryTab(tab) {
     if (tab === 'optics')      loadScopes();
     if (tab === 'ammo')        loadAmmoInventory(currentAmmoFilter);
     if (tab === 'components')  loadComponentInventory(currentComponentFilter);
+    if (tab === 'handloads')   loadAmmoInventory('handload');
 }
 
 function switchPlatformTab(tab) {
@@ -509,15 +536,18 @@ function switchPlatformTab(tab) {
     });
     const tcBtn = document.getElementById('plat-btn-tc');
 
+    const mainAddBtn = document.getElementById('plat-main-add-btn');
     if (tab === 'tc') {
         genPane?.classList.add('hidden');
         tcPane?.classList.remove('hidden');
         if (tcBtn) tcBtn.className = "px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer";
+        if (mainAddBtn) mainAddBtn.classList.add('hidden');
         loadTCInventory();
     } else {
         genPane?.classList.remove('hidden');
         tcPane?.classList.add('hidden');
         if (tcBtn) tcBtn.className = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+        if (mainAddBtn) mainAddBtn.classList.remove('hidden');
         const activeBtn = document.getElementById(`plat-btn-${tab}`);
         if (activeBtn) activeBtn.className = "px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer";
         loadCatalog(currentFrameType());
@@ -653,15 +683,18 @@ function switchAddForm(formId) {
 function switchAmmoFilter(type) {
     currentAmmoFilter = type;
     const factBtn = document.getElementById('ammo-btn-factory');
-    const handBtn = document.getElementById('ammo-btn-handload');
-    if (type === 'factory') {
-        if (factBtn) factBtn.className = "px-3 py-1 rounded bg-gray-800 text-blue-400 cursor-pointer";
-        if (handBtn) handBtn.className = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
-    } else {
-        if (factBtn) factBtn.className = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
-        if (handBtn) handBtn.className = "px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer";
-    }
+    const muzzBtn = document.getElementById('ammo-btn-muzzleloader');
+    const inactive = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+    if (factBtn) factBtn.className = type === 'factory'
+        ? "px-3 py-1 rounded bg-gray-800 text-blue-400 cursor-pointer" : inactive;
+    if (muzzBtn) muzzBtn.className = type === 'muzzleloader'
+        ? "px-3 py-1 rounded bg-gray-800 text-yellow-500 cursor-pointer" : inactive;
     loadAmmoInventory(type);
+}
+
+function switchAmmoCategory(cat) {
+    currentAmmoCategoryFilter = cat;
+    loadAmmoInventory('factory');
 }
 
 function switchComponentFilter(type) {
@@ -669,6 +702,7 @@ function switchComponentFilter(type) {
     ['powders', 'primers', 'bullets', 'casings'].forEach(t => {
         const btn = document.getElementById(`comp-btn-${t}`);
         if (!btn) return;
+        if (t === 'casings' && currentComponentMode === 'muzzleloader') return;
         btn.className = t === type
             ? "px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer"
             : "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
@@ -676,17 +710,38 @@ function switchComponentFilter(type) {
     loadComponentInventory(type);
 }
 
+function switchComponentMode(mode) {
+    currentComponentMode = mode;
+    ['reloading', 'muzzleloader'].forEach(m => {
+        const btn = document.getElementById(`comp-mode-${m}`);
+        if (!btn) return;
+        btn.className = m === mode
+            ? "px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer"
+            : "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+    });
+    const casingsBtn = document.getElementById('comp-btn-casings');
+    if (casingsBtn) casingsBtn.classList.toggle('hidden', mode === 'muzzleloader');
+    if (mode === 'muzzleloader' && currentComponentFilter === 'casings') {
+        switchComponentFilter('powders');
+    } else {
+        loadComponentInventory(currentComponentFilter);
+    }
+}
+
 async function loadComponentInventory(type) {
     const container = document.getElementById('components-container');
     if (!container) return;
     container.innerHTML = '<p class="text-gray-400 italic text-sm">Loading...</p>';
     refreshLowStockBanner();
+    const isMuzzleloaderMode = currentComponentMode === 'muzzleloader';
+    const mlParam = isMuzzleloaderMode ? '?muzzleloader=1' : '';
     try {
         const [res, settingsRes] = await Promise.all([
-            fetch(`/components/${type}/`),
-            fetch('/settings/'),
+            fetch(`/components/${type}/${mlParam}`, { cache: 'no-store' }),
+            fetch('/settings/', { cache: 'no-store' }),
         ]);
-        const items = res.ok ? await res.json() : [];
+        let items = res.ok ? await res.json() : [];
+        if (!isMuzzleloaderMode) items = items.filter(i => !i.is_muzzleloader);
         const settings = settingsRes.ok ? await settingsRes.json() : {};
         const thresholds = {
             primers: parseFloat(settings.low_stock_primers ?? 200),
@@ -759,36 +814,93 @@ function renderPowderCard(p) {
         <div class="p-4 space-y-3">
             <div class="flex justify-between items-center">
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">POWDER</span>
-                <button onclick="deleteComponent('powders',${p.id})" class="text-gray-600 hover:text-red-400 text-xs cursor-pointer">✕</button>
+                <div class="flex items-center gap-2">
+                    <button onclick="document.getElementById('cedit-pow-${p.id}').classList.toggle('hidden')" class="text-gray-500 hover:text-emerald-400 text-xs cursor-pointer" title="Edit">✏️</button>
+                    <button onclick="deleteComponent('powders',${p.id})" class="text-gray-600 hover:text-red-400 text-xs cursor-pointer">✕</button>
+                </div>
+            </div>
+            <!-- inline edit panel -->
+            <div id="cedit-pow-${p.id}" class="hidden bg-gray-900/80 rounded-lg p-3 space-y-2 border border-emerald-800/40">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1">Edit Powder</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] text-gray-500">Brand</label>
+                        <input id="cef-pow-${p.id}-brand" type="text" value="${escHtml(p.brand||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500">Name / Model</label>
+                        <input id="cef-pow-${p.id}-name" type="text" value="${escHtml(p.name||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500">Qty on Hand</label>
+                        <input id="cef-pow-${p.id}-weight_lbs" type="number" step="any" min="0" value="${p.weight_lbs??0}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500">Price Paid ($)</label>
+                        <input id="cef-pow-${p.id}-price_paid" type="number" step="0.01" min="0" value="${p.price_paid||0}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div class="col-span-2 flex items-center gap-2 pt-1">
+                        <input id="cef-pow-${p.id}-pellet_mode" type="checkbox" ${p.pellet_mode ? 'checked' : ''} class="accent-blue-400 cursor-pointer">
+                        <label for="cef-pow-${p.id}-pellet_mode" class="text-[10px] text-gray-300 cursor-pointer">Count mode (qty) — pellets / firesticks</label>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="text-[10px] text-gray-500">Notes</label>
+                        <input id="cef-pow-${p.id}-notes" type="text" value="${escHtml(p.notes||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="document.getElementById('cedit-pow-${p.id}').classList.add('hidden')" class="flex-1 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded cursor-pointer">Cancel</button>
+                    <button onclick="saveCompEdit('powders','pow',${p.id},['brand','name','weight_lbs','pellet_mode','price_paid','notes'])" class="flex-1 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded cursor-pointer">Save Changes</button>
+                </div>
             </div>
             <div class="flex justify-between items-center gap-2">
                 <p class="text-base font-bold text-white">${p.brand} ${p.name}</p>
                 <span class="text-xs text-gray-400 font-mono whitespace-nowrap">$${parseFloat(p.price_paid||0).toFixed(2)}</span>
             </div>
             <div class="bg-gray-900/60 rounded-lg p-3 text-center">
-                <p class="text-2xl font-bold font-mono text-emerald-400">${p.weight_lbs ?? 0} <span class="text-sm text-gray-400">lbs</span></p>
+                <p class="text-2xl font-bold font-mono text-emerald-400">${p.weight_lbs ?? 0} <span class="text-sm text-gray-400">${p.pellet_mode ? 'qty' : 'lbs'}</span></p>
                 <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">On Hand</p>
             </div>
             <div class="border-t border-gray-700 pt-2 space-y-1">
                 ${p.notes ? `<p class="text-xs text-gray-500 italic">${p.notes}</p>` : ''}
             </div>
             <div class="flex gap-2">
-                <input type="number" step="0.01" placeholder="Update lbs" id="qty-powder-${p.id}"
+                <input type="number" step="${p.pellet_mode ? '1' : '0.01'}" placeholder="${p.pellet_mode ? 'Update qty' : 'Update lbs'}" id="qty-powder-${p.id}"
                     class="flex-1 bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
                 <button onclick="updateComponentQty('powders',${p.id},'weight_lbs')" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded cursor-pointer">Save</button>
             </div>
             <div class="border-t border-gray-700 pt-2">
-                <button onclick="document.getElementById('comp-photos-pow-${p.id}').classList.toggle('hidden')" class="text-[10px] text-gray-500 hover:text-gray-300 cursor-pointer">📷 Manage Photos</button>
+                <div class="flex items-center justify-between gap-1">
+                    <button onclick="toggleCompMuzzleloader('powders',${p.id},${!!p.is_muzzleloader})"
+                        class="text-[10px] font-bold px-2 py-0.5 rounded border cursor-pointer transition ${p.is_muzzleloader ? 'bg-amber-900/60 text-amber-400 border-amber-700 hover:bg-amber-900/40' : 'bg-gray-700/40 text-gray-500 border-gray-700 hover:text-amber-400'}">
+                        🏹 ${p.is_muzzleloader ? 'Muzzleloader ✓' : 'Muzzleloader'}
+                    </button>
+                    <button onclick="togglePowderPelletMode(${p.id},${!!p.pellet_mode})"
+                        class="text-[10px] font-bold px-2 py-0.5 rounded border cursor-pointer transition ${p.pellet_mode ? 'bg-blue-900/60 text-blue-300 border-blue-700 hover:bg-blue-900/40' : 'bg-gray-700/40 text-gray-500 border-gray-700 hover:text-blue-300'}">
+                        # ${p.pellet_mode ? 'Count ✓' : 'Count'}
+                    </button>
+                    <button onclick="document.getElementById('comp-photos-pow-${p.id}').classList.toggle('hidden')" class="text-[10px] text-gray-500 hover:text-gray-300 cursor-pointer ml-auto">📷 Photos</button>
+                </div>
                 <div id="comp-photos-pow-${p.id}" class="hidden mt-2 space-y-2">
                     ${p.image_path && p.image_path_2 ? `<button onclick="swapCompPhotos('powders',${p.id})" class="text-[10px] text-amber-500 hover:text-amber-400 cursor-pointer">⭐ Make Photo 2 the Primary</button>` : ''}
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="text-[10px] text-gray-500">Replace Photo 1</label>
-                            <input type="file" id="cpow1-${p.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-emerald-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1 mt-0.5">
+                                <button type="button" onclick="document.getElementById('cpow1-cam-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
+                                <button type="button" onclick="document.getElementById('cpow1-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
+                            </div>
+                            <input type="file" id="cpow1-${p.id}" accept="image/*" class="hidden">
+                            <input type="file" capture="environment" accept="image/*" id="cpow1-cam-${p.id}" onchange="_camToInput('cpow1-cam-${p.id}','cpow1-${p.id}')" class="hidden">
                         </div>
                         <div>
                             <label class="text-[10px] text-gray-500">Replace Photo 2</label>
-                            <input type="file" id="cpow2-${p.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-emerald-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1 mt-0.5">
+                                <button type="button" onclick="document.getElementById('cpow2-cam-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
+                                <button type="button" onclick="document.getElementById('cpow2-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
+                            </div>
+                            <input type="file" id="cpow2-${p.id}" accept="image/*" class="hidden">
+                            <input type="file" capture="environment" accept="image/*" id="cpow2-cam-${p.id}" onchange="_camToInput('cpow2-cam-${p.id}','cpow2-${p.id}')" class="hidden">
                         </div>
                     </div>
                     <button onclick="uploadCompPhotos('powders','pow',${p.id})" class="w-full text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 py-1 rounded cursor-pointer">Save Photos</button>
@@ -808,7 +920,44 @@ function renderPrimerCard(p, lowThreshold = 200) {
         <div class="p-4 space-y-3">
             <div class="flex justify-between items-center">
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-950 text-orange-400 border border-orange-800">PRIMER</span>
-                <button onclick="deleteComponent('primers',${p.id})" class="text-gray-600 hover:text-red-400 text-xs cursor-pointer">✕</button>
+                <div class="flex items-center gap-2">
+                    <button onclick="document.getElementById('cedit-pri-${p.id}').classList.toggle('hidden')" class="text-gray-500 hover:text-orange-400 text-xs cursor-pointer" title="Edit">✏️</button>
+                    <button onclick="deleteComponent('primers',${p.id})" class="text-gray-600 hover:text-red-400 text-xs cursor-pointer">✕</button>
+                </div>
+            </div>
+            <!-- inline edit panel -->
+            <div id="cedit-pri-${p.id}" class="hidden bg-gray-900/80 rounded-lg p-3 space-y-2 border border-orange-800/40">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-orange-400 mb-1">Edit Primer</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] text-gray-500">Brand</label>
+                        <input id="cef-pri-${p.id}-brand" type="text" value="${escHtml(p.brand||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-orange-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500">Model / Number</label>
+                        <input id="cef-pri-${p.id}-model" type="text" value="${escHtml(p.model||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-orange-500">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="text-[10px] text-gray-500">Primer Type</label>
+                        <input id="cef-pri-${p.id}-primer_type" type="text" value="${escHtml(p.primer_type||'')}" placeholder="e.g. Large Rifle, Small Pistol..." class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-orange-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500">Price Paid ($)</label>
+                        <input id="cef-pri-${p.id}-price_paid" type="number" step="0.01" min="0" value="${p.price_paid||0}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-orange-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500">Notes</label>
+                        <input id="cef-pri-${p.id}-notes" type="text" value="${escHtml(p.notes||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-orange-500">
+                    </div>
+                    <div class="col-span-2 flex items-center gap-2 pt-1">
+                        <input id="cef-pri-${p.id}-is_muzzleloader" type="checkbox" ${p.is_muzzleloader ? 'checked' : ''} class="accent-amber-400 cursor-pointer">
+                        <label for="cef-pri-${p.id}-is_muzzleloader" class="text-[10px] text-gray-300 cursor-pointer">🏹 Muzzleloader primer</label>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="document.getElementById('cedit-pri-${p.id}').classList.add('hidden')" class="flex-1 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded cursor-pointer">Cancel</button>
+                    <button onclick="saveCompEdit('primers','pri',${p.id},['brand','model','primer_type','price_paid','notes','is_muzzleloader'])" class="flex-1 py-1.5 bg-orange-700 hover:bg-orange-600 text-white text-xs font-bold rounded cursor-pointer">Save Changes</button>
+                </div>
             </div>
             <div class="flex justify-between items-center gap-2">
                 <div>
@@ -830,17 +979,33 @@ function renderPrimerCard(p, lowThreshold = 200) {
                 <button onclick="updateComponentQty('primers',${p.id},'quantity')" class="px-3 py-1.5 bg-orange-700 hover:bg-orange-600 text-white text-xs font-bold rounded cursor-pointer">Save</button>
             </div>
             <div class="border-t border-gray-700 pt-2">
-                <button onclick="document.getElementById('comp-photos-pri-${p.id}').classList.toggle('hidden')" class="text-[10px] text-gray-500 hover:text-gray-300 cursor-pointer">📷 Manage Photos</button>
+                <div class="flex items-center justify-between">
+                    <button onclick="toggleCompMuzzleloader('primers',${p.id},${!!p.is_muzzleloader})"
+                        class="text-[10px] font-bold px-2 py-0.5 rounded border cursor-pointer transition ${p.is_muzzleloader ? 'bg-amber-900/60 text-amber-400 border-amber-700 hover:bg-amber-900/40' : 'bg-gray-700/40 text-gray-500 border-gray-700 hover:text-amber-400'}">
+                        🏹 ${p.is_muzzleloader ? 'Muzzleloader ✓' : 'Muzzleloader'}
+                    </button>
+                    <button onclick="document.getElementById('comp-photos-pri-${p.id}').classList.toggle('hidden')" class="text-[10px] text-gray-500 hover:text-gray-300 cursor-pointer">📷 Photos</button>
+                </div>
                 <div id="comp-photos-pri-${p.id}" class="hidden mt-2 space-y-2">
                     ${p.image_path && p.image_path_2 ? `<button onclick="swapCompPhotos('primers',${p.id})" class="text-[10px] text-amber-500 hover:text-amber-400 cursor-pointer">⭐ Make Photo 2 the Primary</button>` : ''}
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="text-[10px] text-gray-500">Replace Photo 1</label>
-                            <input type="file" id="cpri1-${p.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-orange-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1 mt-0.5">
+                                <button type="button" onclick="document.getElementById('cpri1-cam-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
+                                <button type="button" onclick="document.getElementById('cpri1-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
+                            </div>
+                            <input type="file" id="cpri1-${p.id}" accept="image/*" class="hidden">
+                            <input type="file" capture="environment" accept="image/*" id="cpri1-cam-${p.id}" onchange="_camToInput('cpri1-cam-${p.id}','cpri1-${p.id}')" class="hidden">
                         </div>
                         <div>
                             <label class="text-[10px] text-gray-500">Replace Photo 2</label>
-                            <input type="file" id="cpri2-${p.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-orange-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1 mt-0.5">
+                                <button type="button" onclick="document.getElementById('cpri2-cam-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
+                                <button type="button" onclick="document.getElementById('cpri2-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
+                            </div>
+                            <input type="file" id="cpri2-${p.id}" accept="image/*" class="hidden">
+                            <input type="file" capture="environment" accept="image/*" id="cpri2-cam-${p.id}" onchange="_camToInput('cpri2-cam-${p.id}','cpri2-${p.id}')" class="hidden">
                         </div>
                     </div>
                     <button onclick="uploadCompPhotos('primers','pri',${p.id})" class="w-full text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 py-1 rounded cursor-pointer">Save Photos</button>
@@ -863,7 +1028,58 @@ function renderBulletCard(b, lowThreshold = 100) {
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-400 border border-blue-800">BULLET</span>
                 <div class="flex items-center gap-2">
                     <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800">${b.weight_gr}gr</span>
+                    <button onclick="document.getElementById('cedit-bul-${b.id}').classList.toggle('hidden')" class="text-gray-500 hover:text-blue-400 text-xs cursor-pointer" title="Edit">✏️</button>
                     <button onclick="deleteComponent('bullets',${b.id})" class="text-gray-600 hover:text-red-400 text-xs cursor-pointer">✕</button>
+                </div>
+            </div>
+            <!-- inline edit panel -->
+            <div id="cedit-bul-${b.id}" class="hidden bg-gray-900/80 rounded-lg p-3 space-y-2 border border-blue-800/40">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-blue-400 mb-1">Edit Bullet</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] text-gray-500">Brand</label>
+                        <input id="cef-bul-${b.id}-brand" type="text" value="${escHtml(b.brand||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500">Product Line</label>
+                        <input id="cef-bul-${b.id}-product_line" type="text" value="${escHtml(b.product_line||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500">Caliber</label>
+                        <input id="cef-bul-${b.id}-caliber" type="text" value="${escHtml(b.caliber||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500">Weight (gr)</label>
+                        <input id="cef-bul-${b.id}-weight_gr" type="number" step="0.1" min="0" value="${b.weight_gr||''}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500">Bullet Type</label>
+                        <input id="cef-bul-${b.id}-bullet_type" type="text" value="${escHtml(b.bullet_type||'')}" placeholder="e.g. HPBT, FMJ..." class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500">Price Paid ($)</label>
+                        <input id="cef-bul-${b.id}-price_paid" type="number" step="0.01" min="0" value="${b.price_paid||0}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500">BC G1</label>
+                        <input id="cef-bul-${b.id}-bc_g1" type="number" step="0.001" min="0" value="${b.bc_g1||''}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500">BC G7</label>
+                        <input id="cef-bul-${b.id}-bc_g7" type="number" step="0.001" min="0" value="${b.bc_g7||''}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="text-[10px] text-gray-500">Notes</label>
+                        <input id="cef-bul-${b.id}-notes" type="text" value="${escHtml(b.notes||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div class="col-span-2 flex items-center gap-2 pt-1">
+                        <input id="cef-bul-${b.id}-is_muzzleloader" type="checkbox" ${b.is_muzzleloader ? 'checked' : ''} class="accent-amber-400 cursor-pointer">
+                        <label for="cef-bul-${b.id}-is_muzzleloader" class="text-[10px] text-gray-300 cursor-pointer">🏹 Muzzleloader bullet</label>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="document.getElementById('cedit-bul-${b.id}').classList.add('hidden')" class="flex-1 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded cursor-pointer">Cancel</button>
+                    <button onclick="saveCompEdit('bullets','bul',${b.id},['brand','product_line','caliber','weight_gr','bullet_type','price_paid','bc_g1','bc_g7','notes','is_muzzleloader'])" class="flex-1 py-1.5 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded cursor-pointer">Save Changes</button>
                 </div>
             </div>
             <div class="flex justify-between items-start gap-2">
@@ -876,6 +1092,7 @@ function renderBulletCard(b, lowThreshold = 100) {
             </div>
             <div class="bg-gray-900/60 rounded-lg p-3 text-center">
                 <p class="text-2xl font-bold font-mono ${qtyColor}">${(b.quantity??0).toLocaleString()} <span class="text-sm text-gray-400">count</span></p>
+                ${(b.qty_sealed || b.qty_open) ? `<p class="text-[10px] text-gray-500 mt-0.5">${[b.qty_sealed ? `${b.qty_sealed} sealed box${b.qty_sealed!==1?'es':''}` : '', b.qty_open ? `${b.qty_open} open` : ''].filter(Boolean).join(' + ')}</p>` : ''}
                 <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">${low ? '⚠️ Low Stock' : 'On Hand'}</p>
             </div>
             <div class="border-t border-gray-700 pt-2">
@@ -887,17 +1104,33 @@ function renderBulletCard(b, lowThreshold = 100) {
                 <button onclick="updateComponentQty('bullets',${b.id},'quantity')" class="px-3 py-1.5 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded cursor-pointer">Save</button>
             </div>
             <div class="border-t border-gray-700 pt-2">
-                <button onclick="document.getElementById('comp-photos-bul-${b.id}').classList.toggle('hidden')" class="text-[10px] text-gray-500 hover:text-gray-300 cursor-pointer">📷 Manage Photos</button>
+                <div class="flex items-center justify-between">
+                    <button onclick="toggleCompMuzzleloader('bullets',${b.id},${!!b.is_muzzleloader})"
+                        class="text-[10px] font-bold px-2 py-0.5 rounded border cursor-pointer transition ${b.is_muzzleloader ? 'bg-amber-900/60 text-amber-400 border-amber-700 hover:bg-amber-900/40' : 'bg-gray-700/40 text-gray-500 border-gray-700 hover:text-amber-400'}">
+                        🏹 ${b.is_muzzleloader ? 'Muzzleloader ✓' : 'Muzzleloader'}
+                    </button>
+                    <button onclick="document.getElementById('comp-photos-bul-${b.id}').classList.toggle('hidden')" class="text-[10px] text-gray-500 hover:text-gray-300 cursor-pointer">📷 Photos</button>
+                </div>
                 <div id="comp-photos-bul-${b.id}" class="hidden mt-2 space-y-2">
                     ${b.image_path && b.image_path_2 ? `<button onclick="swapCompPhotos('bullets',${b.id})" class="text-[10px] text-amber-500 hover:text-amber-400 cursor-pointer">⭐ Make Photo 2 the Primary</button>` : ''}
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="text-[10px] text-gray-500">Replace Photo 1</label>
-                            <input type="file" id="cbul1-${b.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1 mt-0.5">
+                                <button type="button" onclick="document.getElementById('cbul1-cam-${b.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
+                                <button type="button" onclick="document.getElementById('cbul1-${b.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
+                            </div>
+                            <input type="file" id="cbul1-${b.id}" accept="image/*" class="hidden">
+                            <input type="file" capture="environment" accept="image/*" id="cbul1-cam-${b.id}" onchange="_camToInput('cbul1-cam-${b.id}','cbul1-${b.id}')" class="hidden">
                         </div>
                         <div>
                             <label class="text-[10px] text-gray-500">Replace Photo 2</label>
-                            <input type="file" id="cbul2-${b.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1 mt-0.5">
+                                <button type="button" onclick="document.getElementById('cbul2-cam-${b.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
+                                <button type="button" onclick="document.getElementById('cbul2-${b.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
+                            </div>
+                            <input type="file" id="cbul2-${b.id}" accept="image/*" class="hidden">
+                            <input type="file" capture="environment" accept="image/*" id="cbul2-cam-${b.id}" onchange="_camToInput('cbul2-cam-${b.id}','cbul2-${b.id}')" class="hidden">
                         </div>
                     </div>
                     <button onclick="uploadCompPhotos('bullets','bul',${b.id})" class="w-full text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 py-1 rounded cursor-pointer">Save Photos</button>
@@ -920,7 +1153,40 @@ function renderCasingCard(c, lowThreshold = 50) {
         <div class="p-4 space-y-3">
             <div class="flex justify-between items-center">
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-950 text-purple-400 border border-purple-800">CASING</span>
-                <button onclick="deleteComponent('casings',${c.id})" class="text-gray-600 hover:text-red-400 text-xs cursor-pointer">✕</button>
+                <div class="flex items-center gap-2">
+                    <button onclick="document.getElementById('cedit-cas-${c.id}').classList.toggle('hidden')" class="text-gray-500 hover:text-purple-400 text-xs cursor-pointer" title="Edit">✏️</button>
+                    <button onclick="deleteComponent('casings',${c.id})" class="text-gray-600 hover:text-red-400 text-xs cursor-pointer">✕</button>
+                </div>
+            </div>
+            <!-- inline edit panel -->
+            <div id="cedit-cas-${c.id}" class="hidden bg-gray-900/80 rounded-lg p-3 space-y-2 border border-purple-800/40">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-purple-400 mb-1">Edit Casing</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] text-gray-500">Brand</label>
+                        <input id="cef-cas-${c.id}-brand" type="text" value="${escHtml(c.brand||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500">Caliber</label>
+                        <input id="cef-cas-${c.id}-caliber" type="text" value="${escHtml(c.caliber||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500">Times Fired</label>
+                        <input id="cef-cas-${c.id}-times_fired" type="number" step="1" min="0" value="${c.times_fired??0}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500">Price Paid ($)</label>
+                        <input id="cef-cas-${c.id}-price_paid" type="number" step="0.01" min="0" value="${c.price_paid||0}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="text-[10px] text-gray-500">Notes</label>
+                        <input id="cef-cas-${c.id}-notes" type="text" value="${escHtml(c.notes||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="document.getElementById('cedit-cas-${c.id}').classList.add('hidden')" class="flex-1 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded cursor-pointer">Cancel</button>
+                    <button onclick="saveCompEdit('casings','cas',${c.id},['brand','caliber','times_fired','price_paid','notes'])" class="flex-1 py-1.5 bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold rounded cursor-pointer">Save Changes</button>
+                </div>
             </div>
             <div class="flex justify-between items-start gap-2">
                 <div>
@@ -951,11 +1217,21 @@ function renderCasingCard(c, lowThreshold = 50) {
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="text-[10px] text-gray-500">Replace Photo 1</label>
-                            <input type="file" id="ccas1-${c.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-purple-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1 mt-0.5">
+                                <button type="button" onclick="document.getElementById('ccas1-cam-${c.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
+                                <button type="button" onclick="document.getElementById('ccas1-${c.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
+                            </div>
+                            <input type="file" id="ccas1-${c.id}" accept="image/*" class="hidden">
+                            <input type="file" capture="environment" accept="image/*" id="ccas1-cam-${c.id}" onchange="_camToInput('ccas1-cam-${c.id}','ccas1-${c.id}')" class="hidden">
                         </div>
                         <div>
                             <label class="text-[10px] text-gray-500">Replace Photo 2</label>
-                            <input type="file" id="ccas2-${c.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-purple-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                            <div class="flex gap-1 mt-0.5">
+                                <button type="button" onclick="document.getElementById('ccas2-cam-${c.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
+                                <button type="button" onclick="document.getElementById('ccas2-${c.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
+                            </div>
+                            <input type="file" id="ccas2-${c.id}" accept="image/*" class="hidden">
+                            <input type="file" capture="environment" accept="image/*" id="ccas2-cam-${c.id}" onchange="_camToInput('ccas2-cam-${c.id}','ccas2-${c.id}')" class="hidden">
                         </div>
                     </div>
                     <button onclick="uploadCompPhotos('casings','cas',${c.id})" class="w-full text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 py-1 rounded cursor-pointer">Save Photos</button>
@@ -1025,7 +1301,7 @@ function openQuickAdd(section) {
         switchAddForm('add-scope');
     } else if (section === 'ammo') {
         switchFormCategory('cat-ammunition');
-        toggleAmmoType(currentAmmoFilter);
+        toggleAmmoType(currentAmmoFilter === 'handload' ? 'handloads' : 'factory');
     } else if (section === 'components') {
         const formMap = { powders: 'add-powder', primers: 'add-primer', bullets: 'add-bullet-comp', casings: 'add-casing' };
         switchFormCategory('cat-components');
@@ -1039,11 +1315,12 @@ async function saveScopeEdit(scopeId) {
     const magnification = document.getElementById(`sedit-mag-${scopeId}`)?.value.trim();
     const units = document.getElementById(`sedit-units-${scopeId}`)?.value;
     const price_paid = parseFloat(document.getElementById(`sedit-price-${scopeId}`)?.value) || 0;
+    const quantity = parseInt(document.getElementById(`sedit-qty-${scopeId}`)?.value) || 1;
     try {
         await fetch(`/scopes/${scopeId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ brand, model, magnification, units, price_paid }),
+            body: JSON.stringify({ brand, model, magnification, units, price_paid, quantity }),
         });
         showToast('Scope updated.');
         loadScopes();
@@ -1100,6 +1377,62 @@ async function deleteComponent(type, id) {
     } catch(_) { showToast('Error deleting.', 'error'); }
 }
 
+async function toggleCompMuzzleloader(type, id, current) {
+    try {
+        const res = await fetch(`/components/${type}/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_muzzleloader: !current }),
+        });
+        if (res.ok) {
+            showToast(!current ? 'Marked as muzzleloader.' : 'Removed muzzleloader tag.');
+            loadComponentInventory(currentComponentFilter);
+        } else showToast('Failed to update.', 'error');
+    } catch(_) { showToast('Error updating.', 'error'); }
+}
+
+async function saveCompEdit(type, shortType, id, fields) {
+    const payload = {};
+    fields.forEach(field => {
+        const el = document.getElementById(`cef-${shortType}-${id}-${field}`);
+        if (!el) return;
+        if (el.type === 'checkbox') {
+            payload[field] = el.checked;
+        } else if (el.type === 'number') {
+            const v = parseFloat(el.value);
+            payload[field] = isNaN(v) ? null : v;
+        } else {
+            payload[field] = el.value.trim() || null;
+        }
+    });
+    try {
+        const res = await fetch(`/components/${type}/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+            showToast('Saved.');
+            currentComponentFilter = type;
+            loadComponentInventory(type);
+        } else showToast('Save failed.', 'error');
+    } catch(_) { showToast('Error saving.', 'error'); }
+}
+
+async function togglePowderPelletMode(id, current) {
+    try {
+        const res = await fetch(`/components/powders/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pellet_mode: !current }),
+        });
+        if (res.ok) {
+            showToast(!current ? 'Switched to count (qty) mode.' : 'Switched to weight (lbs) mode.');
+            loadComponentInventory(currentComponentFilter);
+        } else showToast('Failed to update.', 'error');
+    } catch(_) { showToast('Error updating.', 'error'); }
+}
+
 async function loadScopes() {
     const container = document.getElementById('scopes-container');
     if (!container) return;
@@ -1107,7 +1440,8 @@ async function loadScopes() {
 
     try {
         const res = await fetch('/scopes/');
-        const scopes = res.ok ? await res.json() : [];
+        const raw = res.ok ? await res.json() : [];
+        const scopes = applySortFn(raw, currentOpticSort);
         document.getElementById('inventory-count').innerText = `${scopes.length} Optic${scopes.length !== 1 ? 's' : ''} Registered`;
 
         if (scopes.length === 0) {
@@ -1122,21 +1456,76 @@ async function loadScopes() {
 
 function renderScopeCard(s) {
     const gallery = makePhotoGallery(`scp-${s.id}`, '🔭', s.image_path, s.image_path_2);
-    const mountLabel = s.mounted_on
-        ? `<span class="text-emerald-400 font-medium">${s.mounted_on}</span>`
-        : `<span class="text-gray-500 italic">Unmounted</span>`;
-    const mountBtnLabel = s.mounted_on ? '🔄 Change Mount' : '📍 Mount Scope';
+    const qty = s.quantity || 1;
+    const mounts = s.mounts || [];
+    const mountCount = mounts.length;
+    const slotsLeft = qty - mountCount;
     const photoCount = (s.image_path ? 1 : 0) + (s.image_path_2 ? 1 : 0);
+    const firstMount = mounts[0] || null;
+
+    const qtyBadge = qty > 1
+        ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-400 border border-amber-800">QTY: ${qty}</span>`
+        : '';
+
+    // Mounts section
+    let mountsHtml;
+    if (qty === 1) {
+        const mountLabel = firstMount
+            ? `<span class="text-emerald-400 font-medium">${firstMount.label}</span>`
+            : `<span class="text-gray-500 italic">Unmounted</span>`;
+        mountsHtml = `<p class="text-xs text-gray-400">📍 ${mountLabel}</p>`;
+    } else {
+        const mountItems = mounts.map(m => `
+            <div class="flex items-center justify-between gap-1">
+                <span class="text-xs text-emerald-400 truncate min-w-0">📍 ${m.label}</span>
+                <button onclick="removeScopeMount(${s.id},'${m.type}',${m.id})"
+                    class="shrink-0 text-[10px] px-1.5 py-0.5 bg-gray-700 hover:bg-red-900 text-gray-400 hover:text-red-300 rounded cursor-pointer transition" title="Uninstall">✕</button>
+            </div>`).join('');
+        const openSlots = slotsLeft > 0
+            ? `<p class="text-xs text-gray-600 italic">${slotsLeft} open slot${slotsLeft > 1 ? 's' : ''}</p>` : '';
+        mountsHtml = `<div class="space-y-1">
+            <p class="text-[10px] text-gray-500 font-mono">${mountCount}/${qty} installed</p>
+            ${mountItems}${openSlots}
+        </div>`;
+    }
+
+    // Action buttons
+    const changeMountBtn = qty === 1 ? `
+        <button onclick="openScopeMountEditor(${s.id})"
+            class="flex-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">
+            ${firstMount ? '🔄 Change Mount' : '📍 Mount Scope'}
+        </button>` : '';
+    const addInstallBtn = (qty > 1 && slotsLeft > 0) ? `
+        <button id="scope-add-install-btn-${s.id}" onclick="openAddScopeMount(${s.id})"
+            class="flex-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">
+            📍 Add Install
+        </button>` : '';
+
+    // Add-mount editor (for multi-qty scopes)
+    const addMountEditor = qty > 1 ? `
+        <div id="scope-add-mount-editor-${s.id}" class="hidden border-t border-gray-600 pt-3 space-y-2">
+            <p class="text-xs text-gray-400 font-medium">Install on platform:</p>
+            <select id="scope-add-mount-sel-${s.id}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-xs text-white focus:outline-none">
+                <option value="">Loading…</option>
+            </select>
+            <div class="flex gap-2">
+                <button onclick="saveAddScopeMount(${s.id})" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-1.5 rounded transition cursor-pointer">Install</button>
+                <button onclick="closeAddScopeMount(${s.id})" class="px-3 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold py-1.5 rounded transition cursor-pointer">Cancel</button>
+            </div>
+        </div>` : '';
 
     return `
     <div id="scope-card-${s.id}"
-        data-mount-type="${s.mount_type || ''}"
-        data-mount-id="${s.mount_type === 'firearm' ? (s.mounted_firearm_id || '') : (s.mounted_barrel_id || '')}"
+        data-mount-type="${firstMount ? firstMount.type : ''}"
+        data-mount-id="${firstMount ? firstMount.id : ''}"
         class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl">
         ${gallery}
         <div class="p-4 space-y-2">
             <div class="flex justify-between items-center">
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-400 border border-blue-800">OPTIC</span>
+                <div class="flex items-center gap-1">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-400 border border-blue-800">OPTIC</span>
+                    ${qtyBadge}
+                </div>
                 <div class="flex items-center gap-1">
                     <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-gray-900 text-gray-300 border border-gray-700">${s.units || 'MOA'}</span>
                     <button onclick="toggleScopeEditPanel(${s.id})" title="Edit scope" class="p-1 rounded bg-gray-700 hover:bg-amber-600 text-gray-400 hover:text-white transition cursor-pointer">
@@ -1154,7 +1543,7 @@ function renderScopeCard(s) {
                 <span class="text-xs text-gray-400 font-mono whitespace-nowrap">$${parseFloat(s.price_paid || 0).toFixed(2)}</span>
             </div>
             <div class="border-t border-gray-700 pt-2 space-y-1">
-                <p class="text-xs text-gray-400">📍 ${mountLabel}</p>
+                ${mountsHtml}
             </div>
             <!-- Edit panel (hidden) -->
             <div id="scope-edit-panel-${s.id}" class="hidden border-t border-gray-600 pt-3 space-y-2">
@@ -1166,7 +1555,14 @@ function renderScopeCard(s) {
                         <option value="MOA" ${(s.units||'MOA')==='MOA'?'selected':''}>MOA</option>
                         <option value="MRAD" ${s.units==='MRAD'?'selected':''}>MRAD</option>
                     </select>
-                    <input id="sedit-price-${s.id}" type="number" step="0.01" value="${s.price_paid||0}" placeholder="Price" class="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none">
+                    <div class="flex items-center flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 gap-1">
+                        <span class="text-xs text-gray-400">$</span>
+                        <input id="sedit-price-${s.id}" type="number" step="0.01" value="${s.price_paid||0}" placeholder="Price" class="flex-1 bg-transparent text-xs text-white focus:outline-none min-w-0">
+                    </div>
+                </div>
+                <div class="flex gap-2 items-center">
+                    <label class="text-xs text-gray-400 whitespace-nowrap">Qty owned:</label>
+                    <input id="sedit-qty-${s.id}" type="number" min="1" value="${qty}" class="w-20 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none">
                 </div>
                 <div class="flex gap-2">
                     <button onclick="saveScopeEdit(${s.id})" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-1.5 rounded transition cursor-pointer">Save</button>
@@ -1176,21 +1572,27 @@ function renderScopeCard(s) {
             <!-- Photo panel (hidden) -->
             <div id="scope-photo-panel-${s.id}" class="hidden border-t border-gray-600 pt-2 space-y-1.5">
                 <div class="flex gap-2 items-center">
-                    <input type="file" id="sedit-photo-${s.id}" accept="image/*" class="flex-1 text-[10px] text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-0.5 file:px-2 file:rounded file:border-0 cursor-pointer">
+                    <div class="flex gap-1.5 flex-1">
+                        <button type="button" onclick="document.getElementById('sedit-photo-cam-${s.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer">📷 Camera</button>
+                        <button type="button" onclick="document.getElementById('sedit-photo-${s.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer">🖼 Gallery</button>
+                    </div>
                     <button onclick="saveScopePhoto(${s.id}, ${photoCount})" class="px-2 py-1 bg-blue-800 hover:bg-blue-700 text-white text-[10px] font-bold rounded cursor-pointer transition">Upload</button>
                 </div>
+                <input type="file" id="sedit-photo-${s.id}" accept="image/*" class="hidden">
+                <input type="file" capture="environment" accept="image/*" id="sedit-photo-cam-${s.id}" onchange="_camToInput('sedit-photo-cam-${s.id}','sedit-photo-${s.id}')" class="hidden">
                 ${s.image_path && s.image_path_2 ? `<button onclick="swapScopePhotos(${s.id})" class="w-full py-1 bg-amber-800 hover:bg-amber-700 text-white text-[10px] font-bold rounded transition cursor-pointer">⭐ Make Primary</button>` : ''}
             </div>
-            <!-- Mount editor (hidden until user clicks) -->
+            ${addMountEditor}
+            <!-- Mount editor for qty=1 (hidden until user clicks) -->
             <div id="scope-editor-${s.id}" class="hidden border-t border-gray-600 pt-3 space-y-2">
                 <div class="flex gap-2 items-center flex-wrap">
                     <select id="scope-installed-${s.id}" onchange="toggleScopeMountSelect(${s.id})"
                         class="bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
-                        <option value="yes" ${s.mount_type ? 'selected' : ''}>Installed</option>
-                        <option value="no" ${!s.mount_type ? 'selected' : ''}>Unmounted</option>
+                        <option value="yes" ${firstMount ? 'selected' : ''}>Installed</option>
+                        <option value="no" ${!firstMount ? 'selected' : ''}>Unmounted</option>
                     </select>
                     <select id="scope-mount-select-${s.id}"
-                        class="flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none ${!s.mount_type ? 'hidden' : ''}">
+                        class="flex-1 min-w-0 bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none ${!firstMount ? 'hidden' : ''}">
                         <option value="">Loading…</option>
                     </select>
                 </div>
@@ -1200,10 +1602,8 @@ function renderScopeCard(s) {
                 </div>
             </div>
             <div class="flex gap-2 mt-1">
-                <button onclick="openScopeMountEditor(${s.id})"
-                    class="flex-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">
-                    ${mountBtnLabel}
-                </button>
+                ${changeMountBtn}
+                ${addInstallBtn}
                 <button onclick="trashItem('scope',${s.id},'${(s.brand+' '+s.model).replace(/'/g,"\\'")}'); event.stopPropagation();" class="px-3 py-1.5 bg-gray-700 hover:bg-red-900 text-gray-400 hover:text-red-300 text-xs font-bold rounded transition cursor-pointer" title="Move to trash">🗑️</button>
             </div>
         </div>
@@ -1325,50 +1725,258 @@ function closeScopeMountEditor(scopeId) {
     document.getElementById(`scope-editor-${scopeId}`)?.classList.add('hidden');
 }
 
+async function openAddScopeMount(scopeId) {
+    const editor = document.getElementById(`scope-add-mount-editor-${scopeId}`);
+    const select = document.getElementById(`scope-add-mount-sel-${scopeId}`);
+    if (!editor || !select) return;
+    editor.classList.remove('hidden');
+    document.getElementById(`scope-add-install-btn-${scopeId}`)?.classList.add('hidden');
+    try {
+        const res = await fetch(`/available-mounts/?for_scope_id=${scopeId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        let opts = `<option value="">-- Select Platform --</option>`;
+        if (data.firearms.length > 0) {
+            opts += `<optgroup label="── Rifles ──">` +
+                data.firearms.map(f => `<option value="firearm:${f.id}">${f.label}</option>`).join('') +
+                `</optgroup>`;
+        }
+        if (data.tc_barrels.length > 0) {
+            opts += `<optgroup label="── TC Barrels ──">` +
+                data.tc_barrels.map(b => `<option value="barrel:${b.id}">${b.label}</option>`).join('') +
+                `</optgroup>`;
+        }
+        select.innerHTML = opts;
+    } catch(_) {}
+}
+
+function closeAddScopeMount(scopeId) {
+    document.getElementById(`scope-add-mount-editor-${scopeId}`)?.classList.add('hidden');
+    document.getElementById(`scope-add-install-btn-${scopeId}`)?.classList.remove('hidden');
+}
+
+async function saveAddScopeMount(scopeId) {
+    const select = document.getElementById(`scope-add-mount-sel-${scopeId}`);
+    if (!select || !select.value) { showToast('Select a platform first.', 'warn'); return; }
+    const [type, id] = select.value.split(':');
+    try {
+        const res = await fetch(`/scopes/${scopeId}/add-mount`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mount_type: type, mount_id: parseInt(id) }),
+        });
+        if (res.ok) { showToast('Scope installed.'); loadScopes(); }
+        else { const e = await res.json(); showToast(e.detail || 'Failed to install.', 'error'); }
+    } catch(_) { showToast('Error installing scope.', 'error'); }
+}
+
+async function removeScopeMount(scopeId, mountType, mountId) {
+    if (!confirm('Uninstall this scope from the platform?')) return;
+    try {
+        const res = await fetch(`/scopes/${scopeId}/remove-mount`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mount_type: mountType, mount_id: mountId }),
+        });
+        if (res.ok) { showToast('Scope uninstalled.'); loadScopes(); }
+        else showToast('Failed to uninstall.', 'error');
+    } catch(_) { showToast('Error removing mount.', 'error'); }
+}
+
 async function loadAmmoInventory(type) {
-    const container = document.getElementById('ammo-container');
+    const containerId = type === 'handload' ? 'handloads-container' : 'ammo-container';
+    const container = document.getElementById(containerId);
     if (!container) return;
     container.innerHTML = '<p class="text-gray-400 italic text-sm">Loading ammunition...</p>';
 
     try {
-        const res = await fetch('/ammo/');
-        const all = res.ok ? await res.json() : [];
-        const filtered = all.filter(a => type === 'handload' ? a.is_handload : !a.is_handload);
+        const fetchList = [fetch('/ammo/', { cache: 'no-store' })];
+        if (type === 'muzzleloader') {
+            fetchList.push(
+                fetch('/components/powders/?muzzleloader=1', { cache: 'no-store' }),
+                fetch('/components/bullets/?muzzleloader=1', { cache: 'no-store' }),
+                fetch('/components/primers/?muzzleloader=1', { cache: 'no-store' }),
+            );
+        }
+        const [ammoRes, mlPowRes, mlBulRes, mlPriRes] = await Promise.all(fetchList);
+        const all = ammoRes.ok ? await ammoRes.json() : [];
+        const mlPowders = mlPowRes?.ok ? await mlPowRes.json() : [];
+        const mlBullets = mlBulRes?.ok ? await mlBulRes.json() : [];
+        const mlPrimers = mlPriRes?.ok ? await mlPriRes.json() : [];
+
+        let filtered;
+        if (type === 'handload') {
+            filtered = all.filter(a => a.is_handload);
+        } else if (type === 'muzzleloader') {
+            filtered = all.filter(a => a.ammo_category === 'muzzleloader');
+        } else {
+            filtered = all.filter(a => !a.is_handload && a.ammo_category !== 'muzzleloader');
+        }
 
         document.getElementById('inventory-count').innerText = `${filtered.length} Load${filtered.length !== 1 ? 's' : ''} Registered`;
 
-        if (filtered.length === 0) {
-            container.innerHTML = `<p class="text-gray-500 italic text-sm">No ${type === 'handload' ? 'handload recipes' : 'factory loads'} registered.</p>`;
+        // Group by category → caliber
+        const CAT_ORDER = ['centerfire', 'handgun', 'rimfire', 'shotgun', 'shotgun_slug', 'muzzleloader'];
+        const CAT_LABELS = { centerfire: 'Centerfire · Rifle', handgun: 'Handgun · Pistol', rimfire: 'Rimfire', shotgun: 'Shotgun', shotgun_slug: 'Shotgun Slug', muzzleloader: 'Muzzleloader' };
+        const CAT_COLORS = { centerfire: 'text-blue-400', handgun: 'text-purple-400', rimfire: 'text-emerald-400', shotgun: 'text-orange-400', shotgun_slug: 'text-red-400', muzzleloader: 'text-yellow-600' };
+        const catGroups = {};
+        filtered.forEach(a => {
+            const cat = a.ammo_category || 'centerfire';
+            if (!catGroups[cat]) catGroups[cat] = {};
+            const cal = a.caliber || 'Unknown Caliber';
+            if (!catGroups[cat][cal]) catGroups[cat][cal] = [];
+            catGroups[cat][cal].push(a);
+        });
+
+        const catsToRender = CAT_ORDER.filter(c => catGroups[c]);
+        const hasMlComp = mlPowders.length + mlBullets.length + mlPrimers.length > 0;
+
+        if (catsToRender.length === 0 && !hasMlComp) {
+            const emptyMsg = type === 'handload' ? 'handload recipes' : type === 'muzzleloader' ? 'muzzleloader loads' : 'factory loads';
+            container.innerHTML = `<p class="text-gray-500 italic text-sm">No ${emptyMsg} registered.</p>`;
             return;
         }
 
-        // Group by caliber
-        const groups = {};
-        filtered.forEach(a => {
-            const cal = a.caliber || 'Unknown Caliber';
-            if (!groups[cal]) groups[cal] = [];
-            groups[cal].push(a);
-        });
+        const catFilterRow = document.getElementById('ammo-cat-filter-row');
 
-        container.innerHTML = Object.entries(groups).sort(([a],[b]) => a.localeCompare(b)).map(([cal, loads]) => `
-            <div class="mb-8">
-                <div class="flex items-center gap-3 mb-3">
-                    <span class="text-xs font-bold uppercase tracking-wider text-amber-500 font-mono">${cal}</span>
-                    <span class="text-[10px] text-gray-500">${loads.length} load${loads.length !== 1 ? 's' : ''}</span>
-                    <div class="flex-1 border-t border-gray-700/60"></div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    ${loads.map(renderAmmoCard).join('')}
-                </div>
-            </div>`
-        ).join('');
+        if (type === 'factory') {
+            // Reset category selection if the current one has no data
+            if (!currentAmmoCategoryFilter || !catGroups[currentAmmoCategoryFilter]) {
+                currentAmmoCategoryFilter = catsToRender[0] || null;
+            }
+            // Build category filter buttons
+            if (catFilterRow) {
+                catFilterRow.classList.remove('hidden');
+                catFilterRow.innerHTML = catsToRender.map(cat => {
+                    const isActive = cat === currentAmmoCategoryFilter;
+                    const cls = isActive
+                        ? `px-3 py-1 rounded bg-gray-800 ${CAT_COLORS[cat]} cursor-pointer text-xs font-bold`
+                        : 'px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer text-xs font-bold';
+                    const count = Object.values(catGroups[cat]).flat().length;
+                    return `<button id="ammo-cat-btn-${cat}" onclick="switchAmmoCategory('${cat}')" class="${cls}">${CAT_LABELS[cat]} <span class="opacity-60 font-normal">${count}</span></button>`;
+                }).join('');
+            }
+            // Render tiles for active category only
+            const activeTiles = currentAmmoCategoryFilter && catGroups[currentAmmoCategoryFilter]
+                ? Object.values(catGroups[currentAmmoCategoryFilter]).flat()
+                : [];
+            container.innerHTML = activeTiles.length
+                ? `<div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">${activeTiles.map(renderAmmoTile).join('')}</div>`
+                : `<p class="text-gray-500 italic text-sm">No factory loads in this category.</p>`;
+        } else {
+            if (catFilterRow) catFilterRow.classList.add('hidden');
+            // Handloads: full cards with caliber sub-groups; muzzleloader: tiles
+            if (type === 'handload') {
+                const calGroups = {};
+                filtered.forEach(a => {
+                    const cal = a.caliber || 'Unknown Caliber';
+                    if (!calGroups[cal]) calGroups[cal] = [];
+                    calGroups[cal].push(a);
+                });
+                const calHtml = Object.entries(calGroups).sort(([a],[b]) => a.localeCompare(b)).map(([cal, loads]) => `
+                    <div class="mb-6">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="text-xs font-bold uppercase tracking-wider text-amber-500 font-mono">${cal}</span>
+                            <span class="text-[10px] text-gray-500">${loads.length} load${loads.length !== 1 ? 's' : ''}</span>
+                            <div class="flex-1 border-t border-gray-700/60"></div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            ${loads.map(renderAmmoCard).join('')}
+                        </div>
+                    </div>`).join('');
+                container.innerHTML = calHtml || `<p class="text-gray-500 italic text-sm">No handload recipes registered.</p>`;
+            } else {
+                // muzzleloader — compact tiles + components section
+                const mlTiles = filtered.length
+                    ? `<div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">${filtered.map(renderAmmoTile).join('')}</div>`
+                    : '';
+                const mlSectionHtml = renderMuzzleloaderComponentsSection(mlPowders, mlBullets, mlPrimers);
+                container.innerHTML = mlTiles + mlSectionHtml;
+            }
+        }
     } catch(err) {
         container.innerHTML = '<p class="text-red-400 italic text-sm">Failed to load ammunition.</p>';
     }
 }
 
+function renderMuzzleloaderComponentsSection(powders, bullets, primers) {
+    if (!powders.length && !bullets.length && !primers.length) return '';
+    const addLink = `<a href="/?tab=add-tab&cat=components" class="text-[10px] text-gray-500 hover:text-amber-400 transition cursor-pointer">+ Add Components</a>`;
+    let html = `<div class="mt-4 border-t border-gray-700/50 pt-4">
+        <div class="flex items-center gap-3 mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-gray-400">⚙️ Components On Hand</span>
+            <div class="flex-1 border-t border-gray-700/40"></div>
+            ${addLink}
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">`;
+
+    // Propellant column
+    html += `<div class="bg-gray-900/60 rounded-lg p-3">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-2">🧪 Propellant</p>`;
+    if (powders.length) {
+        html += powders.map(p => `<div class="flex justify-between items-center py-1 border-b border-gray-800 last:border-0">
+            <span class="text-xs text-white">${escHtml(p.brand)} ${escHtml(p.name)}</span>
+            <span class="text-xs font-mono text-emerald-400 ml-2 whitespace-nowrap">${p.weight_lbs ?? 0}${p.pellet_mode ? ' qty' : ' lbs'}</span>
+        </div>`).join('');
+    } else {
+        html += `<p class="text-xs text-gray-600 italic">None logged</p>`;
+    }
+    html += `</div>`;
+
+    // Bullets/Sabots column
+    html += `<div class="bg-gray-900/60 rounded-lg p-3">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-blue-400 mb-2">🎯 Projectiles / Sabots</p>`;
+    if (bullets.length) {
+        html += bullets.map(b => `<div class="flex justify-between items-center py-1 border-b border-gray-800 last:border-0">
+            <span class="text-xs text-white">${escHtml(b.brand)}${b.product_line ? ' ' + escHtml(b.product_line) : ''} <span class="text-gray-500">${b.weight_gr}gr</span></span>
+            <span class="text-xs font-mono text-blue-400 ml-2 whitespace-nowrap">${(b.quantity ?? 0).toLocaleString()}</span>
+        </div>`).join('');
+    } else {
+        html += `<p class="text-xs text-gray-600 italic">None logged</p>`;
+    }
+    html += `</div>`;
+
+    // Primers column
+    html += `<div class="bg-gray-900/60 rounded-lg p-3">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-orange-400 mb-2">🔥 Primers (Shotshell)</p>`;
+    if (primers.length) {
+        html += primers.map(p => `<div class="flex justify-between items-center py-1 border-b border-gray-800 last:border-0">
+            <span class="text-xs text-white">${escHtml(p.brand)}${p.model ? ' ' + escHtml(p.model) : ''}</span>
+            <span class="text-xs font-mono text-orange-400 ml-2 whitespace-nowrap">${(p.quantity ?? 0).toLocaleString()}</span>
+        </div>`).join('');
+    } else {
+        html += `<p class="text-xs text-gray-600 italic">None logged</p>`;
+    }
+    html += `</div>`;
+
+    html += `</div></div>`;
+    return html;
+}
+
+function renderAmmoTile(ammo) {
+    const sealed = ammo.qty_sealed || 0;
+    const open = ammo.qty_open || 0;
+    const rpb = ammo.rounds_per_box || 20;
+    const total = sealed * rpb + open;
+    const countColor = total > 0 ? 'text-blue-400' : 'text-gray-600';
+    const imgHtml = ammo.image_path
+        ? `<img src="${ammo.image_path}" class="w-full h-full object-contain">`
+        : `<span class="text-3xl">📦</span>`;
+    return `
+    <div onclick="window.location.href='ammo-detail.html?id=${ammo.id}'"
+         class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden hover:border-amber-500/60 transition cursor-pointer shadow-lg">
+        <div class="aspect-square bg-gray-950 flex items-center justify-center overflow-hidden">
+            ${imgHtml}
+        </div>
+        <div class="bg-gray-900/80 text-center py-1.5">
+            <span class="text-xs font-bold font-mono ${countColor}">${total} rds</span>
+        </div>
+    </div>`;
+}
+
 function renderAmmoCard(ammo) {
     const isHandload = ammo.is_handload;
+    const isShotgun = ammo.ammo_category === 'shotgun' || ammo.ammo_category === 'shotgun_slug';
     const badgeCls = isHandload
         ? 'bg-emerald-950 text-emerald-400 border-emerald-800'
         : 'bg-blue-950 text-blue-400 border-blue-800';
@@ -1383,6 +1991,25 @@ function renderAmmoCard(ammo) {
         if (ammo.coal)         detail += `<p class="text-[11px] text-gray-400">COAL: <span class="text-gray-200 font-mono">${ammo.coal}&quot;</span></p>`;
     } else {
         if (line) detail += `<p class="text-[11px] text-gray-400">Line: <span class="text-gray-200">${line}</span></p>`;
+        if (isShotgun && ammo.shell_size) detail += `<p class="text-[11px] text-gray-400">Shell: <span class="text-gray-200 font-mono">${ammo.shell_size}"</span></p>`;
+    }
+
+    let stockLine = '';
+    if (!isHandload) {
+        const sealed = ammo.qty_sealed || 0;
+        const open = ammo.qty_open || 0;
+        const rpb = ammo.rounds_per_box || 20;
+        const price = ammo.price_paid || 0;
+        const parts = [];
+        if (sealed) parts.push(`${sealed} box${sealed !== 1 ? 'es' : ''}`);
+        if (open) parts.push(`${open} loose`);
+        if (parts.length) {
+            const total = sealed * rpb + open;
+            stockLine = `<div class="bg-gray-900/60 rounded p-2 text-center mt-1">
+                <p class="text-sm font-bold font-mono text-blue-400">${total} <span class="text-xs text-gray-400">rds</span></p>
+                <p class="text-[10px] text-gray-500">${parts.join(' + ')}${price ? ` · $${price.toFixed(2)}/box` : ''}</p>
+            </div>`;
+        }
     }
 
     return `
@@ -1392,15 +2019,54 @@ function renderAmmoCard(ammo) {
         <div class="p-4 space-y-2">
             <div class="flex justify-between items-start">
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeCls}">${badgeLabel}</span>
-                <span class="text-xs font-mono font-bold text-amber-400">${ammo.bullet_weight}gr</span>
+                <div class="flex items-center gap-2">
+                    ${isShotgun
+                        ? (ammo.shell_size ? `<span class="text-xs font-mono font-bold text-orange-400">${ammo.shell_size}"</span>` : '')
+                        : `<span class="text-xs font-mono font-bold text-amber-400">${ammo.bullet_weight ? ammo.bullet_weight + 'gr' : ''}</span>`}
+                    <button onclick="event.stopPropagation();deleteAmmoEntry(${ammo.id},'${escHtml(ammo.brand||'this load')}')" class="text-gray-600 hover:text-red-400 text-xs cursor-pointer" title="Delete">✕</button>
+                </div>
             </div>
             <div>
                 <h3 class="text-sm font-bold text-white leading-tight">${ammo.brand || '—'}</h3>
                 <p class="text-[11px] text-gray-400">${ammo.bullet_type || '—'}</p>
             </div>
             ${detail ? `<div class="border-t border-gray-700/60 pt-2 space-y-0.5">${detail}</div>` : ''}
+            ${stockLine}
         </div>
     </div>`;
+}
+
+async function deleteAmmoEntry(id, name) {
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    try {
+        const res = await fetch(`/ammo/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            showToast('Load deleted.');
+            loadAmmoInventory(currentAmmoFilter);
+        } else {
+            const body = await res.json();
+            showToast(body.detail || 'Cannot delete this load.', 'error');
+        }
+    } catch { showToast('Error deleting.', 'error'); }
+}
+
+function applySortFn(arr, sort) {
+    return [...arr].sort((a, b) => {
+        if (sort === 'caliber') return (a.caliber || '').localeCompare(b.caliber || '');
+        if (sort === 'price_asc') return (a.price_paid || 0) - (b.price_paid || 0);
+        if (sort === 'price_desc') return (b.price_paid || 0) - (a.price_paid || 0);
+        return (a.brand || '').localeCompare(b.brand || '');
+    });
+}
+
+function setPlatformSort(val) {
+    currentPlatformSort = val;
+    loadCatalog();
+}
+
+function setOpticSort(val) {
+    currentOpticSort = val;
+    loadScopes();
 }
 
 function switchFormCategory(targetCat) {
@@ -1435,6 +2101,48 @@ function toggleAmmoType(type) {
         if (btnFact) btnFact.className = "px-3 py-1 text-xs font-bold rounded text-gray-400 bg-gray-950 hover:text-white cursor-pointer";
         if (btnHand) btnHand.className = "px-3 py-1 text-xs font-bold rounded bg-emerald-600 text-white cursor-pointer";
     }
+}
+
+function _toggleFactoryAmmoFields(cat) {
+    const isShotgun = cat === 'shotgun' || cat === 'shotgun_slug';
+    ['ammo-factory-bullet-type-row', 'ammo-factory-weight-row', 'ammo-factory-bc-row'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('hidden', isShotgun);
+    });
+    const shellRow = document.getElementById('ammo-factory-shell-row');
+    if (shellRow) shellRow.classList.toggle('hidden', !isShotgun);
+    // manage required
+    const wtInput = document.getElementById('ammo-factory-weight');
+    const btInput = document.getElementById('ammo-factory-bullet-type');
+    if (wtInput) wtInput.required = !isShotgun;
+    if (btInput) btInput.required = !isShotgun;
+    // update bullet type placeholder to match category
+    if (btInput) {
+        const ph = { centerfire: 'e.g., FMJ, SP, HPBT, ELD-M', handgun: 'e.g., FMJ, JHP, FP', rimfire: 'e.g., HP, LRN, FMJ', shotgun: 'e.g., 00 Buck, #6 Shot', shotgun_slug: 'e.g., Foster, Sabot', muzzleloader: 'e.g., Conical, Sabot, Round Ball' };
+        btInput.placeholder = ph[cat] || 'e.g., Soft Point, ELD-M';
+    }
+}
+
+function _togglePowderMuzzleloaderFields(isMuzzleloader) {
+    const modeRow = document.getElementById('pw-pellet-mode-row');
+    if (modeRow) modeRow.classList.toggle('hidden', !isMuzzleloader);
+    if (!isMuzzleloader) {
+        // reset to lbs mode when unchecking muzzleloader
+        _setPowderMode('lbs');
+        const radio = document.querySelector('input[name="pw-mode-radio"][value="lbs"]');
+        if (radio) radio.checked = true;
+    }
+}
+
+function _setPowderMode(mode) {
+    const isPellet = mode === 'qty';
+    document.getElementById('pw-pellet-mode-hidden').value = isPellet ? 'true' : 'false';
+    ['pw-container-size-col', 'pw-container-count-col'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('hidden', isPellet);
+    });
+    const directCol = document.getElementById('pw-direct-weight-col');
+    if (directCol) directCol.classList.toggle('hidden', !isPellet);
 }
 
 // ── Threshold Settings Panel ───────────────────────────────────────────────────
@@ -1496,10 +2204,24 @@ async function setupMeasureDropdowns() {
         const tcBarrels = tcRes.ok  ? await tcRes.json()   : [];
         const ammoItems = ammoRes.ok ? await ammoRes.json() : [];
 
+        const rifles   = items.filter(g => g.frame_type !== 'Shotgun' && g.frame_type !== 'Pistol');
+        const shotguns = items.filter(g => g.frame_type === 'Shotgun');
+        const handguns = items.filter(g => g.frame_type === 'Pistol');
+
         let gunOptions = `<option value="">-- Select Platform --</option>`;
-        if (items.length > 0) {
+        if (rifles.length > 0) {
             gunOptions += `<optgroup label="── Rifles ──">` +
-                items.map(g => `<option value="${g.id}">${g.brand} ${g.model}</option>`).join('') +
+                rifles.map(g => `<option value="${g.id}">${g.brand} ${g.model}</option>`).join('') +
+                `</optgroup>`;
+        }
+        if (shotguns.length > 0) {
+            gunOptions += `<optgroup label="── Shotguns ──">` +
+                shotguns.map(g => `<option value="${g.id}">${g.brand} ${g.model}</option>`).join('') +
+                `</optgroup>`;
+        }
+        if (handguns.length > 0) {
+            gunOptions += `<optgroup label="── Handguns ──">` +
+                handguns.map(g => `<option value="${g.id}">${g.brand} ${g.model}</option>`).join('') +
                 `</optgroup>`;
         }
         if (tcBarrels.length > 0) {
@@ -1510,8 +2232,13 @@ async function setupMeasureDropdowns() {
         gunSelect.innerHTML = gunOptions;
 
         if (ammoItems.length > 0) {
+            const _ammoLabel = a => {
+                const isSg = a.ammo_category === 'shotgun' || a.ammo_category === 'shotgun_slug';
+                if (isSg) return `${a.brand}${a.caliber ? ' ' + a.caliber : ''}${a.shell_size ? ' ' + a.shell_size + '"' : ''} (Shotgun)`;
+                return `${a.brand}${a.bullet_weight ? ' (' + a.bullet_weight + 'gr)' : ''}`;
+            };
             ammoSelect.innerHTML = `<option value="">-- Select Load Profile --</option>` +
-                ammoItems.map(a => `<option value="${a.id}">${a.brand} (${a.bullet_weight}gr)</option>`).join('');
+                ammoItems.map(a => `<option value="${a.id}">${_ammoLabel(a)}</option>`).join('');
         }
     } catch(e) {}
 }
@@ -2293,6 +3020,7 @@ async function commitSessionToDatabase() {
         formData.append('ammo_id', defaultAmmoId);
         formData.append('date', sessionDate);
         formData.append('velocities_csv', velocitiesCsv);
+        formData.append('rounds_fired', String(g.shots.length));
         formData.append('group_size', g.size);
         if (groupBlob) formData.append('target_image', groupBlob, 'target.jpg');
 
@@ -2328,7 +3056,8 @@ async function loadCatalog(frameType = currentFrameType()) {
         container.innerHTML = '<p class="text-red-400 italic text-sm">Failed to load catalog.</p>';
         return;
     }
-    const inventory = all.filter(g => currentCollectionFilter === 'sold' ? g.is_sold : !g.is_sold);
+    const filtered = all.filter(g => currentCollectionFilter === 'sold' ? g.is_sold : !g.is_sold);
+    const inventory = applySortFn(filtered, currentPlatformSort);
 
     document.getElementById('inventory-count').innerText = `${inventory.length} Platform${inventory.length !== 1 ? 's' : ''} Logged`;
     container.innerHTML = '';
@@ -2363,6 +3092,7 @@ async function loadCatalog(frameType = currentFrameType()) {
                     <h3 class="text-base font-bold text-white tracking-tight">${gunLabel}</h3>
                     <span class="text-xs text-gray-400 font-mono whitespace-nowrap">$${parseFloat(gun.price_paid || 0).toFixed(2)}</span>
                 </div>
+                ${gun.serial_number ? `<p class="text-[10px] text-gray-500 font-mono">S/N: ${gun.serial_number}</p>` : ''}
                 <div class="flex gap-2 pt-1 border-t border-gray-700">
                     ${soldBtnMarkup}
                     <div class="flex-1"></div>
@@ -2442,6 +3172,7 @@ if (factoryAmmoForm) {
         const { f1: af1, f2: af2 } = _getPWFiles('pw-ammo-factory');
         if (af1) formData.set('image', af1, af1.name);
         if (af2) formData.set('image_2', af2, af2.name);
+        if (_lastScannedUpc) { formData.set('upc', _lastScannedUpc); _lastScannedUpc = null; }
         try {
             const response = await fetch('/ammo/', { method: 'POST', body: formData });
             if (response.ok) {
@@ -2449,7 +3180,7 @@ if (factoryAmmoForm) {
                     saveLookupValue('ammo_brand', formData.get('brand')),
                     saveLookupValue('caliber',    formData.get('caliber')),
                 ]);
-                e.target.reset(); _resetPW('pw-ammo-factory');
+                e.target.reset(); _resetPW('pw-ammo-factory'); _showPendingUpc(null);
                 showToast('Factory load registered.');
             } else {
                 showToast('Failed to save ammo load.', 'error');
@@ -2671,7 +3402,7 @@ async function loadDeductionDropdowns() {
 
     if (pSel) {
         pSel.innerHTML = '<option value="">— Skip powder deduction —</option>' +
-            powders.map(p => `<option value="${p.id}">${p.brand} ${p.name} (${p.weight_lbs} lbs)</option>`).join('');
+            powders.map(p => `<option value="${p.id}">${p.brand} ${p.name} (${p.weight_lbs}${p.pellet_mode ? ' qty' : ' lbs'})</option>`).join('');
     }
     if (prSel) {
         prSel.innerHTML = '<option value="">— Skip primer deduction —</option>' +
@@ -2691,13 +3422,20 @@ const powderForm = document.getElementById('powder-form');
 if (powderForm) {
     powderForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const containerSize = parseFloat(document.getElementById('pw-container-size')?.value || '1');
-        const containerCount = parseFloat(document.getElementById('pw-container-count')?.value || '0');
-        document.getElementById('pw-weight-lbs-hidden').value = (containerSize * containerCount).toFixed(2);
+        const isPelletMode = document.getElementById('pw-pellet-mode-hidden')?.value === 'true';
+        if (isPelletMode) {
+            const directQty = parseInt(document.getElementById('pw-direct-weight')?.value || '0', 10);
+            document.getElementById('pw-weight-lbs-hidden').value = directQty;
+        } else {
+            const containerSize = parseFloat(document.getElementById('pw-container-size')?.value || '1');
+            const containerCount = parseFloat(document.getElementById('pw-container-count')?.value || '0');
+            document.getElementById('pw-weight-lbs-hidden').value = (containerSize * containerCount).toFixed(2);
+        }
         const fd = new FormData(e.target);
         const { f1, f2 } = _getPWFiles('pw-powder');
         if (f1) fd.set('image_1', f1, f1.name);
         if (f2) fd.set('image_2', f2, f2.name);
+        if (_lastScannedUpc) { fd.set('upc', _lastScannedUpc); _lastScannedUpc = null; }
         try {
             const res = await fetch('/components/powders/', { method: 'POST', body: fd });
             if (res.ok) {
@@ -2716,6 +3454,7 @@ if (primerForm) {
         const { f1, f2 } = _getPWFiles('pw-primer');
         if (f1) fd.set('image_1', f1, f1.name);
         if (f2) fd.set('image_2', f2, f2.name);
+        if (_lastScannedUpc) { fd.set('upc', _lastScannedUpc); _lastScannedUpc = null; }
         try {
             const res = await fetch('/components/primers/', { method: 'POST', body: fd });
             if (res.ok) {
@@ -2734,6 +3473,7 @@ if (bulletCompForm) {
         const { f1, f2 } = _getPWFiles('pw-bullet');
         if (f1) fd.set('image_1', f1, f1.name);
         if (f2) fd.set('image_2', f2, f2.name);
+        if (_lastScannedUpc) { fd.set('upc', _lastScannedUpc); _lastScannedUpc = null; }
         try {
             const res = await fetch('/components/bullets/', { method: 'POST', body: fd });
             if (res.ok) {
@@ -2756,6 +3496,7 @@ if (casingForm) {
         const { f1, f2 } = _getPWFiles('pw-casing');
         if (f1) fd.set('image_1', f1, f1.name);
         if (f2) fd.set('image_2', f2, f2.name);
+        if (_lastScannedUpc) { fd.set('upc', _lastScannedUpc); _lastScannedUpc = null; }
         try {
             const res = await fetch('/components/casings/', { method: 'POST', body: fd });
             if (res.ok) {
@@ -2813,9 +3554,219 @@ async function loadLandingStats() {
     } catch (_) {}
 }
 
+// ── Barcode Scanner ────────────────────────────────────────────────────────────
+
+let _barcodeFormTarget = null;
+let _lastScannedUpc = null;
+let _barcodeReader = null;
+let _barcodeStream = null;
+let _barcodeAnimFrame = null;
+
+function openBarcodeScanner(formTarget) {
+    _barcodeFormTarget = formTarget;
+    document.getElementById('barcode-modal').classList.remove('hidden');
+    document.getElementById('barcode-status').textContent = '';
+
+    const isSecure = location.protocol === 'https:' ||
+                     location.hostname === 'localhost' ||
+                     location.hostname === '127.0.0.1';
+
+    document.getElementById('barcode-video-wrap').classList.remove('hidden');
+    document.getElementById('barcode-subtitle').textContent = 'Point camera at barcode — detected automatically';
+    _startLiveScanner();
+}
+
+async function _startLiveScanner() {
+    const video = document.getElementById('barcode-video');
+    const status = document.getElementById('barcode-status');
+
+    let permState = 'prompt';
+    try {
+        const ps = await navigator.permissions.query({ name: 'camera' });
+        permState = ps.state;
+        ps.onchange = () => {
+            if (ps.state === 'granted') { status.textContent = ''; _startLiveScanner(); }
+        };
+    } catch (_) {}
+
+    if (permState === 'denied') {
+        document.getElementById('barcode-video-wrap').classList.add('hidden');
+        status.innerHTML = '🔒 Camera access is blocked.<br>Open <strong>Chrome</strong> → ⋮ menu → Settings → Site settings → Camera → find this site → Allow. Then tap: <button onclick="_startLiveScanner()" style="background:#d97706;color:#fff;border:none;padding:4px 12px;border-radius:5px;font-size:11px;font-weight:bold;cursor:pointer;">Retry</button>';
+        return;
+    }
+
+    status.textContent = permState === 'prompt' ? 'Allow camera access when prompted…' : 'Starting camera…';
+    try {
+        _barcodeStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+        });
+        video.srcObject = _barcodeStream;
+        await video.play();
+        status.textContent = 'Camera active — point at barcode';
+
+        // Prefer native BarcodeDetector (Android Chrome) — more reliable than ZXing
+        if ('BarcodeDetector' in window) {
+            const detector = new BarcodeDetector({
+                formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39']
+            });
+            const scanFrame = async () => {
+                if (!_barcodeStream) return;
+                try {
+                    const barcodes = await detector.detect(video);
+                    if (barcodes.length > 0) {
+                        const code = barcodes[0].rawValue;
+                        closeBarcodeScanner();
+                        triggerBarcodeLookup(code);
+                        return;
+                    }
+                } catch (_) {}
+                _barcodeAnimFrame = requestAnimationFrame(scanFrame);
+            };
+            _barcodeAnimFrame = requestAnimationFrame(scanFrame);
+            return;
+        }
+
+        // ZXing fallback (desktop / older browsers)
+        if (typeof ZXing === 'undefined') { status.textContent = 'Scanner ready — enter barcode manually if needed'; return; }
+        const hints = new Map();
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+            ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
+            ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E,
+            ZXing.BarcodeFormat.CODE_128,
+        ]);
+        _barcodeReader = new ZXing.BrowserMultiFormatReader(hints);
+        const cb = (result) => {
+            if (result) { _barcodeReader.reset(); closeBarcodeScanner(); triggerBarcodeLookup(result.getText()); }
+        };
+        if (typeof _barcodeReader.decodeFromVideoElementContinuously === 'function') {
+            _barcodeReader.decodeFromVideoElementContinuously(video, cb);
+        } else {
+            _barcodeReader.decodeFromVideoElement(video, cb);
+        }
+    } catch (e) {
+        document.getElementById('barcode-video-wrap').classList.add('hidden');
+        if (e.name === 'NotAllowedError') {
+            status.innerHTML = '🔒 Camera access denied.<br>Open <strong>Chrome</strong> → ⋮ menu → Settings → Site settings → Camera → find this site → Allow. Then tap: <button onclick="_startLiveScanner()" style="background:#d97706;color:#fff;border:none;padding:4px 12px;border-radius:5px;font-size:11px;font-weight:bold;cursor:pointer;">Retry</button>';
+        } else {
+            status.textContent = 'Camera unavailable — enter barcode manually below.';
+        }
+    }
+}
+
+function closeBarcodeScanner() {
+    document.getElementById('barcode-modal').classList.add('hidden');
+    document.getElementById('barcode-video-wrap').classList.add('hidden');
+    if (_barcodeAnimFrame) { cancelAnimationFrame(_barcodeAnimFrame); _barcodeAnimFrame = null; }
+    if (_barcodeReader) { try { _barcodeReader.reset(); } catch (_) {} _barcodeReader = null; }
+    if (_barcodeStream) { _barcodeStream.getTracks().forEach(t => t.stop()); _barcodeStream = null; }
+    document.getElementById('barcode-manual-input').value = '';
+    document.getElementById('barcode-status').textContent = '';
+    // Blur active element so focus doesn't return to a form field and trigger autocomplete
+    document.activeElement?.blur();
+}
+
+function _showPendingUpc(upc) {
+    const row = document.getElementById('ammo-factory-upc-row');
+    const disp = document.getElementById('ammo-factory-upc-display');
+    if (row && disp) { disp.value = upc || ''; row.classList.toggle('hidden', !upc); }
+}
+
+async function triggerBarcodeLookup(upc) {
+    upc = (upc || '').trim();
+    if (!upc) return;
+    const status = document.getElementById('barcode-status');
+    if (status) status.textContent = 'Looking up barcode…';
+    try {
+        const resp = await fetch(`/barcode/lookup?upc=${encodeURIComponent(upc)}`);
+        if (!resp.ok) {
+            // UPC not in DB — let user fill in details on whichever form they're on
+            _lastScannedUpc = upc;
+            closeBarcodeScanner();
+            _showPendingUpc(upc);
+            showToast('UPC not found — fill in the details and save to register it', 'info');
+            return;
+        }
+        const data = await resp.json();
+        _fillFormFromBarcode(data);
+        showToast(`Found: ${data.title || upc}`, 'success');
+    } catch (e) {
+        showToast('Lookup failed — check connection', 'error');
+    } finally {
+        closeBarcodeScanner();
+    }
+}
+
+// Maps product_type → { category, form } for auto-navigation
+const _PRODUCT_TYPE_FORM = {
+    'ammo':   { cat: 'cat-ammunition', form: null, fill: 'ammo-factory' },
+    'bullet': { cat: 'cat-components', form: 'add-bullet-comp', fill: 'bullet-comp' },
+    'powder': { cat: 'cat-components', form: 'add-powder',      fill: 'powder' },
+    'primer': { cat: 'cat-components', form: 'add-primer',      fill: 'primer' },
+    'casing': { cat: 'cat-components', form: 'add-casing',      fill: 'casing' },
+};
+
+function _fillFormFromBarcode(data) {
+    _lastScannedUpc = data.upc || null;
+
+    if (_barcodeFormTarget === 'ammo-factory') {
+        _setIfEmpty('ammo-factory-brand', data.brand);
+        _setIfEmpty('ammo-factory-model', data.product_line);
+        _setIfEmpty('ammo-factory-caliber', data.caliber);
+        _setIfEmpty('ammo-factory-bullet-type', data.bullet_type);
+        _setIfEmpty('ammo-factory-weight', data.weight_gr);
+        _setIfEmpty('ammo-factory-bc', data.bc_g1);
+        _setIfEmpty('ammo-factory-rpb', data.rounds_per_box);
+        if (data.ammo_category) {
+            const catSel = document.getElementById('ammo-factory-cat');
+            if (catSel && !catSel.value) { catSel.value = data.ammo_category; _toggleFactoryAmmoFields(data.ammo_category); }
+        }
+    } else if (_barcodeFormTarget === 'bullet-comp') {
+        _setIfEmpty('bullet-comp-brand', data.brand);
+        _setIfEmpty('bullet-comp-product-line', data.product_line);
+        _setIfEmpty('bullet-comp-caliber', data.caliber);
+        _setIfEmpty('bullet-comp-weight', data.weight_gr);
+        _setIfEmpty('bullet-comp-bullet-type', data.bullet_type);
+        _setIfEmpty('bullet-comp-bc-g1', data.bc_g1);
+        _setIfEmpty('bullet-comp-bc-g7', data.bc_g7);
+    } else if (_barcodeFormTarget === 'powder') {
+        _setIfEmpty('powder-brand', data.brand);
+        _setIfEmpty('powder-name', data.powder_name);
+    } else if (_barcodeFormTarget === 'primer') {
+        _setIfEmpty('primer-brand', data.brand);
+        _setIfEmpty('primer-model', data.primer_model);
+        if (data.primer_type) {
+            const sel = document.getElementById('primer-type');
+            if (sel && !sel.value) {
+                for (const opt of sel.options) {
+                    if (opt.text === data.primer_type) { sel.value = opt.value; break; }
+                }
+            }
+        }
+    } else if (_barcodeFormTarget === 'casing') {
+        _setIfEmpty('casing-brand', data.brand);
+        _setIfEmpty('casing-caliber', data.caliber);
+        _setIfEmpty('casing-quantity', data.rounds_per_box);
+    }
+    // Close any open autocomplete dropdown after programmatic fill
+    if (_acDropdown) { _acDropdown.classList.add('hidden'); _acDropdown = null; }
+}
+
+function _setIfEmpty(id, value) {
+    if (value === null || value === undefined) return;
+    const el = document.getElementById(id);
+    if (el && !el.value) el.value = value;
+}
+
 window.onload = () => {
     fetchInitialLookupData(); applyPreferences(); loadLandingStats(); initCustomAC();
     const p = new URLSearchParams(location.search);
     if (p.has('tab')) switchTab(p.get('tab'));
-    if (p.has('cat')) { switchTab('add-tab'); switchFormCategory('cat-' + p.get('cat')); }
+    if (p.has('cat')) {
+        switchTab('add-tab');
+        const cat = p.get('cat');
+        if (cat === 'optics') { switchFormCategory('cat-platforms'); switchAddForm('add-scope'); }
+        else if (cat === 'tc-barrel') { switchFormCategory('cat-platforms'); switchAddForm('add-tc-barrel'); }
+        else if (cat === 'tc-receiver') { switchFormCategory('cat-platforms'); switchAddForm('add-tc-receiver'); }
+        else switchFormCategory('cat-' + cat);
+    }
 };

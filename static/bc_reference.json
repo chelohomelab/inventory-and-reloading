@@ -1,0 +1,1158 @@
+[
+  {
+    "brand": "hornady",
+    "product_line": "eld-x",
+    "weight_gr": 87,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.515,
+    "bc_g7": 0.263
+  },
+  {
+    "brand": "hornady",
+    "product_line": "eld-x",
+    "weight_gr": 103,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.512,
+    "bc_g7": 0.259
+  },
+  {
+    "brand": "hornady",
+    "product_line": "eld-x",
+    "weight_gr": 120,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.458,
+    "bc_g7": 0.237
+  },
+  {
+    "brand": "hornady",
+    "product_line": "eld-x",
+    "weight_gr": 143,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.623,
+    "bc_g7": 0.314
+  },
+  {
+    "brand": "hornady",
+    "product_line": "eld-x",
+    "weight_gr": 162,
+    "caliber_hint": "7mm",
+    "bc_g1": 0.631,
+    "bc_g7": 0.317
+  },
+  {
+    "brand": "hornady",
+    "product_line": "eld-x",
+    "weight_gr": 178,
+    "caliber_hint": ".308",
+    "bc_g1": 0.552,
+    "bc_g7": 0.278
+  },
+  {
+    "brand": "hornady",
+    "product_line": "eld-x",
+    "weight_gr": 200,
+    "caliber_hint": ".308",
+    "bc_g1": 0.597,
+    "bc_g7": 0.301
+  },
+  {
+    "brand": "hornady",
+    "product_line": "eld-x",
+    "weight_gr": 220,
+    "caliber_hint": ".308",
+    "bc_g1": 0.64,
+    "bc_g7": 0.33
+  },
+  {
+    "brand": "hornady",
+    "product_line": "eld-x",
+    "weight_gr": 250,
+    "caliber_hint": ".338",
+    "bc_g1": 0.791,
+    "bc_g7": 0.4
+  },
+  {
+    "brand": "hornady",
+    "product_line": "eld-m",
+    "weight_gr": 108,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.536,
+    "bc_g7": 0.271
+  },
+  {
+    "brand": "hornady",
+    "product_line": "eld-m",
+    "weight_gr": 140,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.61,
+    "bc_g7": 0.315
+  },
+  {
+    "brand": "hornady",
+    "product_line": "eld-m",
+    "weight_gr": 147,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.697,
+    "bc_g7": 0.351
+  },
+  {
+    "brand": "hornady",
+    "product_line": "eld-m",
+    "weight_gr": 162,
+    "caliber_hint": "7mm",
+    "bc_g1": 0.631,
+    "bc_g7": 0.317
+  },
+  {
+    "brand": "hornady",
+    "product_line": "eld-m",
+    "weight_gr": 155,
+    "caliber_hint": ".308",
+    "bc_g1": 0.508,
+    "bc_g7": 0.256
+  },
+  {
+    "brand": "hornady",
+    "product_line": "eld-m",
+    "weight_gr": 168,
+    "caliber_hint": ".308",
+    "bc_g1": 0.523,
+    "bc_g7": 0.264
+  },
+  {
+    "brand": "hornady",
+    "product_line": "eld-m",
+    "weight_gr": 178,
+    "caliber_hint": ".308",
+    "bc_g1": 0.552,
+    "bc_g7": 0.278
+  },
+  {
+    "brand": "hornady",
+    "product_line": "a-tip",
+    "weight_gr": 110,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.536,
+    "bc_g7": 0.271
+  },
+  {
+    "brand": "hornady",
+    "product_line": "a-tip",
+    "weight_gr": 135,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.6,
+    "bc_g7": 0.307
+  },
+  {
+    "brand": "hornady",
+    "product_line": "a-tip",
+    "weight_gr": 153.5,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.704,
+    "bc_g7": 0.354
+  },
+  {
+    "brand": "hornady",
+    "product_line": "a-tip",
+    "weight_gr": 175,
+    "caliber_hint": "7mm",
+    "bc_g1": 0.706,
+    "bc_g7": 0.362
+  },
+  {
+    "brand": "hornady",
+    "product_line": "a-tip",
+    "weight_gr": 230,
+    "caliber_hint": ".308",
+    "bc_g1": 0.743,
+    "bc_g7": 0.374
+  },
+  {
+    "brand": "hornady",
+    "product_line": "sst",
+    "weight_gr": 95,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.365,
+    "bc_g7": 0.185
+  },
+  {
+    "brand": "hornady",
+    "product_line": "sst",
+    "weight_gr": 129,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.485,
+    "bc_g7": 0.249
+  },
+  {
+    "brand": "hornady",
+    "product_line": "sst",
+    "weight_gr": 150,
+    "caliber_hint": ".308",
+    "bc_g1": 0.415,
+    "bc_g7": 0.208
+  },
+  {
+    "brand": "hornady",
+    "product_line": "sst",
+    "weight_gr": 165,
+    "caliber_hint": ".308",
+    "bc_g1": 0.447,
+    "bc_g7": 0.225
+  },
+  {
+    "brand": "hornady",
+    "product_line": "sst",
+    "weight_gr": 180,
+    "caliber_hint": ".308",
+    "bc_g1": 0.48,
+    "bc_g7": 0.241
+  },
+  {
+    "brand": "sierra",
+    "product_line": "matchking",
+    "weight_gr": 107,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.527,
+    "bc_g7": 0.271
+  },
+  {
+    "brand": "sierra",
+    "product_line": "matchking",
+    "weight_gr": 107,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.505,
+    "bc_g7": 0.255
+  },
+  {
+    "brand": "sierra",
+    "product_line": "matchking",
+    "weight_gr": 123,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.51,
+    "bc_g7": 0.254
+  },
+  {
+    "brand": "sierra",
+    "product_line": "matchking",
+    "weight_gr": 142,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.626,
+    "bc_g7": 0.315
+  },
+  {
+    "brand": "sierra",
+    "product_line": "matchking",
+    "weight_gr": 168,
+    "caliber_hint": "7mm",
+    "bc_g1": 0.617,
+    "bc_g7": 0.31
+  },
+  {
+    "brand": "sierra",
+    "product_line": "matchking",
+    "weight_gr": 155,
+    "caliber_hint": ".308",
+    "bc_g1": 0.448,
+    "bc_g7": 0.226
+  },
+  {
+    "brand": "sierra",
+    "product_line": "matchking",
+    "weight_gr": 168,
+    "caliber_hint": ".308",
+    "bc_g1": 0.477,
+    "bc_g7": 0.24
+  },
+  {
+    "brand": "sierra",
+    "product_line": "matchking",
+    "weight_gr": 175,
+    "caliber_hint": ".308",
+    "bc_g1": 0.505,
+    "bc_g7": 0.253
+  },
+  {
+    "brand": "sierra",
+    "product_line": "matchking",
+    "weight_gr": 185,
+    "caliber_hint": ".308",
+    "bc_g1": 0.527,
+    "bc_g7": 0.265
+  },
+  {
+    "brand": "sierra",
+    "product_line": "matchking",
+    "weight_gr": 220,
+    "caliber_hint": ".308",
+    "bc_g1": 0.62,
+    "bc_g7": 0.313
+  },
+  {
+    "brand": "sierra",
+    "product_line": "matchking",
+    "weight_gr": 300,
+    "caliber_hint": ".338",
+    "bc_g1": 0.768,
+    "bc_g7": 0.39
+  },
+  {
+    "brand": "sierra",
+    "product_line": "tipped matchking",
+    "weight_gr": 95,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.438,
+    "bc_g7": 0.22
+  },
+  {
+    "brand": "sierra",
+    "product_line": "tipped matchking",
+    "weight_gr": 130,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.53,
+    "bc_g7": 0.268
+  },
+  {
+    "brand": "sierra",
+    "product_line": "tipped matchking",
+    "weight_gr": 168,
+    "caliber_hint": ".308",
+    "bc_g1": 0.53,
+    "bc_g7": 0.268
+  },
+  {
+    "brand": "sierra",
+    "product_line": "tipped matchking",
+    "weight_gr": 175,
+    "caliber_hint": ".308",
+    "bc_g1": 0.545,
+    "bc_g7": 0.274
+  },
+  {
+    "brand": "sierra",
+    "product_line": "gameking",
+    "weight_gr": 100,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.43,
+    "bc_g7": 0.216
+  },
+  {
+    "brand": "sierra",
+    "product_line": "gameking",
+    "weight_gr": 140,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.49,
+    "bc_g7": 0.245
+  },
+  {
+    "brand": "sierra",
+    "product_line": "gameking",
+    "weight_gr": 150,
+    "caliber_hint": ".308",
+    "bc_g1": 0.435,
+    "bc_g7": 0.218
+  },
+  {
+    "brand": "sierra",
+    "product_line": "gameking",
+    "weight_gr": 165,
+    "caliber_hint": ".308",
+    "bc_g1": 0.477,
+    "bc_g7": 0.24
+  },
+  {
+    "brand": "berger",
+    "product_line": "hybrid",
+    "weight_gr": 105,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.53,
+    "bc_g7": 0.271
+  },
+  {
+    "brand": "berger",
+    "product_line": "hybrid",
+    "weight_gr": 109,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.536,
+    "bc_g7": 0.275
+  },
+  {
+    "brand": "berger",
+    "product_line": "hybrid",
+    "weight_gr": 130,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.54,
+    "bc_g7": 0.275
+  },
+  {
+    "brand": "berger",
+    "product_line": "hybrid",
+    "weight_gr": 140,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.607,
+    "bc_g7": 0.305
+  },
+  {
+    "brand": "berger",
+    "product_line": "hybrid",
+    "weight_gr": 168,
+    "caliber_hint": ".308",
+    "bc_g1": 0.56,
+    "bc_g7": 0.28
+  },
+  {
+    "brand": "berger",
+    "product_line": "hybrid",
+    "weight_gr": 185,
+    "caliber_hint": ".308",
+    "bc_g1": 0.62,
+    "bc_g7": 0.312
+  },
+  {
+    "brand": "berger",
+    "product_line": "hybrid",
+    "weight_gr": 200.2,
+    "caliber_hint": ".308",
+    "bc_g1": 0.65,
+    "bc_g7": 0.327
+  },
+  {
+    "brand": "berger",
+    "product_line": "otm",
+    "weight_gr": 105,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.53,
+    "bc_g7": 0.271
+  },
+  {
+    "brand": "berger",
+    "product_line": "otm",
+    "weight_gr": 115,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.544,
+    "bc_g7": 0.274
+  },
+  {
+    "brand": "berger",
+    "product_line": "otm",
+    "weight_gr": 140,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.576,
+    "bc_g7": 0.289
+  },
+  {
+    "brand": "berger",
+    "product_line": "otm",
+    "weight_gr": 155,
+    "caliber_hint": ".308",
+    "bc_g1": 0.508,
+    "bc_g7": 0.256
+  },
+  {
+    "brand": "berger",
+    "product_line": "otm",
+    "weight_gr": 175,
+    "caliber_hint": ".308",
+    "bc_g1": 0.536,
+    "bc_g7": 0.27
+  },
+  {
+    "brand": "berger",
+    "product_line": "otm",
+    "weight_gr": 180,
+    "caliber_hint": "7mm",
+    "bc_g1": 0.684,
+    "bc_g7": 0.344
+  },
+  {
+    "brand": "berger",
+    "product_line": "vld",
+    "weight_gr": 95,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.48,
+    "bc_g7": 0.24
+  },
+  {
+    "brand": "berger",
+    "product_line": "vld",
+    "weight_gr": 105,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.53,
+    "bc_g7": 0.271
+  },
+  {
+    "brand": "berger",
+    "product_line": "vld",
+    "weight_gr": 140,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.62,
+    "bc_g7": 0.31
+  },
+  {
+    "brand": "berger",
+    "product_line": "vld",
+    "weight_gr": 168,
+    "caliber_hint": "7mm",
+    "bc_g1": 0.65,
+    "bc_g7": 0.327
+  },
+  {
+    "brand": "berger",
+    "product_line": "vld",
+    "weight_gr": 185,
+    "caliber_hint": ".308",
+    "bc_g1": 0.63,
+    "bc_g7": 0.317
+  },
+  {
+    "brand": "berger",
+    "product_line": "vld",
+    "weight_gr": 210,
+    "caliber_hint": ".308",
+    "bc_g1": 0.73,
+    "bc_g7": 0.368
+  },
+  {
+    "brand": "berger",
+    "product_line": "juggernaut",
+    "weight_gr": 175,
+    "caliber_hint": ".308",
+    "bc_g1": 0.536,
+    "bc_g7": 0.27
+  },
+  {
+    "brand": "berger",
+    "product_line": "juggernaut",
+    "weight_gr": 185,
+    "caliber_hint": ".308",
+    "bc_g1": 0.569,
+    "bc_g7": 0.286
+  },
+  {
+    "brand": "nosler",
+    "product_line": "accubond",
+    "weight_gr": 90,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.365,
+    "bc_g7": 0.184
+  },
+  {
+    "brand": "nosler",
+    "product_line": "accubond",
+    "weight_gr": 130,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.488,
+    "bc_g7": 0.246
+  },
+  {
+    "brand": "nosler",
+    "product_line": "accubond",
+    "weight_gr": 140,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.496,
+    "bc_g7": 0.25
+  },
+  {
+    "brand": "nosler",
+    "product_line": "accubond",
+    "weight_gr": 160,
+    "caliber_hint": "7mm",
+    "bc_g1": 0.531,
+    "bc_g7": 0.268
+  },
+  {
+    "brand": "nosler",
+    "product_line": "accubond",
+    "weight_gr": 165,
+    "caliber_hint": ".308",
+    "bc_g1": 0.475,
+    "bc_g7": 0.239
+  },
+  {
+    "brand": "nosler",
+    "product_line": "accubond",
+    "weight_gr": 180,
+    "caliber_hint": ".308",
+    "bc_g1": 0.507,
+    "bc_g7": 0.255
+  },
+  {
+    "brand": "nosler",
+    "product_line": "accubond long range",
+    "weight_gr": 142,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.719,
+    "bc_g7": 0.368
+  },
+  {
+    "brand": "nosler",
+    "product_line": "accubond long range",
+    "weight_gr": 168,
+    "caliber_hint": "7mm",
+    "bc_g1": 0.73,
+    "bc_g7": 0.368
+  },
+  {
+    "brand": "nosler",
+    "product_line": "accubond long range",
+    "weight_gr": 230,
+    "caliber_hint": ".308",
+    "bc_g1": 0.743,
+    "bc_g7": 0.374
+  },
+  {
+    "brand": "nosler",
+    "product_line": "accubond long range",
+    "weight_gr": 300,
+    "caliber_hint": ".338",
+    "bc_g1": 0.86,
+    "bc_g7": 0.434
+  },
+  {
+    "brand": "nosler",
+    "product_line": "ballistic tip",
+    "weight_gr": 95,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.379,
+    "bc_g7": 0.188
+  },
+  {
+    "brand": "nosler",
+    "product_line": "ballistic tip",
+    "weight_gr": 105,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.4,
+    "bc_g7": 0.2
+  },
+  {
+    "brand": "nosler",
+    "product_line": "ballistic tip",
+    "weight_gr": 120,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.458,
+    "bc_g7": 0.229
+  },
+  {
+    "brand": "nosler",
+    "product_line": "ballistic tip",
+    "weight_gr": 140,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.49,
+    "bc_g7": 0.245
+  },
+  {
+    "brand": "nosler",
+    "product_line": "ballistic tip",
+    "weight_gr": 150,
+    "caliber_hint": ".308",
+    "bc_g1": 0.435,
+    "bc_g7": 0.22
+  },
+  {
+    "brand": "nosler",
+    "product_line": "ballistic tip",
+    "weight_gr": 165,
+    "caliber_hint": ".308",
+    "bc_g1": 0.475,
+    "bc_g7": 0.239
+  },
+  {
+    "brand": "nosler",
+    "product_line": "ballistic tip",
+    "weight_gr": 180,
+    "caliber_hint": ".308",
+    "bc_g1": 0.507,
+    "bc_g7": 0.255
+  },
+  {
+    "brand": "nosler",
+    "product_line": "rdf",
+    "weight_gr": 105,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.53,
+    "bc_g7": 0.271
+  },
+  {
+    "brand": "nosler",
+    "product_line": "rdf",
+    "weight_gr": 115,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.544,
+    "bc_g7": 0.274
+  },
+  {
+    "brand": "nosler",
+    "product_line": "rdf",
+    "weight_gr": 135,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.575,
+    "bc_g7": 0.292
+  },
+  {
+    "brand": "nosler",
+    "product_line": "rdf",
+    "weight_gr": 140,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.588,
+    "bc_g7": 0.297
+  },
+  {
+    "brand": "nosler",
+    "product_line": "rdf",
+    "weight_gr": 168,
+    "caliber_hint": ".308",
+    "bc_g1": 0.53,
+    "bc_g7": 0.268
+  },
+  {
+    "brand": "nosler",
+    "product_line": "rdf",
+    "weight_gr": 185,
+    "caliber_hint": ".308",
+    "bc_g1": 0.57,
+    "bc_g7": 0.288
+  },
+  {
+    "brand": "lapua",
+    "product_line": "scenar",
+    "weight_gr": 90,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.352,
+    "bc_g7": 0.176
+  },
+  {
+    "brand": "lapua",
+    "product_line": "scenar",
+    "weight_gr": 100,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.421,
+    "bc_g7": 0.216
+  },
+  {
+    "brand": "lapua",
+    "product_line": "scenar",
+    "weight_gr": 123,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.547,
+    "bc_g7": 0.278
+  },
+  {
+    "brand": "lapua",
+    "product_line": "scenar",
+    "weight_gr": 139,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.615,
+    "bc_g7": 0.31
+  },
+  {
+    "brand": "lapua",
+    "product_line": "scenar",
+    "weight_gr": 155,
+    "caliber_hint": ".308",
+    "bc_g1": 0.508,
+    "bc_g7": 0.256
+  },
+  {
+    "brand": "lapua",
+    "product_line": "scenar",
+    "weight_gr": 185,
+    "caliber_hint": ".308",
+    "bc_g1": 0.547,
+    "bc_g7": 0.275
+  },
+  {
+    "brand": "lapua",
+    "product_line": "scenar-l",
+    "weight_gr": 90,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.352,
+    "bc_g7": 0.176
+  },
+  {
+    "brand": "lapua",
+    "product_line": "scenar-l",
+    "weight_gr": 100,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.421,
+    "bc_g7": 0.216
+  },
+  {
+    "brand": "lapua",
+    "product_line": "scenar-l",
+    "weight_gr": 123,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.547,
+    "bc_g7": 0.278
+  },
+  {
+    "brand": "lapua",
+    "product_line": "scenar-l",
+    "weight_gr": 139,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.615,
+    "bc_g7": 0.31
+  },
+  {
+    "brand": "lapua",
+    "product_line": "lock base",
+    "weight_gr": 155,
+    "caliber_hint": ".308",
+    "bc_g1": 0.468,
+    "bc_g7": 0.236
+  },
+  {
+    "brand": "lapua",
+    "product_line": "fmjbt",
+    "weight_gr": 123,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.52,
+    "bc_g7": 0.263
+  },
+  {
+    "brand": "lapua",
+    "product_line": "fmjbt",
+    "weight_gr": 175,
+    "caliber_hint": ".308",
+    "bc_g1": 0.505,
+    "bc_g7": 0.254
+  },
+  {
+    "brand": "barnes",
+    "product_line": "ttsx",
+    "weight_gr": 80,
+    "caliber_hint": "6mm",
+    "bc_g1": 0.374,
+    "bc_g7": 0.188
+  },
+  {
+    "brand": "barnes",
+    "product_line": "ttsx",
+    "weight_gr": 120,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.411,
+    "bc_g7": 0.204
+  },
+  {
+    "brand": "barnes",
+    "product_line": "ttsx",
+    "weight_gr": 130,
+    "caliber_hint": ".308",
+    "bc_g1": 0.354,
+    "bc_g7": 0.178
+  },
+  {
+    "brand": "barnes",
+    "product_line": "ttsx",
+    "weight_gr": 150,
+    "caliber_hint": ".308",
+    "bc_g1": 0.417,
+    "bc_g7": 0.209
+  },
+  {
+    "brand": "barnes",
+    "product_line": "ttsx",
+    "weight_gr": 168,
+    "caliber_hint": ".308",
+    "bc_g1": 0.466,
+    "bc_g7": 0.234
+  },
+  {
+    "brand": "barnes",
+    "product_line": "lrx",
+    "weight_gr": 127,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.468,
+    "bc_g7": 0.235
+  },
+  {
+    "brand": "barnes",
+    "product_line": "lrx",
+    "weight_gr": 145,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.53,
+    "bc_g7": 0.265
+  },
+  {
+    "brand": "barnes",
+    "product_line": "lrx",
+    "weight_gr": 175,
+    "caliber_hint": ".308",
+    "bc_g1": 0.529,
+    "bc_g7": 0.266
+  },
+  {
+    "brand": "barnes",
+    "product_line": "lrx",
+    "weight_gr": 129,
+    "caliber_hint": ".277",
+    "bc_g1": 0.418,
+    "bc_g7": 0.21
+  },
+  {
+    "brand": "barnes",
+    "product_line": "lrx",
+    "weight_gr": 145,
+    "caliber_hint": ".277",
+    "bc_g1": 0.502,
+    "bc_g7": 0.252
+  },
+  {
+    "brand": "barnes",
+    "product_line": "lrx",
+    "weight_gr": 127,
+    "caliber_hint": "7mm",
+    "bc_g1": 0.468,
+    "bc_g7": 0.235
+  },
+  {
+    "brand": "barnes",
+    "product_line": "lrx",
+    "weight_gr": 145,
+    "caliber_hint": "7mm",
+    "bc_g1": 0.53,
+    "bc_g7": 0.265
+  },
+  {
+    "brand": "barnes",
+    "product_line": "lrx",
+    "weight_gr": 168,
+    "caliber_hint": "7mm",
+    "bc_g1": 0.617,
+    "bc_g7": 0.31
+  },
+  {
+    "brand": "barnes",
+    "product_line": "lrx",
+    "weight_gr": 190,
+    "caliber_hint": ".308",
+    "bc_g1": 0.552,
+    "bc_g7": 0.278
+  },
+  {
+    "brand": "barnes",
+    "product_line": "ttsx",
+    "weight_gr": 110,
+    "caliber_hint": ".277",
+    "bc_g1": 0.37,
+    "bc_g7": 0.186
+  },
+  {
+    "brand": "barnes",
+    "product_line": "ttsx",
+    "weight_gr": 130,
+    "caliber_hint": ".277",
+    "bc_g1": 0.392,
+    "bc_g7": 0.197
+  },
+  {
+    "brand": "barnes",
+    "product_line": "ttsx",
+    "weight_gr": 140,
+    "caliber_hint": ".277",
+    "bc_g1": 0.422,
+    "bc_g7": 0.212
+  },
+  {
+    "brand": "federal",
+    "product_line": "gold medal match",
+    "weight_gr": 140,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.626,
+    "bc_g7": 0.315
+  },
+  {
+    "brand": "federal",
+    "product_line": "gold medal match",
+    "weight_gr": 168,
+    "caliber_hint": ".308",
+    "bc_g1": 0.477,
+    "bc_g7": 0.24
+  },
+  {
+    "brand": "federal",
+    "product_line": "gold medal match",
+    "weight_gr": 175,
+    "caliber_hint": ".308",
+    "bc_g1": 0.505,
+    "bc_g7": 0.253
+  },
+  {
+    "brand": "federal",
+    "product_line": "gold medal berger",
+    "weight_gr": 130,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.54,
+    "bc_g7": 0.275
+  },
+  {
+    "brand": "federal",
+    "product_line": "gold medal berger",
+    "weight_gr": 140,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.607,
+    "bc_g7": 0.305
+  },
+  {
+    "brand": "federal",
+    "product_line": "gold medal berger",
+    "weight_gr": 185,
+    "caliber_hint": ".308",
+    "bc_g1": 0.62,
+    "bc_g7": 0.312
+  },
+  {
+    "brand": "federal",
+    "product_line": "fusion",
+    "weight_gr": 140,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.48,
+    "bc_g7": 0.243
+  },
+  {
+    "brand": "federal",
+    "product_line": "trophy bonded tip",
+    "weight_gr": 140,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.468,
+    "bc_g7": 0.239
+  },
+  {
+    "brand": "hornady",
+    "product_line": "precision hunter",
+    "weight_gr": 143,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.625,
+    "bc_g7": 0.315
+  },
+  {
+    "brand": "hornady",
+    "product_line": "precision hunter",
+    "weight_gr": 162,
+    "caliber_hint": "7mm",
+    "bc_g1": 0.631,
+    "bc_g7": 0.317
+  },
+  {
+    "brand": "hornady",
+    "product_line": "precision hunter",
+    "weight_gr": 178,
+    "caliber_hint": ".308",
+    "bc_g1": 0.552,
+    "bc_g7": 0.278
+  },
+  {
+    "brand": "hornady",
+    "product_line": "match",
+    "weight_gr": 140,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.61,
+    "bc_g7": 0.315
+  },
+  {
+    "brand": "hornady",
+    "product_line": "match",
+    "weight_gr": 168,
+    "caliber_hint": ".308",
+    "bc_g1": 0.523,
+    "bc_g7": 0.264
+  },
+  {
+    "brand": "hornady",
+    "product_line": "match",
+    "weight_gr": 178,
+    "caliber_hint": ".308",
+    "bc_g1": 0.552,
+    "bc_g7": 0.278
+  },
+  {
+    "brand": "winchester",
+    "product_line": "expedition big game",
+    "weight_gr": 142,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.625,
+    "bc_g7": 0.316
+  },
+  {
+    "brand": "winchester",
+    "product_line": "expedition big game long range",
+    "weight_gr": 142,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.625,
+    "bc_g7": 0.316
+  },
+  {
+    "brand": "remington",
+    "product_line": "premier match",
+    "weight_gr": 168,
+    "caliber_hint": ".308",
+    "bc_g1": 0.477,
+    "bc_g7": 0.24
+  },
+  {
+    "brand": "remington",
+    "product_line": "core-lokt",
+    "weight_gr": 140,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.456,
+    "bc_g7": 0.229
+  },
+  {
+    "brand": "speer",
+    "product_line": "gold dot",
+    "weight_gr": 130,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.42,
+    "bc_g7": 0.211
+  },
+  {
+    "brand": "speer",
+    "product_line": "hot-cor",
+    "weight_gr": 150,
+    "caliber_hint": ".308",
+    "bc_g1": 0.392,
+    "bc_g7": 0.197
+  },
+  {
+    "brand": "cutting edge",
+    "product_line": "lazer",
+    "weight_gr": 130,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.511,
+    "bc_g7": 0.261
+  },
+  {
+    "brand": "hammer",
+    "product_line": "hunter",
+    "weight_gr": 127,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.459,
+    "bc_g7": 0.231
+  },
+  {
+    "brand": "lehigh",
+    "product_line": "xtreme defense",
+    "weight_gr": 120,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.395,
+    "bc_g7": 0.199
+  },
+  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 100, "caliber_hint": ".243", "bc_g1": 0.281, "bc_g7": null},
+  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 115, "caliber_hint": ".270", "bc_g1": 0.310, "bc_g7": null},
+  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 130, "caliber_hint": ".270", "bc_g1": 0.356, "bc_g7": null},
+  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 150, "caliber_hint": ".270", "bc_g1": 0.398, "bc_g7": null},
+  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 150, "caliber_hint": ".308", "bc_g1": 0.314, "bc_g7": null},
+  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 165, "caliber_hint": ".308", "bc_g1": 0.338, "bc_g7": null},
+  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 180, "caliber_hint": ".308", "bc_g1": 0.383, "bc_g7": null},
+  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 150, "caliber_hint": ".30-06", "bc_g1": 0.314, "bc_g7": null},
+  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 180, "caliber_hint": ".30-06", "bc_g1": 0.383, "bc_g7": null},
+  {"brand": "winchester", "product_line": "power-point", "weight_gr": 130, "caliber_hint": ".270", "bc_g1": 0.350, "bc_g7": null},
+  {"brand": "winchester", "product_line": "power-point", "weight_gr": 150, "caliber_hint": ".308", "bc_g1": 0.330, "bc_g7": null},
+  {"brand": "winchester", "product_line": "power-point", "weight_gr": 150, "caliber_hint": ".30-06", "bc_g1": 0.330, "bc_g7": null},
+  {"brand": "winchester", "product_line": "silvertip", "weight_gr": 130, "caliber_hint": ".270", "bc_g1": 0.398, "bc_g7": null},
+  {"brand": "federal", "product_line": "power-shok", "weight_gr": 130, "caliber_hint": ".270", "bc_g1": 0.356, "bc_g7": null},
+  {"brand": "federal", "product_line": "power-shok", "weight_gr": 150, "caliber_hint": ".308", "bc_g1": 0.314, "bc_g7": null},
+  {"brand": "hornady", "product_line": "american whitetail", "weight_gr": 129, "caliber_hint": "6.5mm", "bc_g1": 0.485, "bc_g7": null},
+  {"brand": "hornady", "product_line": "american whitetail", "weight_gr": 150, "caliber_hint": ".308", "bc_g1": 0.338, "bc_g7": null},
+  {"brand": "hornady", "product_line": "sst", "weight_gr": 129, "caliber_hint": "6.5mm", "bc_g1": 0.488, "bc_g7": 0.251},
+  {"brand": "hornady", "product_line": "sst", "weight_gr": 130, "caliber_hint": ".270", "bc_g1": 0.430, "bc_g7": null},
+  {"brand": "hornady", "product_line": "sst", "weight_gr": 150, "caliber_hint": ".308", "bc_g1": 0.415, "bc_g7": null}
+]

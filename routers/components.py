@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
 import database as models
 from dependencies import get_db, save_uploaded_file
 from schemas import PowderPatch, PrimerPatch, BulletComponentPatch, CasingPatch, DeductPayload
+from routers.barcode import upsert_upc_cache
 
 router = APIRouter()
 
@@ -13,19 +14,26 @@ router = APIRouter()
 def _powder_dict(p: models.PowderInventory) -> dict:
     return {"id": p.id, "brand": p.brand, "name": p.name,
             "weight_lbs": p.weight_lbs, "price_paid": p.price_paid, "notes": p.notes,
-            "image_path": p.image_path, "image_path_2": p.image_path_2}
+            "image_path": p.image_path, "image_path_2": p.image_path_2,
+            "is_muzzleloader": getattr(p, "is_muzzleloader", False) or False,
+            "pellet_mode": getattr(p, "pellet_mode", False) or False}
 
 def _primer_dict(p: models.PrimerInventory) -> dict:
     return {"id": p.id, "brand": p.brand, "model": p.model, "primer_type": p.primer_type,
             "quantity": p.quantity, "price_paid": p.price_paid, "notes": p.notes,
-            "image_path": p.image_path, "image_path_2": p.image_path_2}
+            "image_path": p.image_path, "image_path_2": p.image_path_2,
+            "is_muzzleloader": getattr(p, "is_muzzleloader", False) or False}
 
 def _bullet_dict(b: models.BulletInventory) -> dict:
     return {"id": b.id, "brand": b.brand, "product_line": b.product_line,
             "caliber": b.caliber, "weight_gr": b.weight_gr, "bullet_type": b.bullet_type,
             "bc_g1": b.bc_g1, "bc_g7": b.bc_g7,
-            "quantity": b.quantity, "price_paid": b.price_paid, "notes": b.notes,
-            "image_path": b.image_path, "image_path_2": b.image_path_2}
+            "quantity": b.quantity,
+            "qty_sealed": getattr(b, "qty_sealed", 0) or 0,
+            "qty_open": getattr(b, "qty_open", 0) or 0,
+            "price_paid": b.price_paid, "notes": b.notes,
+            "image_path": b.image_path, "image_path_2": b.image_path_2,
+            "is_muzzleloader": getattr(b, "is_muzzleloader", False) or False}
 
 def _casing_dict(c: models.CasingInventory) -> dict:
     label = "New" if c.times_fired == 0 else f"{c.times_fired}x Fired"
@@ -47,23 +55,35 @@ def _get_thresholds(db: Session) -> dict:
 # ── Powders ────────────────────────────────────────────────────────────────────
 
 @router.get("/components/powders/")
-def list_powders(db: Session = Depends(get_db)):
-    return [_powder_dict(p) for p in db.query(models.PowderInventory).all()]
+def list_powders(muzzleloader: bool = Query(False), db: Session = Depends(get_db)):
+    q = db.query(models.PowderInventory)
+    if muzzleloader:
+        q = q.filter(models.PowderInventory.is_muzzleloader == True)
+    return [_powder_dict(p) for p in q.all()]
 
 @router.post("/components/powders/")
 async def add_powder(
     brand: str = Form(...), name: str = Form(...),
     weight_lbs: float = Form(0.0), price: float = Form(0.0),
-    notes: str = Form(None),
+    notes: str = Form(None), upc: str = Form(None),
+    is_muzzleloader: bool = Form(False),
+    pellet_mode: bool = Form(False),
     image_1: UploadFile = File(None), image_2: UploadFile = File(None),
     db: Session = Depends(get_db),
 ):
     img1 = await save_uploaded_file(image_1, "component")
     img2 = await save_uploaded_file(image_2, "component")
+    if not img1 and upc:
+        cached = db.query(models.UpcCache).filter(models.UpcCache.upc == upc).first()
+        if cached and cached.image_path:
+            img1 = cached.image_path
     p = models.PowderInventory(brand=brand, name=name, weight_lbs=weight_lbs,
                                price_paid=price, notes=notes,
-                               image_path=img1, image_path_2=img2)
+                               image_path=img1, image_path_2=img2, upc=upc,
+                               is_muzzleloader=is_muzzleloader,
+                               pellet_mode=pellet_mode)
     db.add(p); db.commit(); db.refresh(p)
+    upsert_upc_cache(db, upc, product_type="powder", brand=brand, powder_name=name, title=name)
     return _powder_dict(p)
 
 @router.patch("/components/powders/{item_id}")
@@ -78,7 +98,10 @@ def patch_powder(item_id: int, payload: PowderPatch, db: Session = Depends(get_d
 def delete_powder(item_id: int, db: Session = Depends(get_db)):
     p = db.query(models.PowderInventory).filter(models.PowderInventory.id == item_id).first()
     if not p: raise HTTPException(404, "Not found")
+    upc = getattr(p, 'upc', None)
     db.delete(p); db.commit()
+    if upc:
+        db.query(models.UpcCache).filter(models.UpcCache.upc == upc).delete(); db.commit()
     return {"deleted": item_id}
 
 @router.post("/components/powders/{item_id}/update-photo/")
@@ -103,23 +126,33 @@ def swap_powder_photos(item_id: int, db: Session = Depends(get_db)):
 # ── Primers ────────────────────────────────────────────────────────────────────
 
 @router.get("/components/primers/")
-def list_primers(db: Session = Depends(get_db)):
-    return [_primer_dict(p) for p in db.query(models.PrimerInventory).all()]
+def list_primers(muzzleloader: bool = Query(False), db: Session = Depends(get_db)):
+    q = db.query(models.PrimerInventory)
+    if muzzleloader:
+        q = q.filter(models.PrimerInventory.is_muzzleloader == True)
+    return [_primer_dict(p) for p in q.all()]
 
 @router.post("/components/primers/")
 async def add_primer(
     brand: str = Form(...), model: str = Form(None), primer_type: str = Form(...),
     quantity: int = Form(0), price: float = Form(0.0),
-    notes: str = Form(None),
+    notes: str = Form(None), upc: str = Form(None),
+    is_muzzleloader: bool = Form(False),
     image_1: UploadFile = File(None), image_2: UploadFile = File(None),
     db: Session = Depends(get_db),
 ):
     img1 = await save_uploaded_file(image_1, "component")
     img2 = await save_uploaded_file(image_2, "component")
+    if not img1 and upc:
+        cached = db.query(models.UpcCache).filter(models.UpcCache.upc == upc).first()
+        if cached and cached.image_path:
+            img1 = cached.image_path
     p = models.PrimerInventory(brand=brand, model=model, primer_type=primer_type,
                                quantity=quantity, price_paid=price, notes=notes,
-                               image_path=img1, image_path_2=img2)
+                               image_path=img1, image_path_2=img2, upc=upc,
+                               is_muzzleloader=is_muzzleloader)
     db.add(p); db.commit(); db.refresh(p)
+    upsert_upc_cache(db, upc, product_type="primer", brand=brand, primer_model=model, primer_type=primer_type)
     return _primer_dict(p)
 
 @router.patch("/components/primers/{item_id}")
@@ -134,7 +167,10 @@ def patch_primer(item_id: int, payload: PrimerPatch, db: Session = Depends(get_d
 def delete_primer(item_id: int, db: Session = Depends(get_db)):
     p = db.query(models.PrimerInventory).filter(models.PrimerInventory.id == item_id).first()
     if not p: raise HTTPException(404, "Not found")
+    upc = getattr(p, 'upc', None)
     db.delete(p); db.commit()
+    if upc:
+        db.query(models.UpcCache).filter(models.UpcCache.upc == upc).delete(); db.commit()
     return {"deleted": item_id}
 
 @router.post("/components/primers/{item_id}/update-photo/")
@@ -159,8 +195,11 @@ def swap_primer_photos(item_id: int, db: Session = Depends(get_db)):
 # ── Bullets ────────────────────────────────────────────────────────────────────
 
 @router.get("/components/bullets/")
-def list_bullet_components(db: Session = Depends(get_db)):
-    return [_bullet_dict(b) for b in db.query(models.BulletInventory).all()]
+def list_bullet_components(muzzleloader: bool = Query(False), db: Session = Depends(get_db)):
+    q = db.query(models.BulletInventory)
+    if muzzleloader:
+        q = q.filter(models.BulletInventory.is_muzzleloader == True)
+    return [_bullet_dict(b) for b in q.all()]
 
 @router.post("/components/bullets/")
 async def add_bullet_component(
@@ -168,18 +207,29 @@ async def add_bullet_component(
     weight_gr: float = Form(...), product_line: str = Form(None),
     bullet_type: str = Form(None), bc_g1: float = Form(None),
     bc_g7: float = Form(None), quantity: int = Form(0),
-    price: float = Form(0.0), notes: str = Form(None),
+    qty_sealed: int = Form(0), qty_open: int = Form(0),
+    price: float = Form(0.0), notes: str = Form(None), upc: str = Form(None),
+    is_muzzleloader: bool = Form(False),
     image_1: UploadFile = File(None), image_2: UploadFile = File(None),
     db: Session = Depends(get_db),
 ):
     img1 = await save_uploaded_file(image_1, "component")
     img2 = await save_uploaded_file(image_2, "component")
+    if not img1 and upc:
+        cached = db.query(models.UpcCache).filter(models.UpcCache.upc == upc).first()
+        if cached and cached.image_path:
+            img1 = cached.image_path
     b = models.BulletInventory(brand=brand, product_line=product_line, caliber=caliber,
                                weight_gr=weight_gr, bullet_type=bullet_type,
                                bc_g1=bc_g1, bc_g7=bc_g7,
-                               quantity=quantity, price_paid=price, notes=notes,
-                               image_path=img1, image_path_2=img2)
+                               quantity=quantity, qty_sealed=qty_sealed, qty_open=qty_open,
+                               price_paid=price, notes=notes,
+                               image_path=img1, image_path_2=img2, upc=upc,
+                               is_muzzleloader=is_muzzleloader)
     db.add(b); db.commit(); db.refresh(b)
+    upsert_upc_cache(db, upc, product_type="bullet", brand=brand, product_line=product_line,
+                     caliber=caliber, weight_gr=weight_gr, bullet_type=bullet_type,
+                     bc_g1=bc_g1, bc_g7=bc_g7)
     return _bullet_dict(b)
 
 @router.patch("/components/bullets/{item_id}")
@@ -194,7 +244,10 @@ def patch_bullet_component(item_id: int, payload: BulletComponentPatch, db: Sess
 def delete_bullet_component(item_id: int, db: Session = Depends(get_db)):
     b = db.query(models.BulletInventory).filter(models.BulletInventory.id == item_id).first()
     if not b: raise HTTPException(404, "Not found")
+    upc = getattr(b, 'upc', None)
     db.delete(b); db.commit()
+    if upc:
+        db.query(models.UpcCache).filter(models.UpcCache.upc == upc).delete(); db.commit()
     return {"deleted": item_id}
 
 @router.post("/components/bullets/{item_id}/update-photo/")
@@ -226,16 +279,21 @@ def list_casings(db: Session = Depends(get_db)):
 async def add_casing(
     brand: str = Form(...), caliber: str = Form(...),
     quantity: int = Form(0), times_fired: int = Form(0),
-    price: float = Form(0.0), notes: str = Form(None),
+    price: float = Form(0.0), notes: str = Form(None), upc: str = Form(None),
     image_1: UploadFile = File(None), image_2: UploadFile = File(None),
     db: Session = Depends(get_db),
 ):
     img1 = await save_uploaded_file(image_1, "component")
     img2 = await save_uploaded_file(image_2, "component")
+    if not img1 and upc:
+        cached = db.query(models.UpcCache).filter(models.UpcCache.upc == upc).first()
+        if cached and cached.image_path:
+            img1 = cached.image_path
     c = models.CasingInventory(brand=brand, caliber=caliber, quantity=quantity,
                                times_fired=times_fired, price_paid=price, notes=notes,
-                               image_path=img1, image_path_2=img2)
+                               image_path=img1, image_path_2=img2, upc=upc)
     db.add(c); db.commit(); db.refresh(c)
+    upsert_upc_cache(db, upc, product_type="casing", brand=brand, caliber=caliber)
     return _casing_dict(c)
 
 @router.patch("/components/casings/{item_id}")
@@ -250,7 +308,10 @@ def patch_casing(item_id: int, payload: CasingPatch, db: Session = Depends(get_d
 def delete_casing(item_id: int, db: Session = Depends(get_db)):
     c = db.query(models.CasingInventory).filter(models.CasingInventory.id == item_id).first()
     if not c: raise HTTPException(404, "Not found")
+    upc = getattr(c, 'upc', None)
     db.delete(c); db.commit()
+    if upc:
+        db.query(models.UpcCache).filter(models.UpcCache.upc == upc).delete(); db.commit()
     return {"deleted": item_id}
 
 @router.post("/components/casings/{item_id}/update-photo/")

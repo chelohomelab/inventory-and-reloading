@@ -135,6 +135,7 @@
                         <button id="inv-btn-optics" onclick="switchInventoryTab('optics')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔭 Optics</button>
                         <button id="inv-btn-ammo" onclick="switchInventoryTab('ammo')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🧪 Ammunition</button>
                         <button id="inv-btn-components" onclick="switchInventoryTab('components')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔩 Components</button>
+                        <button id="inv-btn-handloads" onclick="switchInventoryTab('handloads')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🧪 Handloads</button>
                     </div>
                 </div>
                 <span id="inventory-count" class="text-xs bg-gray-800 text-gray-400 font-mono px-2.5 py-1 rounded border border-gray-700 self-start sm:self-auto">0 Assets Logged</span>
@@ -154,7 +155,15 @@
                             <button onclick="setCollectionFilter()" id="btn-filter-sold" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">Sold</button>
                         </div>
                     </div>
-                    <button onclick="window.location.href='/?tab=add-tab&cat=platforms'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
+                    <div class="flex items-center gap-2">
+                        <select id="plat-sort-select" onchange="setPlatformSort(this.value)" class="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none cursor-pointer">
+                            <option value="brand">Brand A–Z</option>
+                            <option value="caliber">Caliber A–Z</option>
+                            <option value="price_asc">Price ↑</option>
+                            <option value="price_desc">Price ↓</option>
+                        </select>
+                        <button id="plat-main-add-btn" onclick="window.location.href='/?tab=add-tab&cat=platforms'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
+                    </div>
                 </div>
 
                 <div id="plat-pane-general">
@@ -168,6 +177,7 @@
                         <div class="flex items-center gap-3 mb-3">
                             <span class="text-xs font-bold uppercase tracking-wider text-amber-500">Receivers</span>
                             <div class="flex-1 border-t border-gray-700/60"></div>
+                            <button onclick="window.location.href='/?tab=add-tab&cat=tc-receiver'" class="px-3 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
                         </div>
                         <div id="tc-receivers-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <p class="text-gray-500 italic text-sm col-span-3">Loading receivers...</p>
@@ -177,6 +187,7 @@
                         <div class="flex items-center gap-3 mb-3">
                             <span class="text-xs font-bold uppercase tracking-wider text-blue-400">Barrels</span>
                             <div class="flex-1 border-t border-gray-700/60"></div>
+                            <button onclick="window.location.href='/?tab=add-tab&cat=tc-barrel'" class="px-3 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
                         </div>
                         <div id="tc-barrels-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <p class="text-gray-500 italic text-sm col-span-3">Loading barrels...</p>
@@ -187,8 +198,13 @@
 
             <!-- Optics pane -->
             <div id="inv-pane-optics" class="hidden mt-4">
-                <div class="flex justify-end mb-4">
-                    <button onclick="window.location.href='/?tab=add-tab&cat=platforms'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
+                <div class="flex items-center justify-between mb-4">
+                    <select id="optic-sort-select" onchange="setOpticSort(this.value)" class="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none cursor-pointer">
+                        <option value="brand">Brand A–Z</option>
+                        <option value="price_asc">Price ↑</option>
+                        <option value="price_desc">Price ↓</option>
+                    </select>
+                    <button onclick="window.location.href='/?tab=add-tab&cat=optics'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
                 </div>
                 <div id="scopes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <p class="text-gray-400 col-span-3 italic">Loading optics...</p>
@@ -197,13 +213,14 @@
 
             <!-- Ammunition pane -->
             <div id="inv-pane-ammo" class="hidden mt-4">
-                <div class="flex items-center justify-between gap-3 mb-4">
+                <div class="flex items-center justify-between gap-3 mb-3">
                     <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
                         <button id="ammo-btn-factory" onclick="switchAmmoFilter('factory')" class="px-3 py-1 rounded bg-gray-800 text-blue-400 cursor-pointer">Factory Loads</button>
-                        <button id="ammo-btn-handload" onclick="switchAmmoFilter('handload')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">Handloads</button>
+                        <button id="ammo-btn-muzzleloader" onclick="switchAmmoFilter('muzzleloader')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">Muzzleloader</button>
                     </div>
                     <button onclick="window.location.href='/?tab=add-tab&cat=ammunition'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
                 </div>
+                <div id="ammo-cat-filter-row" class="hidden flex flex-wrap gap-2 mb-3"></div>
                 <div id="ammo-container">
                     <p class="text-gray-400 italic">Loading ammunition...</p>
                 </div>
@@ -244,17 +261,33 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                    <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
+                        <button id="comp-mode-reloading" onclick="switchComponentMode('reloading')" class="px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer">Reloading</button>
+                        <button id="comp-mode-muzzleloader" onclick="switchComponentMode('muzzleloader')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">Muzzleloader</button>
+                    </div>
+                    <button onclick="window.location.href='/?tab=add-tab&cat=components'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
+                </div>
+                <div class="flex items-center gap-3 mb-4 flex-wrap">
                     <div class="flex flex-wrap bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
                         <button id="comp-btn-powders" onclick="switchComponentFilter('powders')" class="px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer">🧪 Powders</button>
                         <button id="comp-btn-primers" onclick="switchComponentFilter('primers')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔥 Primers</button>
                         <button id="comp-btn-bullets" onclick="switchComponentFilter('bullets')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🎯 Bullets</button>
                         <button id="comp-btn-casings" onclick="switchComponentFilter('casings')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">💊 Casings</button>
                     </div>
-                    <button onclick="window.location.href='/?tab=add-tab&cat=components'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
                 </div>
                 <div id="components-container">
                     <p class="text-gray-400 italic">Loading components...</p>
+                </div>
+            </div>
+
+            <!-- Handloads pane -->
+            <div id="inv-pane-handloads" class="hidden mt-4">
+                <div class="flex justify-end mb-4">
+                    <button onclick="window.location.href='/?tab=add-tab&cat=ammunition'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
+                </div>
+                <div id="handloads-container">
+                    <p class="text-gray-400 italic">Loading handloads...</p>
                 </div>
             </div>
 
@@ -279,7 +312,7 @@
     <datalist id="dl-handload-bullet"></datalist>
     <datalist id="dl-handload-brass"></datalist>
 
-    <script src="/static/app.js?v=17"></script>
+    <script src="/static/app.js?v=50"></script>
     <script>
     window.onload = () => {
         fetchInitialLookupData(); applyPreferences(); loadLandingStats(); initCustomAC();
@@ -290,6 +323,13 @@
         if (p.has('ammofilter')) switchAmmoFilter(p.get('ammofilter'));
         if (p.has('comp')) switchComponentFilter(p.get('comp'));
     };
+    // Re-fetch ammo list when navigating back (browser back button restores stale bfcache state)
+    window.addEventListener('pageshow', (e) => {
+        if (e.persisted) {
+            if (currentInventoryTab === 'ammo') loadAmmoInventory(currentAmmoFilter);
+            if (currentInventoryTab === 'handloads') loadAmmoInventory('handload');
+        }
+    });
     </script>
 </body>
 </html>

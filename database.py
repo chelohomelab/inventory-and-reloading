@@ -34,6 +34,7 @@ class Scope(Base):
     image_path = Column(String, nullable=True)
     image_path_2 = Column(String, nullable=True)
     is_deleted = Column(Boolean, default=False)
+    quantity = Column(Integer, default=1)
 
     firearms = relationship("Firearm", back_populates="scope")
     barrels = relationship("Barrel", back_populates="scope")
@@ -66,6 +67,7 @@ class Firearm(Base):
     brand = Column(String)
     model = Column(String)
     frame_type = Column(String, default="Rifle")
+    serial_number = Column(String, nullable=True)
     price_paid = Column(Float, default=0.0)
     image_path_1 = Column(String, nullable=True)
     image_path_2 = Column(String, nullable=True)
@@ -118,6 +120,7 @@ class CasingInventory(Base):
     notes = Column(String, nullable=True)
     image_path = Column(String, nullable=True)
     image_path_2 = Column(String, nullable=True)
+    upc = Column(String, nullable=True)
 
 class PowderInventory(Base):
     __tablename__ = "powder_inventory"
@@ -129,6 +132,9 @@ class PowderInventory(Base):
     notes = Column(String, nullable=True)
     image_path = Column(String, nullable=True)
     image_path_2 = Column(String, nullable=True)
+    upc = Column(String, nullable=True)
+    is_muzzleloader = Column(Boolean, default=False)
+    pellet_mode = Column(Boolean, default=False)
 
 class PrimerInventory(Base):
     __tablename__ = "primer_inventory"
@@ -141,6 +147,8 @@ class PrimerInventory(Base):
     notes = Column(String, nullable=True)
     image_path = Column(String, nullable=True)
     image_path_2 = Column(String, nullable=True)
+    upc = Column(String, nullable=True)
+    is_muzzleloader = Column(Boolean, default=False)
 
 class BulletInventory(Base):
     __tablename__ = "bullet_inventory"
@@ -153,10 +161,14 @@ class BulletInventory(Base):
     bc_g1 = Column(Float, nullable=True)
     bc_g7 = Column(Float, nullable=True)
     quantity = Column(Integer, default=0)
+    qty_sealed = Column(Integer, default=0)
+    qty_open = Column(Integer, default=0)
     price_paid = Column(Float, default=0.0)       # per box/unit price
     notes = Column(String, nullable=True)
     image_path = Column(String, nullable=True)
     image_path_2 = Column(String, nullable=True)
+    upc = Column(String, nullable=True)
+    is_muzzleloader = Column(Boolean, default=False)
 
 # --- AMMUNITION & PERFORMANCE LOGS ---
 class Ammo(Base):
@@ -171,8 +183,15 @@ class Ammo(Base):
     bullet_bc = Column(Float, nullable=True)
     charge_weight = Column(Float, nullable=True)
     coal = Column(Float, nullable=True)
+    qty_sealed = Column(Integer, default=0)
+    qty_open = Column(Integer, default=0)
+    price_paid = Column(Float, default=0.0)
+    rounds_per_box = Column(Integer, default=20)
     image_path = Column(String, nullable=True)
     image_path_2 = Column(String, nullable=True)
+    ammo_category = Column(String, nullable=True)
+    shell_size = Column(String, nullable=True)
+    upc = Column(String, nullable=True)
 
     shot_strings = relationship("ShotString", back_populates="ammo")
 
@@ -185,6 +204,7 @@ class ShotString(Base):
     
     # Raw data from the chronograph
     velocities = Column(String, nullable=True) # e.g., "3010,2995,3005"
+    rounds_fired = Column(Integer, nullable=True)
     
     # --- NEW: Automated Math Columns ---
     avg_velocity = Column(Float, nullable=True)
@@ -198,6 +218,26 @@ class ShotString(Base):
     
     barrel = relationship("Barrel", back_populates="shot_strings")
     ammo = relationship("Ammo", back_populates="shot_strings")
+
+class UpcCache(Base):
+    __tablename__ = "upc_cache"
+    upc          = Column(String, primary_key=True)
+    title        = Column(String, nullable=True)
+    product_type = Column(String, nullable=True)
+    brand        = Column(String, nullable=True)
+    product_line = Column(String, nullable=True)
+    caliber      = Column(String, nullable=True)
+    weight_gr    = Column(Float,  nullable=True)
+    bullet_type  = Column(String, nullable=True)
+    bc_g1        = Column(Float,  nullable=True)
+    bc_g7        = Column(Float,  nullable=True)
+    rounds_per_box = Column(Integer, nullable=True)
+    primer_type  = Column(String, nullable=True)
+    primer_model = Column(String, nullable=True)
+    powder_name  = Column(String, nullable=True)
+    image_path   = Column(String, nullable=True)
+    updated_at   = Column(String, nullable=True)
+
 
 class LookupValue(Base):
     __tablename__ = "lookup_values"
@@ -256,6 +296,13 @@ def init_db():
     if 'ammo' in inspector.get_table_names():
         _add_col('ammo', 'caliber', 'caliber VARCHAR')
         _add_col('ammo', 'bullet_bc', 'bullet_bc FLOAT')
+        _add_col('ammo', 'qty_sealed', 'qty_sealed INTEGER DEFAULT 0')
+        _add_col('ammo', 'qty_open', 'qty_open INTEGER DEFAULT 0')
+        _add_col('ammo', 'price_paid', 'price_paid FLOAT DEFAULT 0.0')
+        _add_col('ammo', 'rounds_per_box', 'rounds_per_box INTEGER DEFAULT 20')
+        _add_col('ammo', 'ammo_category', 'ammo_category VARCHAR')
+        _add_col('ammo', 'shell_size', 'shell_size VARCHAR')
+        _add_col('ammo', 'upc', 'upc VARCHAR')
 
     for tbl, col in [
         ('casing_inventory', 'image_path'),
@@ -274,6 +321,7 @@ def init_db():
 
     if 'firearms' in inspector.get_table_names():
         _add_col('firearms', 'image_path_2', 'image_path_2 VARCHAR')
+        _add_col('firearms', 'serial_number', 'serial_number VARCHAR')
 
     if 'barrels' in inspector.get_table_names():
         _add_col('barrels', 'tc_platform',    'tc_platform VARCHAR')
@@ -286,9 +334,30 @@ def init_db():
         _add_col('barrels', 'price_sold',     'price_sold FLOAT')
         _add_col('barrels', 'is_deleted',     'is_deleted BOOLEAN DEFAULT FALSE')
 
+    if 'bullet_inventory' in inspector.get_table_names():
+        _add_col('bullet_inventory', 'qty_sealed', 'qty_sealed INTEGER DEFAULT 0')
+        _add_col('bullet_inventory', 'qty_open', 'qty_open INTEGER DEFAULT 0')
+        _add_col('bullet_inventory', 'upc', 'upc VARCHAR')
+        _add_col('bullet_inventory', 'is_muzzleloader', 'is_muzzleloader BOOLEAN DEFAULT FALSE')
+
+    for tbl in ('casing_inventory', 'powder_inventory', 'primer_inventory'):
+        if tbl in inspector.get_table_names():
+            _add_col(tbl, 'upc', 'upc VARCHAR')
+
+    for tbl in ('powder_inventory', 'primer_inventory'):
+        if tbl in inspector.get_table_names():
+            _add_col(tbl, 'is_muzzleloader', 'is_muzzleloader BOOLEAN DEFAULT FALSE')
+
+    if 'powder_inventory' in inspector.get_table_names():
+        _add_col('powder_inventory', 'pellet_mode', 'pellet_mode BOOLEAN DEFAULT FALSE')
+
+    if 'shot_strings' in inspector.get_table_names():
+        _add_col('shot_strings', 'rounds_fired', 'rounds_fired INTEGER')
+
     if 'scopes' in inspector.get_table_names():
         _add_col('scopes', 'magnification', 'magnification VARCHAR')
         _add_col('scopes', 'image_path_2',  'image_path_2 VARCHAR')
+        _add_col('scopes', 'quantity',      'quantity INTEGER DEFAULT 1')
 
     if 'tc_receivers' in inspector.get_table_names():
         _add_col('tc_receivers', 'notes',        'notes VARCHAR')

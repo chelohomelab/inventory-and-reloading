@@ -11,17 +11,11 @@ router = APIRouter()
 
 
 def _scope_dict(s: models.Scope) -> dict:
-    mounted_on = mounted_firearm_id = mounted_barrel_id = mount_type = None
-    if s.firearms:
-        f = s.firearms[0]
-        mounted_on = f"{f.brand} {f.model}"
-        mounted_firearm_id = f.id
-        mount_type = "firearm"
-    elif s.barrels:
-        b = s.barrels[0]
-        mounted_on = f"{b.tc_platform or ''} {b.caliber}".strip()
-        mounted_barrel_id = b.id
-        mount_type = "barrel"
+    mounts = (
+        [{"type": "firearm", "id": f.id, "label": f"{f.brand} {f.model}"} for f in s.firearms] +
+        [{"type": "barrel",  "id": b.id, "label": f"{b.tc_platform or ''} {b.caliber}".strip()} for b in s.barrels]
+    )
+    first = mounts[0] if mounts else None
     return {
         "id": s.id,
         "brand": s.brand,
@@ -31,10 +25,13 @@ def _scope_dict(s: models.Scope) -> dict:
         "price_paid": s.price_paid,
         "image_path": s.image_path,
         "image_path_2": s.image_path_2,
-        "mounted_on": mounted_on,
-        "mounted_firearm_id": mounted_firearm_id,
-        "mounted_barrel_id": mounted_barrel_id,
-        "mount_type": mount_type,
+        "quantity": getattr(s, "quantity", 1) or 1,
+        "mounts": mounts,
+        # backward-compat fields kept for existing mount editor
+        "mounted_on": first["label"] if first else None,
+        "mounted_firearm_id": first["id"] if first and first["type"] == "firearm" else None,
+        "mounted_barrel_id":  first["id"] if first and first["type"] == "barrel"  else None,
+        "mount_type": first["type"] if first else None,
     }
 
 
@@ -84,6 +81,7 @@ async def create_scope(
     model: str = Form(...),
     magnification: str = Form(None),
     units: str = Form("MOA"),
+    quantity: int = Form(1),
     price: float = Form(0.0),
     image: UploadFile = File(None),
     image_2: UploadFile = File(None),
@@ -92,7 +90,8 @@ async def create_scope(
     img_path = await save_uploaded_file(image, "scope")
     img_path_2 = await save_uploaded_file(image_2, "scope")
     s = models.Scope(brand=brand, model=model, magnification=magnification or None,
-                     units=units, price_paid=price, image_path=img_path, image_path_2=img_path_2)
+                     units=units, quantity=max(1, quantity), price_paid=price,
+                     image_path=img_path, image_path_2=img_path_2)
     db.add(s)
     db.commit()
     db.refresh(s)
@@ -114,6 +113,8 @@ def patch_scope(scope_id: int, payload: ScopePatchPayload, db: Session = Depends
         s.units = payload.units
     if payload.price_paid is not None:
         s.price_paid = payload.price_paid
+    if payload.quantity is not None:
+        s.quantity = max(1, payload.quantity)
     db.commit()
     return _scope_dict(_load_scope(scope_id, db))
 
@@ -170,6 +171,44 @@ def get_available_mounts(for_scope_id: int = None, db: Session = Depends(get_db)
         "firearms": [{"id": f.id, "label": f"{f.brand} {f.model}", "type": "firearm"} for f in firearms],
         "tc_barrels": [{"id": b.id, "label": f"{b.tc_platform} {b.caliber}", "type": "barrel"} for b in tc_barrels],
     }
+
+
+@router.patch("/scopes/{scope_id}/add-mount")
+def add_scope_mount(scope_id: int, payload: ScopeMountPayload, db: Session = Depends(get_db)):
+    scope = _load_scope(scope_id, db)
+    if not scope:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    qty = getattr(scope, "quantity", 1) or 1
+    if len(scope.firearms) + len(scope.barrels) >= qty:
+        raise HTTPException(status_code=400, detail="All scope slots are already occupied")
+    if payload.mount_type == "firearm" and payload.mount_id:
+        gun = db.query(models.Firearm).filter(models.Firearm.id == payload.mount_id).first()
+        if not gun:
+            raise HTTPException(status_code=404, detail="Firearm not found")
+        gun.scope_id = scope_id
+    elif payload.mount_type == "barrel" and payload.mount_id:
+        barrel = db.query(models.Barrel).filter(models.Barrel.id == payload.mount_id).first()
+        if not barrel:
+            raise HTTPException(status_code=404, detail="Barrel not found")
+        barrel.scope_id = scope_id
+    db.commit()
+    return _scope_dict(_load_scope(scope_id, db))
+
+
+@router.patch("/scopes/{scope_id}/remove-mount")
+def remove_scope_mount(scope_id: int, payload: ScopeMountPayload, db: Session = Depends(get_db)):
+    if payload.mount_type == "firearm" and payload.mount_id:
+        db.query(models.Firearm).filter(
+            models.Firearm.id == payload.mount_id,
+            models.Firearm.scope_id == scope_id,
+        ).update({"scope_id": None})
+    elif payload.mount_type == "barrel" and payload.mount_id:
+        db.query(models.Barrel).filter(
+            models.Barrel.id == payload.mount_id,
+            models.Barrel.scope_id == scope_id,
+        ).update({"scope_id": None})
+    db.commit()
+    return _scope_dict(_load_scope(scope_id, db))
 
 
 @router.patch("/scopes/{scope_id}/mount")

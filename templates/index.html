@@ -252,7 +252,7 @@
                             <input type="text" name="model" id="rifle-model-input" data-ac="dl-firearm-model" oninput="handleBrandOrModelChange()" required autocomplete="off" placeholder="e.g., T3x, 110, 10/22" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Caliber</label>
                             <input type="text" name="caliber" data-ac="dl-caliber" required autocomplete="off" placeholder="e.g., 6.5 Creedmoor, .308 Win" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
@@ -261,22 +261,24 @@
                             <label class="block text-xs text-gray-400 mb-1">Twist Rate</label>
                             <input type="text" name="twist_rate" placeholder='e.g., 1:10"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">Scope Installed</label>
-                            <select name="scope_optic" id="rifle-optic-select" onchange="handleDynamicDropdown(this, 'optics')" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
-                                <option value="None">None</option>
-                                <option value="ADD_NEW" class="text-amber-400 font-bold">+ Add New Scope...</option>
-                            </select>
-                        </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Acquisition Price ($)</label>
                             <input type="number" step="0.01" name="price" placeholder="750.00" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
+                            <label class="block text-xs text-gray-400 mb-1">Serial Number (optional)</label>
+                            <input type="text" name="serial_number" placeholder="e.g., ABC123456" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
                             <label class="block text-xs text-gray-400 mb-1">Photo</label>
-                            <input type="file" name="image_1" accept="image/*" class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-amber-500 file:py-1 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
+                            <div class="flex gap-2 mb-1">
+                                <button type="button" onclick="document.getElementById('img-rifle-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
+                                <button type="button" onclick="document.getElementById('img-rifle-gal').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
+                            </div>
+                            <input type="file" name="image_1" accept="image/*" id="img-rifle-gal" class="hidden">
+                            <input type="file" accept="image/*" capture="environment" id="img-rifle-cam" onchange="_camToInput('img-rifle-cam','img-rifle-gal')" class="hidden">
                         </div>
                     </div>
                     <button type="submit" class="w-full bg-amber-600 text-white font-bold py-2.5 rounded text-sm hover:bg-amber-500 transition shadow-md cursor-pointer">Register Rifle</button>
@@ -304,14 +306,23 @@
                             <input type="text" name="twist_rate" placeholder='e.g., 3", 3.5"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Acquisition Price ($)</label>
                             <input type="number" step="0.01" name="price" placeholder="650.00" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
+                            <label class="block text-xs text-gray-400 mb-1">Serial Number (optional)</label>
+                            <input type="text" name="serial_number" placeholder="e.g., ABC123456" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
                             <label class="block text-xs text-gray-400 mb-1">Photo</label>
-                            <input type="file" name="image_1" accept="image/*" class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-amber-500 file:py-1 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
+                            <div class="flex gap-2 mb-1">
+                                <button type="button" onclick="document.getElementById('img-shotgun-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
+                                <button type="button" onclick="document.getElementById('img-shotgun-gal').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
+                            </div>
+                            <input type="file" name="image_1" accept="image/*" id="img-shotgun-gal" class="hidden">
+                            <input type="file" accept="image/*" capture="environment" id="img-shotgun-cam" onchange="_camToInput('img-shotgun-cam','img-shotgun-gal')" class="hidden">
                         </div>
                     </div>
                     <button type="submit" class="w-full bg-amber-600 text-white font-bold py-2.5 rounded text-sm hover:bg-amber-500 transition shadow-md cursor-pointer">Register Shotgun</button>
@@ -339,14 +350,23 @@
                             <input type="text" name="twist_rate" placeholder='e.g., 4.5"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Acquisition Price ($)</label>
                             <input type="number" step="0.01" name="price" placeholder="500.00" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
+                            <label class="block text-xs text-gray-400 mb-1">Serial Number (optional)</label>
+                            <input type="text" name="serial_number" placeholder="e.g., ABC123456" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
                             <label class="block text-xs text-gray-400 mb-1">Photo</label>
-                            <input type="file" name="image_1" accept="image/*" class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-amber-500 file:py-1 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
+                            <div class="flex gap-2 mb-1">
+                                <button type="button" onclick="document.getElementById('img-handgun-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
+                                <button type="button" onclick="document.getElementById('img-handgun-gal').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
+                            </div>
+                            <input type="file" name="image_1" accept="image/*" id="img-handgun-gal" class="hidden">
+                            <input type="file" accept="image/*" capture="environment" id="img-handgun-cam" onchange="_camToInput('img-handgun-cam','img-handgun-gal')" class="hidden">
                         </div>
                     </div>
                     <button type="submit" class="w-full bg-amber-600 text-white font-bold py-2.5 rounded text-sm hover:bg-amber-500 transition shadow-md cursor-pointer">Register Handgun</button>
@@ -374,7 +394,12 @@
                     </div>
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Photo</label>
-                        <input type="file" name="image" accept="image/*" class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-amber-400 file:py-1 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
+                        <div class="flex gap-2 mb-1">
+                            <button type="button" onclick="document.getElementById('img-tcrx-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
+                            <button type="button" onclick="document.getElementById('img-tcrx-gal').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
+                        </div>
+                        <input type="file" name="image" accept="image/*" id="img-tcrx-gal" class="hidden">
+                        <input type="file" accept="image/*" capture="environment" id="img-tcrx-cam" onchange="_camToInput('img-tcrx-cam','img-tcrx-gal')" class="hidden">
                     </div>
                     <button type="submit" class="w-full bg-amber-600 text-white font-bold py-2.5 rounded text-sm hover:bg-amber-500 transition shadow-md cursor-pointer">Register TC Receiver</button>
                 </form>
@@ -430,7 +455,12 @@
                         </div>
                         <div class="col-span-2">
                             <label class="block text-xs text-gray-400 mb-1">Photo</label>
-                            <input type="file" name="image" accept="image/*" class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-1 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
+                            <div class="flex gap-2 mb-1">
+                                <button type="button" onclick="document.getElementById('img-tcbar-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
+                                <button type="button" onclick="document.getElementById('img-tcbar-gal').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
+                            </div>
+                            <input type="file" name="image" accept="image/*" id="img-tcbar-gal" class="hidden">
+                            <input type="file" accept="image/*" capture="environment" id="img-tcbar-cam" onchange="_camToInput('img-tcbar-cam','img-tcbar-gal')" class="hidden">
                         </div>
                     </div>
                     <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded text-sm hover:bg-blue-500 transition shadow-md cursor-pointer">Register TC Barrel</button>
@@ -449,22 +479,35 @@
                             <input type="text" name="model" data-ac="dl-scope-model" autocomplete="off" placeholder="e.g., Viper HST 4-16x44" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
+                            <label class="block text-xs text-gray-400 mb-1">Magnification</label>
+                            <input type="text" name="magnification" placeholder="e.g., 4-16x44, 1-6x24" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
                             <label class="block text-xs text-gray-400 mb-1">Adjustment Units</label>
                             <select name="units" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                                 <option value="MOA">MOA</option>
                                 <option value="MRAD">MRAD</option>
                             </select>
                         </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Quantity</label>
+                            <input type="number" name="quantity" min="1" value="1" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Acquisition Price ($)</label>
                             <input type="number" step="0.01" name="price" placeholder="500.00" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">Photo</label>
-                            <input type="file" name="image" accept="image/*" class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-1 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Photo</label>
+                        <div class="flex gap-2 mb-1">
+                            <button type="button" onclick="document.getElementById('img-scope-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
+                            <button type="button" onclick="document.getElementById('img-scope-gal').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
                         </div>
+                        <input type="file" name="image" accept="image/*" id="img-scope-gal" class="hidden">
+                        <input type="file" accept="image/*" capture="environment" id="img-scope-cam" onchange="_camToInput('img-scope-cam','img-scope-gal')" class="hidden">
                     </div>
                     <!-- Optional: mount immediately on add -->
                     <div class="bg-gray-900/50 border border-gray-700 rounded-lg p-3 space-y-2">
@@ -490,40 +533,94 @@
                 </div>
 
                 <form id="ammo-factory-form" class="ammo-variant-form bg-gray-800 p-6 rounded-lg border border-gray-700 space-y-4 shadow-xl">
-                    <h3 class="text-sm font-bold uppercase tracking-wider text-blue-400">Log Factory Production Cartridges</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-blue-400">Log Factory Production Cartridges</h3>
+                        <button type="button" onclick="openBarcodeScanner('ammo-factory')" class="flex items-center gap-1.5 px-3 py-1.5 rounded bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition cursor-pointer">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                            Scan Barcode
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Ammo Type</label>
+                            <select name="ammo_category" id="ammo-factory-cat" onchange="_toggleFactoryAmmoFields(this.value)" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                                <option value="">Select type…</option>
+                                <option value="centerfire">Centerfire (Rifle)</option>
+                                <option value="handgun">Handgun / Pistol</option>
+                                <option value="rimfire">Rimfire</option>
+                                <option value="shotgun">Shotgun</option>
+                                <option value="shotgun_slug">Shotgun Slug</option>
+                                <option value="muzzleloader">Muzzleloader</option>
+                            </select>
+                        </div>
+                        <div id="ammo-factory-upc-row" class="hidden">
+                            <label class="block text-xs text-gray-400 mb-1">Scanned UPC <span class="text-gray-600">(saved)</span></label>
+                            <input type="text" id="ammo-factory-upc-display" readonly class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm text-gray-400 font-mono cursor-not-allowed">
+                        </div>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Ammunition Manufacturer</label>
-                            <input type="text" name="brand" data-ac="dl-ammo-brand" autocomplete="off" required placeholder="e.g., Federal, Hornady, Winchester" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            <input type="text" name="brand" id="ammo-factory-brand" data-ac="dl-ammo-brand" autocomplete="off" required placeholder="e.g., Federal, Hornady, Winchester" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Product Model Name</label>
-                            <input type="text" name="ammo_model" placeholder="e.g., Power-Point, Superformance" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            <input type="text" name="ammo_model" id="ammo-factory-model" placeholder="e.g., Power-Point, Superformance" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Caliber Designation</label>
-                            <input type="text" name="caliber" data-ac="dl-caliber" autocomplete="off" required placeholder="e.g., 6.5 Creedmoor, .308 Win" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            <input type="text" name="caliber" id="ammo-factory-caliber" data-ac="dl-caliber" autocomplete="off" required placeholder="e.g., 6.5 Creedmoor, .308 Win" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
+                        <div id="ammo-factory-bullet-type-row">
                             <label class="block text-xs text-gray-400 mb-1">Bullet Projectile Form Factor</label>
-                            <input type="text" name="bullet_type" placeholder="e.g., Soft Point, ELD-M" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            <input type="text" name="bullet_type" id="ammo-factory-bullet-type" placeholder="e.g., Soft Point, ELD-M" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
-                        <div>
+                        <div id="ammo-factory-weight-row">
                             <label class="block text-xs text-gray-400 mb-1">Bullet Weight (Grains)</label>
-                            <input type="number" step="0.1" name="bullet_weight" placeholder="e.g., 150" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            <input type="number" step="0.1" name="bullet_weight" id="ammo-factory-weight" placeholder="e.g., 150" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div id="ammo-factory-bc-row">
+                            <label class="block text-xs text-gray-400 mb-1">Ballistic Coefficient (G1 BC)</label>
+                            <input type="number" step="0.001" name="bullet_bc" id="ammo-factory-bc" placeholder="e.g., 0.415" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div id="ammo-factory-shell-row" class="hidden">
+                            <label class="block text-xs text-gray-400 mb-1">Shell Length (inches)</label>
+                            <select name="shell_size" id="ammo-factory-shell" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                                <option value="">Select length…</option>
+                                <option value="2-3/4">2-3/4"</option>
+                                <option value="3">3"</option>
+                                <option value="3-1/2">3-1/2"</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Sealed Boxes</label>
+                            <input type="number" min="0" name="qty_sealed" id="ammo-factory-qty-sealed" placeholder="e.g., 5" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Ballistic Coefficient (BC Value)</label>
-                            <input type="number" step="0.001" name="bullet_bc" placeholder="e.g., 0.415" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            <label class="block text-xs text-gray-400 mb-1">Rounds/Box</label>
+                            <input type="number" min="1" name="rounds_per_box" id="ammo-factory-rpb" placeholder="e.g., 20" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Open Box (rounds)</label>
+                            <input type="number" min="0" name="qty_open" id="ammo-factory-qty-open" placeholder="e.g., 14" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Price Per Box ($)</label>
+                            <input type="number" step="0.01" min="0" name="price_paid" id="ammo-factory-price" placeholder="e.g., 29.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div class="border-t border-gray-700 pt-3">
-                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional — select up to 2 at once)</span></label>
-                        <input type="file" multiple accept="image/*" id="pw-ammo-factory-input"
-                               onchange="handlePhotoWidget('pw-ammo-factory')"
-                               class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-1.5 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
+                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
+                        <div class="flex gap-2 mb-1.5">
+                            <button type="button" onclick="document.getElementById('pw-ammo-factory-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
+                            <button type="button" onclick="document.getElementById('pw-ammo-factory-input').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
+                        </div>
+                        <input type="file" multiple accept="image/*" id="pw-ammo-factory-input" onchange="handlePhotoWidget('pw-ammo-factory')" class="hidden">
+                        <input type="file" accept="image/*" capture="environment" id="pw-ammo-factory-cam" onchange="handlePWCamera('pw-ammo-factory')" class="hidden">
                         <div id="pw-ammo-factory-preview" class="hidden flex gap-3 mt-2 flex-wrap"></div>
                     </div>
                     <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded text-sm hover:bg-blue-500 transition shadow-md cursor-pointer">Register Commercial Loadout</button>
@@ -630,10 +727,13 @@
                     </div>
 
                     <div class="border-t border-gray-700 pt-3">
-                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional — select up to 2 at once)</span></label>
-                        <input type="file" multiple accept="image/*" id="pw-ammo-handload-input"
-                               onchange="handlePhotoWidget('pw-ammo-handload')"
-                               class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-emerald-400 file:py-1.5 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
+                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
+                        <div class="flex gap-2 mb-1.5">
+                            <button type="button" onclick="document.getElementById('pw-ammo-handload-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
+                            <button type="button" onclick="document.getElementById('pw-ammo-handload-input').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
+                        </div>
+                        <input type="file" multiple accept="image/*" id="pw-ammo-handload-input" onchange="handlePhotoWidget('pw-ammo-handload')" class="hidden">
+                        <input type="file" accept="image/*" capture="environment" id="pw-ammo-handload-cam" onchange="handlePWCamera('pw-ammo-handload')" class="hidden">
                         <div id="pw-ammo-handload-preview" class="hidden flex gap-3 mt-2 flex-wrap"></div>
                     </div>
                     <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded text-sm hover:bg-emerald-500 transition shadow-md cursor-pointer">Commit Recipe to Bench Vault</button>
@@ -651,33 +751,45 @@
 
                 <!-- Powder form -->
                 <form id="powder-form" class="add-component-form bg-gray-800 p-6 rounded-lg border border-emerald-500/30 space-y-4 shadow-xl">
-                    <h3 class="text-sm font-bold uppercase tracking-wider text-emerald-400">🧪 Log Powder Inventory</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-emerald-400">🧪 Log Powder Inventory</h3>
+                        <button type="button" onclick="openBarcodeScanner('powder')" class="flex items-center gap-1.5 px-3 py-1.5 rounded bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition cursor-pointer">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                            Scan Barcode
+                        </button>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Brand</label>
-                            <input type="text" name="brand" data-ac="dl-powder-brand" autocomplete="off" placeholder="e.g., Hodgdon, Alliant, Vihtavuori" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            <input type="text" name="brand" id="powder-brand" data-ac="dl-powder-brand" autocomplete="off" placeholder="e.g., Hodgdon, Alliant, Vihtavuori" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Product Name</label>
-                            <input type="text" name="name" data-ac="dl-powder-name" autocomplete="off" placeholder="e.g., H4350, Varget, N165" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            <input type="text" name="name" id="powder-name" data-ac="dl-powder-name" autocomplete="off" placeholder="e.g., H4350, Varget, N165" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
-                        <div>
+                        <!-- Container fields (hidden when muzzleloader) -->
+                        <div id="pw-container-size-col">
                             <label class="block text-xs text-gray-400 mb-1">Container Size</label>
                             <select id="pw-container-size" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                                 <option value="1">1 lb</option>
                                 <option value="8">8 lb</option>
                             </select>
                         </div>
-                        <div>
+                        <div id="pw-container-count-col">
                             <label class="block text-xs text-gray-400 mb-1"># Containers</label>
                             <input type="number" step="1" min="1" id="pw-container-count" placeholder="e.g., 2" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                        </div>
+                        <!-- Quantity (shown only when muzzleloader: pellets/firesticks) -->
+                        <div id="pw-direct-weight-col" class="hidden md:col-span-2">
+                            <label class="block text-xs text-gray-400 mb-1">Quantity on Hand</label>
+                            <input type="number" step="1" min="0" id="pw-direct-weight" placeholder="e.g., 50, 100 (count)" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                     </div>
                     <input type="hidden" name="weight_lbs" id="pw-weight-lbs-hidden">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Price Paid ($)</label>
-                            <input type="number" step="0.01" name="price" placeholder="e.g., 32.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            <input type="number" step="0.01" name="price" id="powder-price" placeholder="e.g., 32.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Notes</label>
@@ -685,30 +797,55 @@
                         </div>
                     </div>
                     <div class="border-t border-gray-700 pt-3">
-                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional — select up to 2 at once)</span></label>
-                        <input type="file" multiple accept="image/*" id="pw-powder-input"
-                               onchange="handlePhotoWidget('pw-powder')"
-                               class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-emerald-400 file:py-1.5 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
+                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
+                        <div class="flex gap-2 mb-1.5">
+                            <button type="button" onclick="document.getElementById('pw-powder-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
+                            <button type="button" onclick="document.getElementById('pw-powder-input').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
+                        </div>
+                        <input type="file" multiple accept="image/*" id="pw-powder-input" onchange="handlePhotoWidget('pw-powder')" class="hidden">
+                        <input type="file" accept="image/*" capture="environment" id="pw-powder-cam" onchange="handlePWCamera('pw-powder')" class="hidden">
                         <div id="pw-powder-preview" class="hidden flex gap-3 mt-2 flex-wrap"></div>
+                    </div>
+                    <div class="flex items-center gap-2 pt-1">
+                        <input type="checkbox" name="is_muzzleloader" id="powder-is-muzzleloader" value="true" onchange="_togglePowderMuzzleloaderFields(this.checked)" class="w-4 h-4 rounded bg-gray-700 border-gray-600 cursor-pointer accent-amber-500">
+                        <label for="powder-is-muzzleloader" class="text-xs text-gray-400 cursor-pointer">Muzzleloader propellant (show in Muzzleloader section)</label>
+                    </div>
+                    <!-- Pellet mode selector — shown only when muzzleloader is checked -->
+                    <div id="pw-pellet-mode-row" class="hidden flex items-center gap-4 pl-6">
+                        <input type="hidden" name="pellet_mode" id="pw-pellet-mode-hidden" value="false">
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="radio" name="pw-mode-radio" value="lbs" checked onchange="_setPowderMode(this.value)" class="accent-emerald-500 cursor-pointer">
+                            <span class="text-xs text-gray-300">Weight (lbs) — loose powder</span>
+                        </label>
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="radio" name="pw-mode-radio" value="qty" onchange="_setPowderMode(this.value)" class="accent-blue-400 cursor-pointer">
+                            <span class="text-xs text-gray-300">Count (qty) — pellets / firesticks</span>
+                        </label>
                     </div>
                     <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded text-sm hover:bg-emerald-500 transition shadow-md cursor-pointer">Log Powder</button>
                 </form>
 
                 <!-- Primer form -->
                 <form id="primer-form" class="add-component-form hidden bg-gray-800 p-6 rounded-lg border border-orange-500/30 space-y-4 shadow-xl">
-                    <h3 class="text-sm font-bold uppercase tracking-wider text-orange-400">🔥 Log Primer Inventory</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-orange-400">🔥 Log Primer Inventory</h3>
+                        <button type="button" onclick="openBarcodeScanner('primer')" class="flex items-center gap-1.5 px-3 py-1.5 rounded bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition cursor-pointer">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                            Scan Barcode
+                        </button>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Brand</label>
-                            <input type="text" name="brand" data-ac="dl-primer-brand" autocomplete="off" placeholder="e.g., Federal, CCI, Winchester" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            <input type="text" name="brand" id="primer-brand" data-ac="dl-primer-brand" autocomplete="off" placeholder="e.g., Federal, CCI, Winchester" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Model</label>
-                            <input type="text" name="model" autocomplete="off" placeholder="e.g., 210M, BR2, 41" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            <input type="text" name="model" id="primer-model" autocomplete="off" placeholder="e.g., 210M, BR2, 41" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Primer Type</label>
-                            <select name="primer_type" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            <select name="primer_type" id="primer-type" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                                 <option value="">-- Select Type --</option>
                                 <option>Large Rifle</option>
                                 <option>Large Rifle Magnum</option>
@@ -718,17 +855,18 @@
                                 <option>Large Pistol Magnum</option>
                                 <option>Small Pistol</option>
                                 <option>Small Pistol Magnum</option>
+                                <option>Shotshell</option>
                             </select>
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Quantity on Hand</label>
-                            <input type="number" name="quantity" placeholder="e.g., 1000" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            <input type="number" name="quantity" id="primer-quantity" placeholder="e.g., 1000" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Price per 1000 ($)</label>
-                            <input type="number" step="0.01" name="price" placeholder="e.g., 89.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            <input type="number" step="0.01" name="price" id="primer-price" placeholder="e.g., 89.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Notes</label>
@@ -736,89 +874,123 @@
                         </div>
                     </div>
                     <div class="border-t border-gray-700 pt-3">
-                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional — select up to 2 at once)</span></label>
-                        <input type="file" multiple accept="image/*" id="pw-primer-input"
-                               onchange="handlePhotoWidget('pw-primer')"
-                               class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-orange-400 file:py-1.5 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
+                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
+                        <div class="flex gap-2 mb-1.5">
+                            <button type="button" onclick="document.getElementById('pw-primer-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
+                            <button type="button" onclick="document.getElementById('pw-primer-input').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
+                        </div>
+                        <input type="file" multiple accept="image/*" id="pw-primer-input" onchange="handlePhotoWidget('pw-primer')" class="hidden">
+                        <input type="file" accept="image/*" capture="environment" id="pw-primer-cam" onchange="handlePWCamera('pw-primer')" class="hidden">
                         <div id="pw-primer-preview" class="hidden flex gap-3 mt-2 flex-wrap"></div>
+                    </div>
+                    <div class="flex items-center gap-2 pt-1">
+                        <input type="checkbox" name="is_muzzleloader" id="primer-is-muzzleloader" value="true" class="w-4 h-4 rounded bg-gray-700 border-gray-600 cursor-pointer accent-amber-500">
+                        <label for="primer-is-muzzleloader" class="text-xs text-gray-400 cursor-pointer">Muzzleloader primer (show in Muzzleloader section)</label>
                     </div>
                     <button type="submit" class="w-full bg-orange-600 text-white font-bold py-2.5 rounded text-sm hover:bg-orange-500 transition shadow-md cursor-pointer">Log Primers</button>
                 </form>
 
                 <!-- Bullet component form -->
                 <form id="bullet-comp-form" class="add-component-form hidden bg-gray-800 p-6 rounded-lg border border-blue-500/30 space-y-4 shadow-xl">
-                    <h3 class="text-sm font-bold uppercase tracking-wider text-blue-400">🎯 Log Bullet Inventory</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-blue-400">🎯 Log Bullet Inventory</h3>
+                        <button type="button" onclick="openBarcodeScanner('bullet-comp')" class="flex items-center gap-1.5 px-3 py-1.5 rounded bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition cursor-pointer">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                            Scan Barcode
+                        </button>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Brand</label>
-                            <input type="text" name="brand" data-ac="dl-bullet-brand" autocomplete="off" placeholder="e.g., Hornady, Sierra, Berger" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            <input type="text" name="brand" id="bullet-comp-brand" data-ac="dl-bullet-brand" autocomplete="off" placeholder="e.g., Hornady, Sierra, Berger" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Product Line</label>
-                            <input type="text" name="product_line" data-ac="dl-bullet-product-line" autocomplete="off" placeholder="e.g., ELD-M, MatchKing, Hybrid" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            <input type="text" name="product_line" id="bullet-comp-product-line" data-ac="dl-bullet-product-line" autocomplete="off" placeholder="e.g., ELD-M, MatchKing, Hybrid" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Caliber</label>
-                            <input type="text" name="caliber" data-ac="dl-caliber" autocomplete="off" required placeholder="e.g., .264 cal / 6.5mm" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            <input type="text" name="caliber" id="bullet-comp-caliber" data-ac="dl-caliber" autocomplete="off" required placeholder="e.g., .264 cal / 6.5mm" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Weight (grains)</label>
-                            <input type="number" step="0.1" name="weight_gr" placeholder="e.g., 140" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            <input type="number" step="0.1" name="weight_gr" id="bullet-comp-weight" placeholder="e.g., 140" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Bullet Type</label>
-                            <input type="text" name="bullet_type" placeholder="e.g., BTHP, Hybrid, FMJ" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            <input type="text" name="bullet_type" id="bullet-comp-bullet-type" placeholder="e.g., BTHP, Hybrid, FMJ" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Quantity on Hand</label>
-                            <input type="number" name="quantity" placeholder="e.g., 500" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            <label class="block text-xs text-gray-400 mb-1">Total Count</label>
+                            <input type="number" name="quantity" id="bullet-comp-quantity" placeholder="e.g., 500" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">G1 BC</label>
-                            <input type="number" step="0.001" name="bc_g1" placeholder="e.g., 0.620" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            <input type="number" step="0.001" name="bc_g1" id="bullet-comp-bc-g1" placeholder="e.g., 0.620" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">G7 BC</label>
-                            <input type="number" step="0.001" name="bc_g7" placeholder="e.g., 0.310" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            <input type="number" step="0.001" name="bc_g7" id="bullet-comp-bc-g7" placeholder="e.g., 0.310" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Sealed Boxes</label>
+                            <input type="number" min="0" name="qty_sealed" id="bullet-comp-qty-sealed" placeholder="e.g., 3" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Open Box (rounds)</label>
+                            <input type="number" min="0" name="qty_open" id="bullet-comp-qty-open" placeholder="e.g., 47" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Price per Box ($)</label>
-                            <input type="number" step="0.01" name="price" placeholder="e.g., 42.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">Notes</label>
-                            <input type="text" name="notes" placeholder="Optional notes" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            <input type="number" step="0.01" name="price" id="bullet-comp-price" placeholder="e.g., 42.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Notes</label>
+                        <input type="text" name="notes" placeholder="Optional notes" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                    </div>
                     <div class="border-t border-gray-700 pt-3">
-                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional — select up to 2 at once)</span></label>
-                        <input type="file" multiple accept="image/*" id="pw-bullet-input"
-                               onchange="handlePhotoWidget('pw-bullet')"
-                               class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-blue-400 file:py-1.5 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
+                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
+                        <div class="flex gap-2 mb-1.5">
+                            <button type="button" onclick="document.getElementById('pw-bullet-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
+                            <button type="button" onclick="document.getElementById('pw-bullet-input').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
+                        </div>
+                        <input type="file" multiple accept="image/*" id="pw-bullet-input" onchange="handlePhotoWidget('pw-bullet')" class="hidden">
+                        <input type="file" accept="image/*" capture="environment" id="pw-bullet-cam" onchange="handlePWCamera('pw-bullet')" class="hidden">
                         <div id="pw-bullet-preview" class="hidden flex gap-3 mt-2 flex-wrap"></div>
+                    </div>
+                    <div class="flex items-center gap-2 pt-1">
+                        <input type="checkbox" name="is_muzzleloader" id="bullet-comp-is-muzzleloader" value="true" class="w-4 h-4 rounded bg-gray-700 border-gray-600 cursor-pointer accent-amber-500">
+                        <label for="bullet-comp-is-muzzleloader" class="text-xs text-gray-400 cursor-pointer">Muzzleloader bullet / sabot (show in Muzzleloader section)</label>
                     </div>
                     <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded text-sm hover:bg-blue-500 transition shadow-md cursor-pointer">Log Bullets</button>
                 </form>
 
                 <!-- Casing form -->
                 <form id="casing-form" class="add-component-form hidden bg-gray-800 p-6 rounded-lg border border-purple-500/30 space-y-4 shadow-xl">
-                    <h3 class="text-sm font-bold uppercase tracking-wider text-purple-400">💊 Log Casing Inventory</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-purple-400">💊 Log Casing Inventory</h3>
+                        <button type="button" onclick="openBarcodeScanner('casing')" class="flex items-center gap-1.5 px-3 py-1.5 rounded bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition cursor-pointer">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                            Scan Barcode
+                        </button>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Brand</label>
-                            <input type="text" name="brand" data-ac="dl-casing-brand" autocomplete="off" placeholder="e.g., Lapua, Starline, Federal" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            <input type="text" name="brand" id="casing-brand" data-ac="dl-casing-brand" autocomplete="off" placeholder="e.g., Lapua, Starline, Federal" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Caliber</label>
-                            <input type="text" name="caliber" data-ac="dl-caliber" autocomplete="off" required placeholder="e.g., 6.5 Creedmoor" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            <input type="text" name="caliber" id="casing-caliber" data-ac="dl-caliber" autocomplete="off" required placeholder="e.g., 6.5 Creedmoor" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Quantity on Hand</label>
-                            <input type="number" name="quantity" placeholder="e.g., 100" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            <input type="number" name="quantity" id="casing-quantity" placeholder="e.g., 100" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -835,7 +1007,7 @@
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Price Paid per Lot ($)</label>
-                            <input type="number" step="0.01" name="price" placeholder="e.g., 55.00" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
+                            <input type="number" step="0.01" name="price" id="casing-price" placeholder="e.g., 55.00" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Notes</label>
@@ -843,10 +1015,13 @@
                         </div>
                     </div>
                     <div class="border-t border-gray-700 pt-3">
-                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional — select up to 2 at once)</span></label>
-                        <input type="file" multiple accept="image/*" id="pw-casing-input"
-                               onchange="handlePhotoWidget('pw-casing')"
-                               class="w-full text-xs text-gray-400 file:bg-gray-700 file:text-purple-400 file:py-1.5 file:px-3 file:rounded file:border-0 file:mr-2 cursor-pointer">
+                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
+                        <div class="flex gap-2 mb-1.5">
+                            <button type="button" onclick="document.getElementById('pw-casing-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
+                            <button type="button" onclick="document.getElementById('pw-casing-input').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
+                        </div>
+                        <input type="file" multiple accept="image/*" id="pw-casing-input" onchange="handlePhotoWidget('pw-casing')" class="hidden">
+                        <input type="file" accept="image/*" capture="environment" id="pw-casing-cam" onchange="handlePWCamera('pw-casing')" class="hidden">
                         <div id="pw-casing-preview" class="hidden flex gap-3 mt-2 flex-wrap"></div>
                     </div>
                     <button type="submit" class="w-full bg-purple-600 text-white font-bold py-2.5 rounded text-sm hover:bg-purple-500 transition shadow-md cursor-pointer">Log Casings</button>
@@ -856,6 +1031,37 @@
 
     </main>
     </div><!-- /right content area -->
+
+    <!-- Barcode Scanner Modal -->
+    <div id="barcode-modal" class="hidden fixed inset-0 z-[250] flex items-center justify-center bg-black/90 backdrop-blur-sm">
+        <div class="bg-gray-900 border border-amber-600/40 rounded-xl shadow-2xl p-5 w-full max-w-sm mx-4 space-y-3">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-amber-500">Scan Barcode</h3>
+                    <p id="barcode-subtitle" class="text-[11px] text-gray-400 mt-0.5">Point camera at barcode</p>
+                </div>
+                <button onclick="closeBarcodeScanner()" class="text-gray-500 hover:text-gray-300 text-lg leading-none cursor-pointer">✕</button>
+            </div>
+
+            <!-- Live video view (HTTPS only) -->
+            <div id="barcode-video-wrap" class="hidden relative bg-black rounded overflow-hidden" style="aspect-ratio:1;">
+                <video id="barcode-video" class="w-full h-full object-cover" autoplay muted playsinline></video>
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div class="border-2 border-amber-500/70 rounded" style="width:70%;height:35%;"></div>
+                </div>
+            </div>
+
+            <div id="barcode-status" class="text-xs text-center text-gray-400"></div>
+            <div class="space-y-2">
+                <p class="text-[10px] text-gray-500 text-center">— or enter barcode manually —</p>
+                <div class="flex gap-2">
+                    <input type="text" id="barcode-manual-input" placeholder="Enter UPC / barcode" inputmode="numeric"
+                           class="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-amber-500">
+                    <button onclick="triggerBarcodeLookup(document.getElementById('barcode-manual-input').value)" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded cursor-pointer">Go</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Crop Modal -->
     <div id="crop-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm">
@@ -901,6 +1107,7 @@
     <datalist id="dl-handload-bullet"></datalist>
     <datalist id="dl-handload-brass"></datalist>
 
-    <script src="/static/app.js?v=17"></script>
+    <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+    <script src="/static/app.js?v=50"></script>
 </body>
 </html>

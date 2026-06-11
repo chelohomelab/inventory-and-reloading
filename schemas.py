@@ -13,6 +13,7 @@ class FirearmPatchPayload(BaseModel):
     caliber: Optional[str] = None
     scope_optic: Optional[str] = None
     price_paid: Optional[float] = None
+    serial_number: Optional[str] = None
 
 
 class ScopeMountPayload(BaseModel):
@@ -29,6 +30,12 @@ class AmmoPatchPayload(BaseModel):
     line_or_powder: Optional[str] = None
     charge_weight: Optional[float] = None
     coal: Optional[float] = None
+    qty_sealed: Optional[int] = None
+    qty_open: Optional[int] = None
+    price_paid: Optional[float] = None
+    rounds_per_box: Optional[int] = None
+    ammo_category: Optional[str] = None
+    shell_size: Optional[str] = None
 
 
 class PowderPatch(BaseModel):
@@ -37,6 +44,8 @@ class PowderPatch(BaseModel):
     weight_lbs: Optional[float] = None
     price_paid: Optional[float] = None
     notes: Optional[str] = None
+    is_muzzleloader: Optional[bool] = None
+    pellet_mode: Optional[bool] = None
 
 
 class PrimerPatch(BaseModel):
@@ -46,6 +55,7 @@ class PrimerPatch(BaseModel):
     quantity: Optional[int] = None
     price_paid: Optional[float] = None
     notes: Optional[str] = None
+    is_muzzleloader: Optional[bool] = None
 
 
 class BulletComponentPatch(BaseModel):
@@ -59,6 +69,7 @@ class BulletComponentPatch(BaseModel):
     quantity: Optional[int] = None
     price_paid: Optional[float] = None
     notes: Optional[str] = None
+    is_muzzleloader: Optional[bool] = None
 
 
 class CasingPatch(BaseModel):
@@ -97,6 +108,7 @@ class ScopePatchPayload(BaseModel):
     magnification: Optional[str] = None
     units: Optional[str] = None
     price_paid: Optional[float] = None
+    quantity: Optional[int] = None
 
 
 class TCReceiverPatchPayload(BaseModel):
@@ -114,3 +126,7 @@ class TCBarrelPatchPayload(BaseModel):
     is_threaded: Optional[bool] = None
     has_muzzle_brake: Optional[bool] = None
     price_paid: Optional[float] = None
+
+
+class UseRoundsPayload(BaseModel):
+    rounds: int
