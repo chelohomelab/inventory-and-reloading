@@ -91,33 +91,33 @@
             <form id="edit-form" onsubmit="saveEdits(event)" class="space-y-4">
                 <div id="factory-fields" class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
                     <div>
-                        <label class="block text-gray-400 mb-1">Brand / Manufacturer</label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Brand / Manufacturer</label>
                         <input type="text" id="ef-brand" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
                     </div>
                     <div>
-                        <label class="block text-gray-400 mb-1">Caliber</label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Caliber</label>
                         <input type="text" id="ef-caliber" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
                     </div>
                     <div>
-                        <label class="block text-gray-400 mb-1">Product Line / Powder</label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Product Line / Powder</label>
                         <input type="text" id="ef-line" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
                     </div>
                     <div>
-                        <label class="block text-gray-400 mb-1">Bullet Type</label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Bullet Type</label>
                         <input type="text" id="ef-bullet-type" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
                     </div>
                     <div>
-                        <label class="block text-gray-400 mb-1">Bullet Weight (gr)</label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Bullet Weight (gr)</label>
                         <input type="number" step="0.1" id="ef-weight" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
                     </div>
                     <div>
-                        <label class="block text-gray-400 mb-1">G1 Ballistic Coefficient</label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">G1 Ballistic Coefficient</label>
                         <input type="number" step="0.001" id="ef-bc" placeholder="e.g., 0.620" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
                     </div>
                 </div>
 
                 <div class="text-xs">
-                    <label class="block text-gray-400 mb-1">Ammo Type / Category</label>
+                    <label class="block text-xs text-gray-200 font-semibold mb-1">Ammo Type / Category</label>
                     <select id="ef-category" onchange="_toggleEditAmmoFields(this.value)" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
                         <option value="">Select type…</option>
                         <option value="centerfire">Centerfire (Rifle)</option>
@@ -129,17 +129,17 @@
                     </select>
                 </div>
                 <div id="ef-shell-row" class="hidden">
-                    <label class="block text-gray-400 mb-1">Shell Length (inches)</label>
+                    <label class="block text-xs text-gray-200 font-semibold mb-1">Shell Length (inches)</label>
                     <input type="text" id="ef-shell-size" placeholder='e.g., 2-3/4", 3", 3-1/2"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
                 </div>
 
                 <div id="handload-fields" class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs hidden">
                     <div>
-                        <label class="block text-gray-400 mb-1">Charge Weight (gr)</label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Charge Weight (gr)</label>
                         <input type="number" step="0.1" id="ef-charge" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
                     </div>
                     <div>
-                        <label class="block text-gray-400 mb-1">C.O.A.L. (inches)</label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">C.O.A.L. (inches)</label>
                         <input type="number" step="0.001" id="ef-coal" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
                     </div>
                 </div>
@@ -379,7 +379,7 @@
             const grid = document.getElementById('data-grid');
             const cell = (label, value, accent) =>
                 `<div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700">
-                    <span class="text-gray-500 block mb-1">${label}</span>
+                    <span class="text-xs text-gray-200 font-semibold block mb-1">${label}</span>
                     <span class="${accent || 'text-gray-200'} font-bold">${value || '—'}</span>
                 </div>`;
 
@@ -524,7 +524,7 @@
             try {
                 const res = await fetch(`/ammo/${currentAmmoId}`, { method: 'DELETE' });
                 if (res.ok) {
-                    window.location.href = 'index.html';
+                    window.location.href = '/inventory?inv=ammo';
                 } else {
                     const body = await res.json();
                     showToast(body.detail || 'Cannot delete this load.', 'error');

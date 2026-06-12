@@ -281,6 +281,36 @@ class UserPreference(Base):
 
     user = relationship("User", back_populates="preferences")
 
+class Wishlist(Base):
+    __tablename__ = "wishlist"
+    id = Column(Integer, primary_key=True, index=True)
+    item_type = Column(String, default="Other")   # Rifle, Handgun, Shotgun, TC System, TC Barrel, Optic, Other
+    brand = Column(String, nullable=True)
+    model = Column(String, nullable=True)
+    caliber = Column(String, nullable=True)
+    priority = Column(String, default="Medium")   # Low, Medium, High
+    est_price = Column(Float, nullable=True)
+    notes = Column(String, nullable=True)
+    image_path = Column(String, nullable=True)
+    url = Column(String, nullable=True)
+    created_at = Column(String, nullable=True)
+
+class ScannerEntry(Base):
+    __tablename__ = "scanner_entries"
+    id = Column(Integer, primary_key=True, index=True)
+    category = Column(String, default="ammo")    # ammo, firearm, optic, component, tc_barrel
+    upc = Column(String, nullable=True)
+    title = Column(String, nullable=True)
+    brand = Column(String, nullable=True)
+    caliber = Column(String, nullable=True)
+    notes = Column(String, nullable=True)
+    image_path_1 = Column(String, nullable=True)
+    image_path_2 = Column(String, nullable=True)
+    image_path_3 = Column(String, nullable=True)
+    data_json = Column(String, nullable=True)    # JSON for category-specific fields
+    created_at = Column(String, nullable=True)
+    is_reviewed = Column(Boolean, default=False)
+
 def init_db():
     Base.metadata.create_all(bind=engine)
     from sqlalchemy import text, inspect as sa_inspect

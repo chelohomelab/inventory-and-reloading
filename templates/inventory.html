@@ -27,7 +27,7 @@
                 <p id="sell-modal-item-title" class="text-xs text-gray-400 mt-1 truncate">Item Name Placeholder</p>
             </div>
             <div>
-                <label class="block text-xs text-gray-400 mb-1">Final Sold Price ($)</label>
+                <label class="block text-xs text-gray-200 font-semibold mb-1">Final Sold Price ($)</label>
                 <input type="number" id="modal-sold-price" step="0.01" placeholder="850.00" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
             </div>
             <div class="flex justify-end space-x-2 text-xs font-bold">
@@ -47,12 +47,20 @@
             <p class="text-[10px] text-gray-500 mt-0.5 tracking-widest uppercase">Vault</p>
         </div>
 
+        <!-- Scrollable middle: nav + stats -->
+        <div class="flex-1 overflow-y-auto">
+
         <!-- Action buttons -->
         <nav class="p-2.5 space-y-1 border-b border-gray-800">
             <a href="/inventory"
                 class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/40 transition text-left">
                 <span class="text-lg">📦</span>
                 <div><div class="text-sm font-bold text-amber-400">Inventory</div><div class="text-[10px] text-amber-500/60">Browse your vault</div></div>
+            </a>
+            <a href="/wishlist"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-800/60 hover:bg-amber-900/30 border border-gray-700/50 hover:border-amber-500/40 transition text-left">
+                <span class="text-lg">⭐</span>
+                <div><div class="text-sm font-bold text-white">Wishlist</div><div class="text-[10px] text-amber-500/60">Items to acquire</div></div>
             </a>
             <button id="nav-btn-measure" onclick="window.location.href='/?tab=measure-tab'"
                 class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-950/60 hover:bg-blue-900/60 border border-blue-800/40 hover:border-blue-500/40 transition cursor-pointer text-left">
@@ -87,7 +95,7 @@
             </div>
         </div>
 
-        <div class="flex-1"></div>
+        </div><!-- end scrollable middle -->
 
         <!-- User menu -->
         <div class="p-3 border-t border-gray-800 relative">
@@ -95,6 +103,7 @@
                 {% if user.is_admin %}
                 <a href="/admin/users" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition">👤 Users</a>
                 <a href="/admin/trash" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition">🗑️ Trash</a>
+                <a href="/admin/scanner" class="flex items-center gap-2 px-4 py-2.5 text-sm text-blue-300 hover:bg-blue-900/30 transition">📡 Scanner</a>
                 {% endif %}
                 <a href="/profile/" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition">🛠️ Profile</a>
                 <a href="/logout" class="flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-900/40 transition">🚪 Sign Out</a>
@@ -132,10 +141,10 @@
                     <h2 class="text-2xl font-bold">Inventory Vault</h2>
                     <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
                         <button id="inv-btn-platforms" onclick="switchInventoryTab('platforms')" class="px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer">🔫 Platforms</button>
-                        <button id="inv-btn-optics" onclick="switchInventoryTab('optics')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔭 Optics</button>
-                        <button id="inv-btn-ammo" onclick="switchInventoryTab('ammo')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🧪 Ammunition</button>
-                        <button id="inv-btn-components" onclick="switchInventoryTab('components')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔩 Components</button>
-                        <button id="inv-btn-handloads" onclick="switchInventoryTab('handloads')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🧪 Handloads</button>
+                        <button id="inv-btn-optics" onclick="switchInventoryTab('optics')" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">🔭 Optics</button>
+                        <button id="inv-btn-ammo" onclick="switchInventoryTab('ammo')" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">🧪 Ammunition</button>
+                        <button id="inv-btn-components" onclick="switchInventoryTab('components')" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">🔩 Components</button>
+                        <button id="inv-btn-handloads" onclick="switchInventoryTab('handloads')" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">🧪 Handloads</button>
                     </div>
                 </div>
                 <span id="inventory-count" class="text-xs bg-gray-800 text-gray-400 font-mono px-2.5 py-1 rounded border border-gray-700 self-start sm:self-auto">0 Assets Logged</span>
@@ -147,12 +156,12 @@
                     <div class="flex items-center gap-3 flex-wrap">
                         <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
                             <button id="plat-btn-general" onclick="switchPlatformTab('general')" class="px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer">🔫 Rifles</button>
-                            <button id="plat-btn-shotgun" onclick="switchPlatformTab('shotgun')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🦆 Shotguns</button>
-                            <button id="plat-btn-handgun" onclick="switchPlatformTab('handgun')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔫 Handguns</button>
-                            <button id="plat-btn-tc" onclick="switchPlatformTab('tc')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🛠️ Thompson Center</button>
+                            <button id="plat-btn-shotgun" onclick="switchPlatformTab('shotgun')" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">🦆 Shotguns</button>
+                            <button id="plat-btn-handgun" onclick="switchPlatformTab('handgun')" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">🔫 Handguns</button>
+                            <button id="plat-btn-tc" onclick="switchPlatformTab('tc')" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">🛠️ Thompson Center</button>
                         </div>
                         <div id="plat-collection-filter" class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
-                            <button onclick="setCollectionFilter()" id="btn-filter-sold" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">Sold</button>
+                            <button onclick="setCollectionFilter()" id="btn-filter-sold" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">Sold</button>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -216,7 +225,7 @@
                 <div class="flex items-center justify-between gap-3 mb-3">
                     <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
                         <button id="ammo-btn-factory" onclick="switchAmmoFilter('factory')" class="px-3 py-1 rounded bg-gray-800 text-blue-400 cursor-pointer">Factory Loads</button>
-                        <button id="ammo-btn-muzzleloader" onclick="switchAmmoFilter('muzzleloader')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">Muzzleloader</button>
+                        <button id="ammo-btn-muzzleloader" onclick="switchAmmoFilter('muzzleloader')" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">Muzzleloader</button>
                     </div>
                     <button onclick="window.location.href='/?tab=add-tab&cat=ammunition'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
                 </div>
@@ -241,19 +250,19 @@
                         <p class="text-xs text-gray-500 mb-3">Trigger a low-stock alert when quantity falls below these values.</p>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1">Powder (lbs)</label>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Powder (lbs)</label>
                                 <input type="number" step="0.1" id="thresh-powder" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1">Primers (count)</label>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Primers (count)</label>
                                 <input type="number" id="thresh-primers" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1">Bullets (count)</label>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Bullets (count)</label>
                                 <input type="number" id="thresh-bullets" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-400 mb-1">Casings (count)</label>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Casings (count)</label>
                                 <input type="number" id="thresh-casings" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                             </div>
                         </div>
@@ -264,16 +273,16 @@
                 <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
                     <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
                         <button id="comp-mode-reloading" onclick="switchComponentMode('reloading')" class="px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer">Reloading</button>
-                        <button id="comp-mode-muzzleloader" onclick="switchComponentMode('muzzleloader')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">Muzzleloader</button>
+                        <button id="comp-mode-muzzleloader" onclick="switchComponentMode('muzzleloader')" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">Muzzleloader</button>
                     </div>
                     <button onclick="window.location.href='/?tab=add-tab&cat=components'" class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition cursor-pointer">+ Add</button>
                 </div>
                 <div class="flex items-center gap-3 mb-4 flex-wrap">
                     <div class="flex flex-wrap bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
                         <button id="comp-btn-powders" onclick="switchComponentFilter('powders')" class="px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer">🧪 Powders</button>
-                        <button id="comp-btn-primers" onclick="switchComponentFilter('primers')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🔥 Primers</button>
-                        <button id="comp-btn-bullets" onclick="switchComponentFilter('bullets')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">🎯 Bullets</button>
-                        <button id="comp-btn-casings" onclick="switchComponentFilter('casings')" class="px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer">💊 Casings</button>
+                        <button id="comp-btn-primers" onclick="switchComponentFilter('primers')" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">🔥 Primers</button>
+                        <button id="comp-btn-bullets" onclick="switchComponentFilter('bullets')" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">🎯 Bullets</button>
+                        <button id="comp-btn-casings" onclick="switchComponentFilter('casings')" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">💊 Casings</button>
                     </div>
                 </div>
                 <div id="components-container">
@@ -312,7 +321,7 @@
     <datalist id="dl-handload-bullet"></datalist>
     <datalist id="dl-handload-brass"></datalist>
 
-    <script src="/static/app.js?v=50"></script>
+    <script src="/static/app.js?v=51"></script>
     <script>
     window.onload = () => {
         fetchInitialLookupData(); applyPreferences(); loadLandingStats(); initCustomAC();

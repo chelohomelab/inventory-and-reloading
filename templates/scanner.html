@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en" style="overflow-x:hidden">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Scanner — Guns &amp; Reloading</title>
+    <link rel="icon" type="image/png" href="/static/images/app-icon.png">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0f0f0f">
+    <meta name="mobile-web-app-capable" content="yes">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+    <style>
+      #main-bg { background-image: url('/static/images/phone-background.png'); background-size: cover; background-position: center; background-color: #0f0f0f; }
+      @media (min-width: 1024px) { #main-bg { background-image: url('/static/images/background.png'); } }
+      /* Ensure hidden always wins over display utilities (Tailwind CDN ordering issue) */
+      .hidden { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 font-sans antialiased select-none flex min-h-dvh lg:h-dvh lg:overflow-hidden overflow-x-hidden">
+
+<div id="toast-container" class="fixed bottom-5 right-5 z-[100] space-y-2 pointer-events-none"></div>
+
+<!-- ===== EDIT MODAL ===== -->
+<div id="edit-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[90] hidden backdrop-blur-xs p-4">
+  <div class="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-lg">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+      <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wide">Edit Entry</h3>
+      <button onclick="closeEditModal()" class="text-gray-500 hover:text-gray-300 text-lg leading-none cursor-pointer">✕</button>
+    </div>
+    <div class="p-4 space-y-3 overflow-y-auto max-h-[75dvh]">
+      <input type="hidden" id="edit-id">
+
+      <!-- Category -->
+      <div>
+        <label class="text-xs text-gray-300 font-medium">Category</label>
+        <select id="edit-category" onchange="onEditCategoryChange()" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500">
+          <option value="ammo">Ammo</option>
+          <option value="firearm">Firearm</option>
+          <option value="optic">Optic</option>
+          <option value="component">Component</option>
+          <option value="tc_barrel">TC Barrel</option>
+        </select>
+      </div>
+
+      <!-- UPC + Title -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs text-gray-300 font-medium">UPC</label>
+          <input id="edit-upc" type="text" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500" placeholder="Optional">
+        </div>
+        <div>
+          <label class="text-xs text-gray-300 font-medium">Brand</label>
+          <input id="edit-brand" type="text" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500">
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs text-gray-300 font-medium">Title / Product Name</label>
+        <input id="edit-title" type="text" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500">
+      </div>
+
+      <!-- Caliber -->
+      <div>
+        <label class="text-xs text-gray-300 font-medium">Caliber</label>
+        <input id="edit-caliber" type="text" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500">
+      </div>
+
+      <!-- Category-specific fields -->
+      <div id="edit-fields-ammo" class="space-y-3">
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Weight (gr)</label>
+            <input id="edit-bullet_weight" type="number" step="0.1" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Rounds/Box</label>
+            <input id="edit-rounds_per_box" type="number" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Price</label>
+            <input id="edit-price" type="number" step="0.01" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Bullet Type</label>
+            <input id="edit-bullet_type" type="text" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500" placeholder="FMJ, ELD-X…">
+          </div>
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Product Line</label>
+            <input id="edit-product_line" type="text" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500" placeholder="ELD-X, Gold Medal…">
+          </div>
+        </div>
+      </div>
+
+      <div id="edit-fields-firearm" class="space-y-3 hidden">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Model</label>
+            <input id="edit-model" type="text" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Frame Type</label>
+            <select id="edit-frame_type" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500">
+              <option value="Rifle">Rifle</option>
+              <option value="Handgun">Handgun</option>
+              <option value="Shotgun">Shotgun</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="edit-fields-optic" class="space-y-3 hidden">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Model</label>
+            <input id="edit-model-optic" type="text" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Magnification</label>
+            <input id="edit-magnification" type="text" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500" placeholder="4-16x44">
+          </div>
+        </div>
+      </div>
+
+      <div id="edit-fields-component" class="space-y-3 hidden">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Sub-type</label>
+            <select id="edit-product_subtype" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500">
+              <option value="bullet">Bullet</option>
+              <option value="powder">Powder</option>
+              <option value="primer">Primer</option>
+              <option value="casing">Casing</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Product Line</label>
+            <input id="edit-product_line_comp" type="text" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500" placeholder="ELD-M, H4350…">
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Weight (gr)</label>
+            <input id="edit-weight_gr" type="number" step="0.1" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
+            <label class="text-xs text-gray-300 font-medium">BC G1</label>
+            <input id="edit-bc_g1" type="number" step="0.001" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
+            <label class="text-xs text-gray-300 font-medium">BC G7</label>
+            <input id="edit-bc_g7" type="number" step="0.001" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Primer Type</label>
+            <input id="edit-primer_type" type="text" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500" placeholder="Large Rifle…">
+          </div>
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Primer Model</label>
+            <input id="edit-primer_model" type="text" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500" placeholder="210M, 41…">
+          </div>
+        </div>
+      </div>
+
+      <div id="edit-fields-tc_barrel" class="space-y-3 hidden">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Platform</label>
+            <select id="edit-platform" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500">
+              <option value="Encore">Encore</option>
+              <option value="Contender">Contender</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-300 font-medium">Barrel Length</label>
+            <input id="edit-barrel_length" type="text" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500" placeholder='24"'>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div>
+        <label class="text-xs text-gray-300 font-medium">Notes</label>
+        <textarea id="edit-notes" rows="2" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500 resize-none"></textarea>
+      </div>
+
+      <!-- Reviewed toggle -->
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" id="edit-is-reviewed" class="rounded accent-amber-500">
+        <span class="text-sm text-gray-300">Mark as reviewed</span>
+      </label>
+    </div>
+
+    <div class="flex gap-3 px-4 py-3 border-t border-gray-700">
+      <button onclick="saveEditEntry()" class="flex-1 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold rounded transition cursor-pointer">Save Changes</button>
+      <button onclick="closeEditModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-bold rounded transition cursor-pointer">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== AUTOFILL PREVIEW MODAL ===== -->
+<div id="autofill-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[95] hidden backdrop-blur-xs p-4">
+  <div class="bg-gray-900 border border-emerald-700 rounded-xl shadow-2xl w-full max-w-md">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+      <h3 class="text-sm font-bold text-emerald-400 uppercase tracking-wide">Auto-fill Preview</h3>
+      <button onclick="closeAutofillModal()" class="text-gray-500 hover:text-gray-300 text-lg leading-none cursor-pointer">✕</button>
+    </div>
+    <div class="p-4 space-y-2 overflow-y-auto max-h-[60dvh]">
+      <p class="text-xs text-gray-400 mb-3">The following fields would be filled in from the UPC database. Empty fields won't be changed.</p>
+      <div id="autofill-diff" class="space-y-1.5 text-sm"></div>
+    </div>
+    <div class="flex gap-3 px-4 py-3 border-t border-gray-700">
+      <button onclick="applyAutofill()" class="flex-1 py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-bold rounded transition cursor-pointer">Apply Changes</button>
+      <button onclick="closeAutofillModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-bold rounded transition cursor-pointer">Discard</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CAMERA BARCODE SCANNER MODAL ===== -->
+<div id="cam-scan-modal" class="fixed inset-0 bg-black/95 flex flex-col items-center justify-center z-[80] hidden">
+  <div class="w-full max-w-sm mx-4">
+    <div class="bg-gray-900 rounded-xl overflow-hidden border border-gray-700">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+        <span class="text-sm font-bold text-gray-200">📷 Scan Barcode</span>
+        <button onclick="closeCamScanner()" class="text-gray-400 hover:text-gray-200 text-lg leading-none cursor-pointer">✕</button>
+      </div>
+      <!-- Video feed -->
+      <div class="relative bg-black" style="aspect-ratio:1">
+        <video id="cam-video" class="w-full h-full object-cover" autoplay muted playsinline></video>
+        <!-- Aim overlay -->
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div class="w-56 h-32 border-2 border-amber-400/80 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"></div>
+        </div>
+      </div>
+      <div class="px-4 py-3 space-y-2">
+        <p id="cam-status" class="text-xs text-gray-400 text-center">Starting camera…</p>
+        <div class="flex gap-2">
+          <input id="cam-manual-input" type="text" inputmode="numeric" placeholder="Or type barcode manually…"
+            class="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-amber-500 placeholder-gray-600"
+            onkeydown="if(event.key==='Enter'){useCamManual()}">
+          <button onclick="useCamManual()" class="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold rounded-lg transition cursor-pointer">Go</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile header -->
+<div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-gray-900/95 border-b border-gray-800 flex items-center justify-between px-4 py-3 backdrop-blur-sm">
+  <button onclick="toggleMobileMenu()" class="text-gray-400 hover:text-amber-400 transition cursor-pointer">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+  <span class="text-amber-500 font-bold text-sm">📡 Field Scanner</span>
+  <div class="w-6"></div>
+</div>
+
+<!-- Mobile menu overlay -->
+<div id="mobile-menu-overlay" class="lg:hidden fixed inset-0 bg-black/60 z-40 hidden" onclick="toggleMobileMenu()"></div>
+
+<!-- Left Sidebar -->
+<aside id="sidebar" class="w-64 bg-gray-900 border-r border-gray-800 flex flex-col shrink-0 z-50 fixed lg:relative inset-y-0 left-0 -translate-x-full lg:translate-x-0 transition-transform duration-300">
+  <div class="p-4 border-b border-gray-800 text-center cursor-pointer hover:bg-gray-800/40 transition" onclick="window.location.href='/'">
+    <img src="/static/images/logo.png" alt="G&R" class="h-10 w-auto mx-auto mb-1.5 drop-shadow-lg">
+    <h1 class="text-lg font-black text-amber-500 tracking-wide leading-tight">Guns &amp; Reloading</h1>
+    <p class="text-[10px] text-gray-500 mt-0.5 tracking-widest uppercase">Vault</p>
+  </div>
+  <nav class="p-2.5 space-y-1 border-b border-gray-800 overflow-y-auto flex-1">
+    <a href="/inventory" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800/60 hover:bg-amber-600/20 border border-gray-700/40 hover:border-amber-500/40 transition text-sm font-bold text-gray-200">
+      <span>📦</span> Inventory
+    </a>
+    <a href="/wishlist" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800/60 hover:bg-amber-600/20 border border-gray-700/40 hover:border-amber-500/40 transition text-sm font-bold text-gray-200">
+      <span>⭐</span> Wishlist
+    </a>
+    <a href="/?tab=measure-tab" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-950/60 hover:bg-blue-900/60 border border-blue-800/40 hover:border-blue-500/40 transition text-sm font-bold text-gray-200">
+      <span>🎯</span> Range Session
+    </a>
+    <a href="/?tab=add-tab&cat=platforms" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-950/60 hover:bg-amber-900/60 border border-amber-800/40 hover:border-amber-500/40 transition text-sm font-bold text-gray-200">
+      <span>⚙️</span> Add Inventory
+    </a>
+    <a href="/?tab=add-tab&cat=ammunition" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-sky-950/60 hover:bg-sky-900/60 border border-sky-800/40 hover:border-sky-500/40 transition text-sm font-bold text-gray-200">
+      <span>🧪</span> Add Ammunition
+    </a>
+    {% if user.is_admin %}
+    <div class="pt-2">
+      <p class="text-[10px] text-gray-600 uppercase tracking-widest px-1 mb-1.5">Admin</p>
+      <a href="/admin/users" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800/60 hover:bg-gray-700/60 border border-gray-700/40 transition text-sm font-bold text-gray-300">
+        <span>👤</span> Users
+      </a>
+      <a href="/admin/trash" class="flex items-center gap-2 px-3 py-2 mt-1 rounded-lg bg-gray-800/60 hover:bg-gray-700/60 border border-gray-700/40 transition text-sm font-bold text-gray-300">
+        <span>🗑️</span> Trash
+      </a>
+      <a href="/admin/scanner" class="flex items-center gap-2 px-3 py-2 mt-1 rounded-lg bg-blue-950/50 hover:bg-blue-900/50 border border-blue-700/40 transition text-sm font-bold text-blue-300">
+        <span>📡</span> Scanner
+      </a>
+    </div>
+    {% endif %}
+  </nav>
+</aside>
+
+<!-- Main Content -->
+<div id="main-bg" class="flex-1 flex flex-col min-h-dvh lg:min-h-0 lg:overflow-hidden pt-14 lg:pt-0">
+  <!-- Top bar -->
+  <header class="hidden lg:flex items-center justify-between px-6 py-4 bg-gray-900/80 border-b border-gray-800 backdrop-blur-sm shrink-0">
+    <div>
+      <h2 class="text-xl font-black text-white">📡 Field Scanner</h2>
+      <p class="text-xs text-gray-500 mt-0.5">Scan items in the field — review and complete data later</p>
+    </div>
+  </header>
+
+  <!-- Tab switcher -->
+  <div class="px-4 pt-4 pb-0 shrink-0">
+    <div class="flex gap-2 bg-gray-900/80 rounded-xl p-1 max-w-sm">
+      <button id="tab-btn-scan" onclick="switchTab('scan')" class="flex-1 py-2 rounded-lg text-sm font-bold transition cursor-pointer bg-blue-600 text-white">
+        📡 Scan
+      </button>
+      <button id="tab-btn-review" onclick="switchTab('review')" class="flex-1 py-2 rounded-lg text-sm font-bold transition cursor-pointer text-gray-400 hover:text-white">
+        📋 Review <span id="review-badge" class="ml-1 px-1.5 py-0.5 rounded-full text-[10px] bg-gray-700 text-gray-400 hidden"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== SCAN TAB ===== -->
+  <div id="tab-scan" class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+    <!-- Category pills -->
+    <div>
+      <p class="text-xs text-gray-200 font-semibold mb-2">Category</p>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="setScanCat('ammo')" id="cat-ammo" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer bg-amber-600 border-amber-500 text-white">Ammo</button>
+        <button onclick="setScanCat('firearm')" id="cat-firearm" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer bg-gray-800 border-gray-600 text-gray-300 hover:border-amber-500">Firearm</button>
+        <button onclick="setScanCat('optic')" id="cat-optic" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer bg-gray-800 border-gray-600 text-gray-300 hover:border-amber-500">Optic</button>
+        <button onclick="setScanCat('component')" id="cat-component" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer bg-gray-800 border-gray-600 text-gray-300 hover:border-amber-500">Component</button>
+        <button onclick="setScanCat('tc_barrel')" id="cat-tc_barrel" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer bg-gray-800 border-gray-600 text-gray-300 hover:border-amber-500">TC Barrel</button>
+      </div>
+    </div>
+
+    <!-- UPC input -->
+    <div>
+      <p class="text-xs text-gray-200 font-semibold mb-2">Barcode / UPC</p>
+      <div class="flex gap-2">
+        <button onclick="openCamScanner()" class="px-3 py-2.5 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-lg leading-none transition cursor-pointer" title="Scan with camera">
+          📷
+        </button>
+        <input id="scan-upc" type="text" inputmode="numeric"
+          class="flex-1 bg-gray-900/80 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500 placeholder-gray-600"
+          placeholder="Scan or type barcode…"
+          onkeydown="if(event.key==='Enter'){doLookup()}">
+      </div>
+      <button onclick="doLookup()" class="w-full py-2.5 bg-blue-700 hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition cursor-pointer mt-2">
+        🔍 Lookup UPC
+      </button>
+      <p id="lookup-status" class="text-xs text-gray-500 mt-1 hidden"></p>
+    </div>
+
+    <!-- Title -->
+    <div>
+      <label class="text-xs text-gray-200 font-semibold">Product Name / Title</label>
+      <input id="scan-title" type="text" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500 placeholder-gray-600" placeholder="Auto-filled from UPC or enter manually…">
+    </div>
+
+    <!-- Common fields: Brand + Caliber -->
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="text-xs text-gray-200 font-semibold">Brand</label>
+        <input id="scan-brand" type="text" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+      </div>
+      <div id="scan-caliber-wrap">
+        <label class="text-xs text-gray-200 font-semibold">Caliber</label>
+        <input id="scan-caliber" type="text" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+      </div>
+    </div>
+
+    <!-- Category-specific fields -->
+    <div id="scan-fields-ammo" class="space-y-3">
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="text-xs text-gray-200 font-semibold">Weight (gr)</label>
+          <input id="scan-bullet_weight" type="number" step="0.1" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="text-xs text-gray-200 font-semibold">Rds/Box</label>
+          <input id="scan-rounds_per_box" type="number" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="text-xs text-gray-200 font-semibold">Price</label>
+          <input id="scan-price" type="number" step="0.01" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs text-gray-200 font-semibold">Bullet Type</label>
+          <input id="scan-bullet_type" type="text" placeholder="FMJ, ELD-X…" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="text-xs text-gray-200 font-semibold">Product Line</label>
+          <input id="scan-product_line" type="text" placeholder="Gold Medal…" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+    </div>
+
+    <div id="scan-fields-firearm" class="grid grid-cols-2 gap-3" style="display:none">
+      <div>
+        <label class="text-xs text-gray-200 font-semibold">Model</label>
+        <input id="scan-model" type="text" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+      </div>
+      <div>
+        <label class="text-xs text-gray-200 font-semibold">Frame Type</label>
+        <select id="scan-frame_type" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+          <option>Rifle</option><option>Handgun</option><option>Shotgun</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="scan-fields-optic" class="grid grid-cols-2 gap-3" style="display:none">
+      <div>
+        <label class="text-xs text-gray-200 font-semibold">Model</label>
+        <input id="scan-model-optic" type="text" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+      </div>
+      <div>
+        <label class="text-xs text-gray-200 font-semibold">Magnification</label>
+        <input id="scan-magnification" type="text" placeholder="4-16x44" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+      </div>
+    </div>
+
+    <div id="scan-fields-component" class="space-y-3" style="display:none">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs text-gray-200 font-semibold">Sub-type</label>
+          <select id="scan-product_subtype" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+            <option value="bullet">Bullet</option>
+            <option value="powder">Powder</option>
+            <option value="primer">Primer</option>
+            <option value="casing">Casing</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-gray-200 font-semibold">Product Line / Name</label>
+          <input id="scan-product_line_comp" type="text" placeholder="ELD-M, H4350…" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="text-xs text-gray-200 font-semibold">Weight (gr)</label>
+          <input id="scan-weight_gr" type="number" step="0.1" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="text-xs text-gray-300 font-medium">BC G1</label>
+          <input id="scan-bc_g1" type="number" step="0.001" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="text-xs text-gray-300 font-medium">BC G7</label>
+          <input id="scan-bc_g7" type="number" step="0.001" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+    </div>
+
+    <div id="scan-fields-tc_barrel" class="grid grid-cols-2 gap-3" style="display:none">
+      <div>
+        <label class="text-xs text-gray-200 font-semibold">Platform</label>
+        <select id="scan-platform" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+          <option>Encore</option><option>Contender</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs text-gray-200 font-semibold">Barrel Length</label>
+        <input id="scan-barrel_length" type="text" placeholder='24"' class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500">
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div>
+      <label class="text-xs text-gray-200 font-semibold">Notes</label>
+      <textarea id="scan-notes" rows="2" class="w-full mt-1 bg-gray-900/80 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-blue-500 resize-none placeholder-gray-600" placeholder="Observed condition, store, price tag…"></textarea>
+    </div>
+
+    <!-- Photos -->
+    <div>
+      <p class="text-xs text-gray-200 font-semibold mb-2">Photos (up to 3 per entry)</p>
+      <div class="flex gap-2 flex-wrap mb-2">
+        <button onclick="triggerPhotoCamera()" class="flex items-center gap-1.5 px-3 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-lg text-xs font-bold text-gray-300 transition cursor-pointer">
+          📷 Camera
+        </button>
+        <button onclick="triggerPhotoFile()" class="flex items-center gap-1.5 px-3 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-lg text-xs font-bold text-gray-300 transition cursor-pointer">
+          🗂️ File
+        </button>
+      </div>
+      <input type="file" id="photo-input-camera" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoSelected(this)">
+      <input type="file" id="photo-input-file" accept="image/*" class="hidden" onchange="handlePhotoSelected(this)">
+      <div id="scan-photo-thumbs" class="flex gap-2 flex-wrap"></div>
+    </div>
+
+    <!-- Save button -->
+    <div class="pb-6">
+      <button onclick="saveEntry()" class="w-full py-3 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-xl transition cursor-pointer">
+        💾 Save Entry
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== REVIEW TAB ===== -->
+  <div id="tab-review" class="hidden flex-1 overflow-y-auto px-4 py-4 space-y-4">
+    <!-- Filter buttons -->
+    <div class="flex gap-2 flex-wrap items-center justify-between">
+      <div class="flex gap-2 flex-wrap">
+        <button onclick="setReviewFilter('all')" id="rfilt-all" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer bg-blue-700 border-blue-500 text-white">All</button>
+        <button onclick="setReviewFilter('incomplete')" id="rfilt-incomplete" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer bg-gray-800 border-gray-600 text-gray-300 hover:border-amber-500">Incomplete</button>
+        <button onclick="setReviewFilter('reviewed')" id="rfilt-reviewed" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer bg-gray-800 border-gray-600 text-gray-300 hover:border-amber-500">Reviewed</button>
+      </div>
+      <button onclick="clearAllReviewed()" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer bg-red-900/50 border-red-700/50 text-red-400 hover:bg-red-800/60">🗑 Clear Reviewed</button>
+    </div>
+
+    <div id="review-empty" class="hidden text-center py-16 text-gray-600">
+      <div class="text-4xl mb-3">📭</div>
+      <div class="text-sm">No entries yet — scan something!</div>
+    </div>
+
+    <div id="review-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-6"></div>
+  </div>
+</div>
+
+<script src="/static/app.js?v=51"></script>
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let scanCat = 'ammo';
+let pendingPhotos = []; // {file, objectUrl} — not yet saved (pre-entry creation)
+let reviewFilter = 'all';
+let reviewEntries = [];
+let autofillPendingId = null;
+let autofillPendingData = null;
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function switchTab(tab) {
+  const isReview = tab === 'review';
+  document.getElementById('tab-scan').classList.toggle('hidden', isReview);
+  document.getElementById('tab-scan').classList.toggle('flex-1', !isReview);
+  document.getElementById('tab-review').classList.toggle('hidden', !isReview);
+  document.getElementById('tab-review').classList.toggle('flex-1', isReview);
+  document.getElementById('tab-btn-scan').className = `flex-1 py-2 rounded-lg text-sm font-bold transition cursor-pointer ${!isReview ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`;
+  document.getElementById('tab-btn-review').className = `flex-1 py-2 rounded-lg text-sm font-bold transition cursor-pointer ${isReview ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`;
+  if (isReview) loadReviewEntries();
+}
+
+// ============================================================
+// MOBILE MENU
+// ============================================================
+function toggleMobileMenu() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('mobile-menu-overlay');
+  const open = sidebar.classList.contains('-translate-x-full');
+  sidebar.classList.toggle('-translate-x-full', !open);
+  overlay.classList.toggle('hidden', !open);
+}
+
+// ============================================================
+// CATEGORY SELECTION
+// ============================================================
+const CATS = ['ammo', 'firearm', 'optic', 'component', 'tc_barrel'];
+
+function setScanCat(cat) {
+  scanCat = cat;
+  CATS.forEach(c => {
+    const btn = document.getElementById(`cat-${c}`);
+    const fields = document.getElementById(`scan-fields-${c}`);
+    const active = c === cat;
+    btn.className = `px-3 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${active ? 'bg-amber-600 border-amber-500 text-white' : 'bg-gray-800 border-gray-600 text-gray-300 hover:border-amber-500'}`;
+    if (fields) fields.style.display = active ? '' : 'none';
+  });
+  // Caliber field: hide for optic
+  document.getElementById('scan-caliber-wrap').style.display = cat === 'optic' ? 'none' : '';
+}
+
+// ============================================================
+// UPC LOOKUP
+// ============================================================
+async function doLookup() {
+  const upc = document.getElementById('scan-upc').value.trim();
+  if (!upc) return;
+  const status = document.getElementById('lookup-status');
+  status.textContent = 'Looking up…';
+  status.className = 'text-xs text-gray-400 mt-1';
+  status.classList.remove('hidden');
+  try {
+    const res = await fetch(`/barcode/lookup?upc=${encodeURIComponent(upc)}`);
+    if (!res.ok) {
+      const err = await res.json();
+      status.textContent = `Not found: ${err.detail || res.status}`;
+      status.className = 'text-xs text-red-400 mt-1';
+      return;
+    }
+    const data = await res.json();
+    applyLookupData(data);
+    status.textContent = `Found (${data.source})`;
+    status.className = 'text-xs text-emerald-400 mt-1';
+  } catch (e) {
+    status.textContent = 'Lookup error — check connection';
+    status.className = 'text-xs text-red-400 mt-1';
+  }
+}
+
+function applyLookupData(data) {
+  const set = (id, val) => { if (val != null && val !== '' && document.getElementById(id)) document.getElementById(id).value = val; };
+  set('scan-title', data.title);
+  set('scan-brand', data.brand);
+  set('scan-caliber', data.caliber);
+
+  // Ammo fields
+  set('scan-bullet_weight', data.weight_gr);
+  set('scan-bullet_type', data.bullet_type);
+  set('scan-rounds_per_box', data.rounds_per_box);
+  set('scan-product_line', data.product_line);
+
+  // Component fields
+  set('scan-product_line_comp', data.powder_name || data.product_line);
+  set('scan-weight_gr', data.weight_gr);
+  set('scan-bc_g1', data.bc_g1);
+  set('scan-bc_g7', data.bc_g7);
+
+  // If there's an image from UPC, show it as a preview thumbnail
+  if (data.image_path) {
+    showUpcImagePreview(data.image_path);
+  }
+}
+
+function showUpcImagePreview(path) {
+  const container = document.getElementById('scan-photo-thumbs');
+  // Check if already shown
+  if (container.querySelector('[data-upc-img]')) return;
+  const div = document.createElement('div');
+  div.dataset.upcImg = '1';
+  div.className = 'relative w-16 h-16 rounded-lg overflow-hidden border border-blue-500/50';
+  div.innerHTML = `<img src="${path}" class="w-full h-full object-contain bg-gray-900"><span class="absolute bottom-0 left-0 right-0 text-[8px] text-center bg-blue-900/80 text-blue-300 py-0.5">UPC img</span>`;
+  container.prepend(div);
+}
+
+// ============================================================
+// PHOTO HANDLING (scan tab — pre-save)
+// ============================================================
+function triggerPhotoCamera() { document.getElementById('photo-input-camera').click(); }
+function triggerPhotoFile()   { document.getElementById('photo-input-file').click(); }
+
+function handlePhotoSelected(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (pendingPhotos.length >= 3) { showToast('Max 3 photos per entry', 'warn'); return; }
+  const url = URL.createObjectURL(file);
+  const idx = pendingPhotos.length;
+  pendingPhotos.push({ file, objectUrl: url });
+  renderPendingThumbs();
+  input.value = '';
+}
+
+function renderPendingThumbs() {
+  const container = document.getElementById('scan-photo-thumbs');
+  // Preserve UPC img placeholder if present
+  const upcThumb = container.querySelector('[data-upc-img]');
+  container.innerHTML = '';
+  if (upcThumb) container.appendChild(upcThumb);
+  pendingPhotos.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'relative w-16 h-16 rounded-lg overflow-hidden border border-gray-600';
+    div.innerHTML = `
+      <img src="${p.objectUrl}" class="w-full h-full object-contain bg-gray-900">
+      <button onclick="removePendingPhoto(${i})" class="absolute top-0.5 right-0.5 w-4 h-4 bg-red-600/80 hover:bg-red-500 rounded-full text-white text-[10px] leading-none flex items-center justify-center cursor-pointer">✕</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function removePendingPhoto(idx) {
+  URL.revokeObjectURL(pendingPhotos[idx].objectUrl);
+  pendingPhotos.splice(idx, 1);
+  renderPendingThumbs();
+}
+
+// ============================================================
+// SAVE ENTRY
+// ============================================================
+function buildDataJson() {
+  const d = {};
+  const getVal = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  const getNum = id => { const v = getVal(id); return v ? parseFloat(v) : null; };
+
+  if (scanCat === 'ammo') {
+    const w = getNum('scan-bullet_weight'); if (w) d.bullet_weight = w;
+    const r = getNum('scan-rounds_per_box'); if (r) d.rounds_per_box = r;
+    const p = getNum('scan-price'); if (p) d.price = p;
+    const bt = getVal('scan-bullet_type'); if (bt) d.bullet_type = bt;
+    const pl = getVal('scan-product_line'); if (pl) d.product_line = pl;
+  } else if (scanCat === 'firearm') {
+    const m = getVal('scan-model'); if (m) d.model = m;
+    d.frame_type = getVal('scan-frame_type') || 'Rifle';
+  } else if (scanCat === 'optic') {
+    const m = getVal('scan-model-optic'); if (m) d.model = m;
+    const mg = getVal('scan-magnification'); if (mg) d.magnification = mg;
+  } else if (scanCat === 'component') {
+    d.product_subtype = getVal('scan-product_subtype') || 'bullet';
+    const pl = getVal('scan-product_line_comp'); if (pl) d.product_line = pl;
+    const w = getNum('scan-weight_gr'); if (w) d.weight_gr = w;
+    const g1 = getNum('scan-bc_g1'); if (g1) d.bc_g1 = g1;
+    const g7 = getNum('scan-bc_g7'); if (g7) d.bc_g7 = g7;
+  } else if (scanCat === 'tc_barrel') {
+    d.platform = getVal('scan-platform') || 'Encore';
+    const bl = getVal('scan-barrel_length'); if (bl) d.barrel_length = bl;
+  }
+  return Object.keys(d).length ? JSON.stringify(d) : null;
+}
+
+async function saveEntry() {
+  const upc = document.getElementById('scan-upc').value.trim();
+  const title = document.getElementById('scan-title').value.trim();
+  const brand = document.getElementById('scan-brand').value.trim();
+  const caliber = document.getElementById('scan-caliber').value.trim();
+  const notes = document.getElementById('scan-notes').value.trim();
+
+  if (!brand && !upc && !title) {
+    showToast('Enter at least a brand, UPC, or product name', 'warn');
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('category', scanCat);
+  if (upc) fd.append('upc', upc);
+  if (title) fd.append('title', title);
+  if (brand) fd.append('brand', brand);
+  if (caliber) fd.append('caliber', caliber);
+  if (notes) fd.append('notes', notes);
+  const dj = buildDataJson();
+  if (dj) fd.append('data_json', dj);
+  // First photo (if any)
+  if (pendingPhotos.length > 0) fd.append('photo', pendingPhotos[0].file);
+
+  try {
+    const res = await fetch('/scanner/entries', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error((await res.json()).detail || res.status);
+    const entry = await res.json();
+
+    // Upload remaining photos (2 and 3)
+    for (let i = 1; i < pendingPhotos.length; i++) {
+      const pfd = new FormData();
+      pfd.append('photo', pendingPhotos[i].file);
+      await fetch(`/scanner/entries/${entry.id}/add-photo`, { method: 'POST', body: pfd });
+    }
+
+    showToast('Entry saved!', 'success');
+    resetScanForm();
+  } catch (e) {
+    showToast(`Save failed: ${e.message}`, 'error');
+  }
+}
+
+function resetScanForm() {
+  ['scan-upc','scan-title','scan-brand','scan-caliber','scan-notes',
+   'scan-bullet_weight','scan-rounds_per_box','scan-price','scan-bullet_type','scan-product_line',
+   'scan-model','scan-model-optic','scan-magnification',
+   'scan-product_line_comp','scan-weight_gr','scan-bc_g1','scan-bc_g7',
+   'scan-barrel_length'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('lookup-status').classList.add('hidden');
+  pendingPhotos.forEach(p => URL.revokeObjectURL(p.objectUrl));
+  pendingPhotos = [];
+  renderPendingThumbs();
+  // Clear UPC img preview
+  const upcThumb = document.getElementById('scan-photo-thumbs').querySelector('[data-upc-img]');
+  if (upcThumb) upcThumb.remove();
+  document.getElementById('scan-upc').focus();
+}
+
+// ============================================================
+// REVIEW TAB
+// ============================================================
+async function loadReviewEntries() {
+  try {
+    const res = await fetch('/scanner/entries');
+    if (!res.ok) throw new Error(res.status);
+    reviewEntries = await res.json();
+    updateReviewBadge();
+    renderReview();
+  } catch (e) {
+    showToast('Failed to load entries', 'error');
+  }
+}
+
+function updateReviewBadge() {
+  const incomplete = reviewEntries.filter(e => !e.is_complete && !e.is_reviewed).length;
+  const badge = document.getElementById('review-badge');
+  if (incomplete > 0) {
+    badge.textContent = incomplete;
+    badge.classList.remove('hidden');
+    badge.className = 'ml-1 px-1.5 py-0.5 rounded-full text-[10px] bg-red-700 text-white';
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function setReviewFilter(f) {
+  reviewFilter = f;
+  ['all','incomplete','reviewed'].forEach(k => {
+    const btn = document.getElementById(`rfilt-${k}`);
+    const active = k === f;
+    btn.className = `px-3 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${active ? 'bg-blue-700 border-blue-500 text-white' : 'bg-gray-800 border-gray-600 text-gray-300 hover:border-amber-500'}`;
+  });
+  renderReview();
+}
+
+function renderReview() {
+  let list = reviewEntries;
+  if (reviewFilter === 'incomplete') list = list.filter(e => !e.is_complete);
+  else if (reviewFilter === 'reviewed') list = list.filter(e => e.is_reviewed);
+
+  const grid = document.getElementById('review-grid');
+  const empty = document.getElementById('review-empty');
+  grid.innerHTML = '';
+  if (list.length === 0) { empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  list.forEach(e => grid.appendChild(makeReviewCard(e)));
+}
+
+const CAT_LABEL = { ammo: 'Ammo', firearm: 'Firearm', optic: 'Optic', component: 'Component', tc_barrel: 'TC Barrel' };
+const CAT_COLOR = { ammo: 'amber', firearm: 'blue', optic: 'purple', component: 'green', tc_barrel: 'orange' };
+
+function makeReviewCard(e) {
+  const div = document.createElement('div');
+  const col = CAT_COLOR[e.category] || 'gray';
+  const img = e.image_path_1 || e.image_path_2 || e.image_path_3;
+  const label = CAT_LABEL[e.category] || e.category;
+  const missing = !e.is_complete;
+  const reviewed = e.is_reviewed;
+
+  // Build summary line
+  const parts = [e.brand, e.caliber, e.data?.model, e.data?.product_line, e.data?.platform].filter(Boolean);
+  const summary = parts.join(' · ') || e.title || '—';
+
+  div.className = 'bg-gray-900/90 border border-gray-700 rounded-xl overflow-hidden flex flex-col';
+  div.innerHTML = `
+    ${img ? `<div class="aspect-video bg-gray-950"><img src="${img}" class="w-full h-full object-contain"></div>` : `<div class="aspect-video bg-gray-800/50 flex items-center justify-center text-3xl">${label === 'Ammo' ? '🎯' : label === 'Firearm' ? '🔫' : label === 'Optic' ? '🔭' : label === 'TC Barrel' ? '🔩' : '⚙️'}</div>`}
+    <div class="p-3 flex-1 flex flex-col gap-2">
+      <div class="flex items-start justify-between gap-2">
+        <div class="flex flex-wrap gap-1">
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-${col}-900/50 text-${col}-300 border border-${col}-800/50">${label}</span>
+          ${reviewed ? '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-900/50 text-emerald-300 border border-emerald-800/50">Reviewed</span>' : ''}
+          ${missing ? '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-900/50 text-red-300 border border-red-800/50">Incomplete</span>' : ''}
+        </div>
+        <span class="text-[10px] text-gray-600 shrink-0">${e.created_at || ''}</span>
+      </div>
+      <div>
+        <div class="text-sm font-bold text-gray-100 truncate">${e.brand || '—'}</div>
+        <div class="text-xs text-gray-400 truncate">${summary !== e.brand ? summary : (e.title || '—')}</div>
+        ${e.upc ? `<div class="text-[10px] text-gray-600 font-mono mt-0.5">UPC: ${e.upc}</div>` : ''}
+      </div>
+      <div class="flex gap-1.5 mt-auto flex-wrap">
+        <button onclick="openEditModal(${e.id})" class="flex-1 min-w-0 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs font-bold rounded transition cursor-pointer">Edit</button>
+        ${e.upc ? `<button onclick="startAutofill(${e.id})" class="flex-1 min-w-0 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 text-xs font-bold rounded transition cursor-pointer">Auto-fill</button>` : ''}
+        <button onclick="addPhotoToEntry(${e.id})" class="py-1.5 px-2.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">📷</button>
+        <button onclick="deleteEntry(${e.id})" class="py-1.5 px-2.5 bg-red-900/50 hover:bg-red-800/60 text-red-400 text-xs font-bold rounded transition cursor-pointer">🗑</button>
+      </div>
+    </div>
+  `;
+  return div;
+}
+
+// Photo for existing entry
+function addPhotoToEntry(id) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = async () => {
+    const file = input.files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('photo', file);
+    const res = await fetch(`/scanner/entries/${id}/add-photo`, { method: 'POST', body: fd });
+    if (res.ok) { showToast('Photo added', 'success'); loadReviewEntries(); }
+    else showToast('Photo upload failed', 'error');
+  };
+  input.click();
+}
+
+// Delete entry
+async function deleteEntry(id) {
+  if (!confirm('Delete this scan entry?')) return;
+  const res = await fetch(`/scanner/entries/${id}`, { method: 'DELETE' });
+  if (res.ok) { showToast('Deleted', 'success'); loadReviewEntries(); }
+  else showToast('Delete failed', 'error');
+}
+
+// Bulk-clear reviewed
+async function clearAllReviewed() {
+  const count = reviewEntries.filter(e => e.is_reviewed).length;
+  if (count === 0) { showToast('No reviewed entries to clear', 'info'); return; }
+  if (!confirm(`Delete all ${count} reviewed entr${count === 1 ? 'y' : 'ies'}? This cannot be undone.`)) return;
+  const res = await fetch('/scanner/entries/reviewed', { method: 'DELETE' });
+  if (res.ok) {
+    const data = await res.json();
+    showToast(`Cleared ${data.deleted} reviewed entr${data.deleted === 1 ? 'y' : 'ies'}`, 'success');
+    loadReviewEntries();
+  } else {
+    showToast('Clear failed', 'error');
+  }
+}
+
+// ============================================================
+// EDIT MODAL
+// ============================================================
+function onEditCategoryChange() {
+  const cat = document.getElementById('edit-category').value;
+  ['ammo','firearm','optic','component','tc_barrel'].forEach(c => {
+    document.getElementById(`edit-fields-${c}`).classList.toggle('hidden', c !== cat);
+  });
+}
+
+function openEditModal(id) {
+  const e = reviewEntries.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('edit-id').value = id;
+  document.getElementById('edit-category').value = e.category || 'ammo';
+  document.getElementById('edit-upc').value = e.upc || '';
+  document.getElementById('edit-title').value = e.title || '';
+  document.getElementById('edit-brand').value = e.brand || '';
+  document.getElementById('edit-caliber').value = e.caliber || '';
+  document.getElementById('edit-notes').value = e.notes || '';
+  document.getElementById('edit-is-reviewed').checked = !!e.is_reviewed;
+
+  const d = e.data || {};
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val != null) el.value = val; };
+
+  // Ammo
+  set('edit-bullet_weight', d.bullet_weight);
+  set('edit-rounds_per_box', d.rounds_per_box);
+  set('edit-price', d.price);
+  set('edit-bullet_type', d.bullet_type);
+  set('edit-product_line', d.product_line);
+
+  // Firearm
+  set('edit-model', d.model);
+  if (d.frame_type) document.getElementById('edit-frame_type').value = d.frame_type;
+
+  // Optic
+  set('edit-model-optic', d.model);
+  set('edit-magnification', d.magnification);
+
+  // Component
+  if (d.product_subtype) document.getElementById('edit-product_subtype').value = d.product_subtype;
+  set('edit-product_line_comp', d.product_line);
+  set('edit-weight_gr', d.weight_gr);
+  set('edit-bc_g1', d.bc_g1);
+  set('edit-bc_g7', d.bc_g7);
+  set('edit-primer_type', d.primer_type);
+  set('edit-primer_model', d.primer_model);
+
+  // TC Barrel
+  if (d.platform) document.getElementById('edit-platform').value = d.platform;
+  set('edit-barrel_length', d.barrel_length);
+
+  onEditCategoryChange();
+  document.getElementById('edit-modal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.add('hidden');
+}
+
+function buildEditDataJson() {
+  const cat = document.getElementById('edit-category').value;
+  const d = {};
+  const getVal = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  const getNum = id => { const v = getVal(id); return v ? parseFloat(v) : null; };
+
+  if (cat === 'ammo') {
+    const w = getNum('edit-bullet_weight'); if (w) d.bullet_weight = w;
+    const r = getNum('edit-rounds_per_box'); if (r) d.rounds_per_box = r;
+    const p = getNum('edit-price'); if (p) d.price = p;
+    const bt = getVal('edit-bullet_type'); if (bt) d.bullet_type = bt;
+    const pl = getVal('edit-product_line'); if (pl) d.product_line = pl;
+  } else if (cat === 'firearm') {
+    const m = getVal('edit-model'); if (m) d.model = m;
+    d.frame_type = getVal('edit-frame_type') || 'Rifle';
+  } else if (cat === 'optic') {
+    const m = getVal('edit-model-optic'); if (m) d.model = m;
+    const mg = getVal('edit-magnification'); if (mg) d.magnification = mg;
+  } else if (cat === 'component') {
+    d.product_subtype = getVal('edit-product_subtype') || 'bullet';
+    const pl = getVal('edit-product_line_comp'); if (pl) d.product_line = pl;
+    const w = getNum('edit-weight_gr'); if (w) d.weight_gr = w;
+    const g1 = getNum('edit-bc_g1'); if (g1) d.bc_g1 = g1;
+    const g7 = getNum('edit-bc_g7'); if (g7) d.bc_g7 = g7;
+    const pt = getVal('edit-primer_type'); if (pt) d.primer_type = pt;
+    const pm = getVal('edit-primer_model'); if (pm) d.primer_model = pm;
+  } else if (cat === 'tc_barrel') {
+    d.platform = getVal('edit-platform') || 'Encore';
+    const bl = getVal('edit-barrel_length'); if (bl) d.barrel_length = bl;
+  }
+  return d;
+}
+
+async function saveEditEntry() {
+  const id = parseInt(document.getElementById('edit-id').value);
+  const cat = document.getElementById('edit-category').value;
+  const body = {
+    category: cat,
+    upc: document.getElementById('edit-upc').value.trim() || null,
+    title: document.getElementById('edit-title').value.trim() || null,
+    brand: document.getElementById('edit-brand').value.trim() || null,
+    caliber: document.getElementById('edit-caliber').value.trim() || null,
+    notes: document.getElementById('edit-notes').value.trim() || null,
+    is_reviewed: document.getElementById('edit-is-reviewed').checked,
+    data_json: JSON.stringify(buildEditDataJson()),
+  };
+  const res = await fetch(`/scanner/entries/${id}`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body),
+  });
+  if (res.ok) {
+    showToast('Saved', 'success');
+    closeEditModal();
+    loadReviewEntries();
+  } else {
+    showToast('Save failed', 'error');
+  }
+}
+
+// ============================================================
+// AUTOFILL
+// ============================================================
+async function startAutofill(id) {
+  showToast('Looking up UPC…', 'info');
+  try {
+    const res = await fetch(`/scanner/entries/${id}/autofill`, { method: 'POST' });
+    if (!res.ok) {
+      const err = await res.json();
+      showToast(err.detail || 'Autofill failed', 'warn');
+      return;
+    }
+    const data = await res.json();
+    const allProposed = { ...data.proposed_base, ...data.proposed_data };
+    if (Object.keys(allProposed).length === 0) {
+      showToast('No new data found to fill in', 'info');
+      return;
+    }
+    autofillPendingId = id;
+    autofillPendingData = data;
+    showAutofillModal(allProposed, data.source);
+  } catch (e) {
+    showToast('Autofill error', 'error');
+  }
+}
+
+function showAutofillModal(proposed, source) {
+  const LABELS = {
+    title: 'Title', brand: 'Brand', caliber: 'Caliber', image_path_1: 'Photo',
+    product_line: 'Product Line', weight_gr: 'Weight (gr)', bullet_type: 'Bullet Type',
+    rounds_per_box: 'Rounds/Box', bc_g1: 'BC G1', bc_g7: 'BC G7',
+    primer_type: 'Primer Type', primer_model: 'Primer Model', powder_name: 'Powder Name',
+  };
+  const diff = document.getElementById('autofill-diff');
+  diff.innerHTML = '';
+  Object.entries(proposed).forEach(([k, v]) => {
+    const row = document.createElement('div');
+    row.className = 'flex justify-between items-center py-1.5 border-b border-gray-800';
+    row.innerHTML = `<span class="text-gray-400">${LABELS[k] || k}</span><span class="text-emerald-300 font-mono text-xs">${k === 'image_path_1' ? '(image)' : v}</span>`;
+    diff.appendChild(row);
+  });
+  const src = document.createElement('p');
+  src.className = 'text-[10px] text-gray-600 mt-2';
+  src.textContent = `Source: ${source === 'cache' ? 'local UPC cache' : 'external UPC API'}`;
+  diff.appendChild(src);
+  document.getElementById('autofill-modal').classList.remove('hidden');
+}
+
+function closeAutofillModal() {
+  document.getElementById('autofill-modal').classList.add('hidden');
+  autofillPendingId = null;
+  autofillPendingData = null;
+}
+
+async function applyAutofill() {
+  if (!autofillPendingId || !autofillPendingData) return;
+  const d = autofillPendingData;
+  const entry = reviewEntries.find(e => e.id === autofillPendingId);
+  const existingData = entry?.data || {};
+  const newData = { ...existingData, ...d.proposed_data };
+
+  const body = { ...d.proposed_base, data_json: JSON.stringify(newData) };
+  const res = await fetch(`/scanner/entries/${autofillPendingId}`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body),
+  });
+  if (res.ok) {
+    showToast('Auto-fill applied!', 'success');
+    closeAutofillModal();
+    loadReviewEntries();
+  } else {
+    showToast('Apply failed', 'error');
+  }
+}
+
+// ============================================================
+// TOAST (shared from app.js, but fallback here)
+// ============================================================
+if (typeof showToast === 'undefined') {
+  window.showToast = function(msg, type) {
+    const colors = { success: 'bg-emerald-700', error: 'bg-red-700', warn: 'bg-amber-700', info: 'bg-blue-700' };
+    const t = document.createElement('div');
+    t.className = `px-4 py-2.5 rounded-lg shadow-lg text-white text-sm font-medium pointer-events-auto ${colors[type] || colors.info}`;
+    t.textContent = msg;
+    document.getElementById('toast-container').appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  };
+}
+
+// ============================================================
+// CAMERA BARCODE SCANNER
+// ============================================================
+let _camStream = null;
+let _camFrame = null;
+let _camReader = null;
+
+function openCamScanner() {
+  document.getElementById('cam-scan-modal').classList.remove('hidden');
+  document.getElementById('cam-manual-input').value = '';
+  _startCamScanner();
+}
+
+async function _startCamScanner() {
+  const video = document.getElementById('cam-video');
+  const status = document.getElementById('cam-status');
+  status.textContent = 'Starting camera…';
+  try {
+    _camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+    });
+    video.srcObject = _camStream;
+    await video.play();
+    status.textContent = 'Point camera at barcode';
+
+    if ('BarcodeDetector' in window) {
+      const detector = new BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39']
+      });
+      const scan = async () => {
+        if (!_camStream) return;
+        try {
+          const barcodes = await detector.detect(video);
+          if (barcodes.length > 0) {
+            const code = barcodes[0].rawValue;
+            closeCamScanner();
+            document.getElementById('scan-upc').value = code;
+            doLookup();
+            return;
+          }
+        } catch (_) {}
+        _camFrame = requestAnimationFrame(scan);
+      };
+      _camFrame = requestAnimationFrame(scan);
+      return;
+    }
+
+    // ZXing fallback
+    if (typeof ZXing === 'undefined') {
+      status.textContent = 'Camera active — type barcode below if not detected automatically';
+      return;
+    }
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+      ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E,
+      ZXing.BarcodeFormat.CODE_128,
+    ]);
+    _camReader = new ZXing.BrowserMultiFormatReader(hints);
+    const cb = (result) => {
+      if (result) {
+        _camReader.reset();
+        closeCamScanner();
+        document.getElementById('scan-upc').value = result.getText();
+        doLookup();
+      }
+    };
+    if (typeof _camReader.decodeFromVideoElementContinuously === 'function') {
+      _camReader.decodeFromVideoElementContinuously(video, cb);
+    } else {
+      _camReader.decodeFromVideoElement(video, cb);
+    }
+  } catch (e) {
+    if (e.name === 'NotAllowedError') {
+      status.innerHTML = '🔒 Camera access denied. Allow camera in browser settings, then tap <button onclick="_startCamScanner()" style="background:#d97706;color:#fff;border:none;padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer;">Retry</button>';
+    } else {
+      status.textContent = 'Camera unavailable — type barcode below';
+    }
+  }
+}
+
+function closeCamScanner() {
+  document.getElementById('cam-scan-modal').classList.add('hidden');
+  if (_camFrame) { cancelAnimationFrame(_camFrame); _camFrame = null; }
+  if (_camReader) { try { _camReader.reset(); } catch (_) {} _camReader = null; }
+  if (_camStream) { _camStream.getTracks().forEach(t => t.stop()); _camStream = null; }
+}
+
+function useCamManual() {
+  const val = document.getElementById('cam-manual-input').value.trim();
+  if (!val) return;
+  closeCamScanner();
+  document.getElementById('scan-upc').value = val;
+  doLookup();
+}
+
+// Init: set category state and focus UPC field
+setScanCat('ammo');
+document.getElementById('scan-upc').focus();
+</script>
+</body>
+</html>

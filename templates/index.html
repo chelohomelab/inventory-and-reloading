@@ -27,7 +27,7 @@
                 <p id="sell-modal-item-title" class="text-xs text-gray-400 mt-1 truncate">Item Name Placeholder</p>
             </div>
             <div>
-                <label class="block text-xs text-gray-400 mb-1">Final Sold Price ($)</label>
+                <label class="block text-xs text-gray-200 font-semibold mb-1">Final Sold Price ($)</label>
                 <input type="number" id="modal-sold-price" step="0.01" placeholder="850.00" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
             </div>
             <div class="flex justify-end space-x-2 text-xs font-bold">
@@ -47,12 +47,20 @@
             <p class="text-[10px] text-gray-500 mt-0.5 tracking-widest uppercase">Vault</p>
         </div>
 
+        <!-- Scrollable middle: nav + stats -->
+        <div class="flex-1 overflow-y-auto">
+
         <!-- Action buttons -->
         <nav class="p-2.5 space-y-1 border-b border-gray-800">
             <a href="/inventory"
                 class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700/50 hover:border-amber-500/40 transition text-left">
                 <span class="text-lg">📦</span>
                 <div><div class="text-sm font-bold text-white">Inventory</div><div class="text-[10px] text-gray-500">Browse your vault</div></div>
+            </a>
+            <a href="/wishlist"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-800/60 hover:bg-amber-900/30 border border-gray-700/50 hover:border-amber-500/40 transition text-left">
+                <span class="text-lg">⭐</span>
+                <div><div class="text-sm font-bold text-white">Wishlist</div><div class="text-[10px] text-amber-500/60">Items to acquire</div></div>
             </a>
             <button id="nav-btn-measure" onclick="switchTab('measure-tab'); closeSidebar()"
                 class="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-950/60 hover:bg-blue-900/60 border border-blue-800/40 hover:border-blue-500/40 transition cursor-pointer text-left">
@@ -87,8 +95,7 @@
             </div>
         </div>
 
-        <!-- Spacer -->
-        <div class="flex-1"></div>
+        </div><!-- end scrollable middle -->
 
         <!-- User menu -->
         <div class="p-3 border-t border-gray-800 relative">
@@ -96,6 +103,7 @@
                 {% if user.is_admin %}
                 <a href="/admin/users" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition">👤 Users</a>
                 <a href="/admin/trash" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition">🗑️ Trash</a>
+                <a href="/admin/scanner" class="flex items-center gap-2 px-4 py-2.5 text-sm text-blue-300 hover:bg-blue-900/30 transition">📡 Scanner</a>
                 {% endif %}
                 <a href="/profile/" class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition">🛠️ Profile</a>
                 <a href="/logout" class="flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-900/40 transition">🚪 Sign Out</a>
@@ -146,7 +154,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
                 <div class="lg:col-span-3 bg-gray-800 p-4 rounded-lg border border-gray-700 space-y-4 shadow-xl">
                     <div>
-                        <label class="block text-sm text-gray-400 mb-1">Upload Target Image to Begin</label>
+                        <label class="block text-sm text-gray-200 font-semibold mb-1">Upload Target Image to Begin</label>
                         <input type="file" id="target-upload" accept="image/*" class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-blue-400 hover:file:bg-gray-600 cursor-pointer">
                     </div>
 
@@ -156,7 +164,7 @@
 
                     <div id="calibration-box" class="grid grid-cols-2 gap-4 bg-gray-850 p-3 rounded border border-gray-700 hidden">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Reference Size (Inches)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Reference Size (Inches)</label>
                             <input type="number" id="ref-inches" value="1.0" step="0.1" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-sm text-white focus:outline-none">
                         </div>
                         <div class="flex items-end">
@@ -166,24 +174,24 @@
 
                     <div id="session-environment" class="grid grid-cols-2 gap-4 bg-gray-850 p-3 rounded border border-gray-700 hidden">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Session Date</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Session Date</label>
                             <input type="date" id="session-date" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Temperature (Optional)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Temperature (Optional)</label>
                             <input type="text" id="session-temp" placeholder="e.g., 74°F" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-sm text-white focus:outline-none">
                         </div>
                     </div>
 
                     <div id="group-metadata" class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-gray-850 p-3 rounded border border-gray-700 hidden">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Firearm Used</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Firearm Used</label>
                             <select id="select-gun" class="w-full bg-gray-700 border border-gray-600 rounded p-1 text-xs text-white focus:outline-none">
                                 <option value="">-- Select Rifle --</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Ammo / Load Profile</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Ammo / Load Profile</label>
                             <select id="select-ammo" class="w-full bg-gray-700 border border-gray-600 rounded p-1 text-xs text-white focus:outline-none">
                                 <option value="">-- Select Load Profile --</option>
                             </select>
@@ -244,35 +252,35 @@
                     <input type="hidden" name="frame_type" value="Rifle">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Manufacturer / Brand</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Manufacturer / Brand</label>
                             <input type="text" name="brand" id="rifle-brand-input" data-ac="dl-firearm-brand" oninput="handleBrandOrModelChange()" required autocomplete="off" placeholder="e.g., Tikka, Savage, Ruger" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Model Line</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Model Line</label>
                             <input type="text" name="model" id="rifle-model-input" data-ac="dl-firearm-model" oninput="handleBrandOrModelChange()" required autocomplete="off" placeholder="e.g., T3x, 110, 10/22" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Caliber</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Caliber</label>
                             <input type="text" name="caliber" data-ac="dl-caliber" required autocomplete="off" placeholder="e.g., 6.5 Creedmoor, .308 Win" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Twist Rate</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Twist Rate</label>
                             <input type="text" name="twist_rate" placeholder='e.g., 1:10"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Acquisition Price ($)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Acquisition Price ($)</label>
                             <input type="number" step="0.01" name="price" placeholder="750.00" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Serial Number (optional)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Serial Number (optional)</label>
                             <input type="text" name="serial_number" placeholder="e.g., ABC123456" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Photo</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Photo</label>
                             <div class="flex gap-2 mb-1">
                                 <button type="button" onclick="document.getElementById('img-rifle-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
                                 <button type="button" onclick="document.getElementById('img-rifle-gal').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
@@ -290,33 +298,33 @@
                     <input type="hidden" name="frame_type" value="Shotgun">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Manufacturer / Brand</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Manufacturer / Brand</label>
                             <input type="text" name="brand" data-ac="dl-firearm-brand" required autocomplete="off" placeholder="e.g., Mossberg, Remington, Benelli" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Model</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Model</label>
                             <input type="text" name="model" data-ac="dl-firearm-model" required autocomplete="off" placeholder="e.g., 500, 870, M2" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Gauge</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Gauge</label>
                             <input type="text" name="caliber" data-ac="dl-gauge" required autocomplete="off" placeholder="e.g., 12 Gauge" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Chamber Length (optional)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Chamber Length (optional)</label>
                             <input type="text" name="twist_rate" placeholder='e.g., 3", 3.5"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Acquisition Price ($)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Acquisition Price ($)</label>
                             <input type="number" step="0.01" name="price" placeholder="650.00" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Serial Number (optional)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Serial Number (optional)</label>
                             <input type="text" name="serial_number" placeholder="e.g., ABC123456" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Photo</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Photo</label>
                             <div class="flex gap-2 mb-1">
                                 <button type="button" onclick="document.getElementById('img-shotgun-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
                                 <button type="button" onclick="document.getElementById('img-shotgun-gal').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
@@ -334,33 +342,33 @@
                     <input type="hidden" name="frame_type" value="Pistol">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Manufacturer / Brand</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Manufacturer / Brand</label>
                             <input type="text" name="brand" data-ac="dl-firearm-brand" required autocomplete="off" placeholder="e.g., Glock, Sig Sauer, S&W" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Model</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Model</label>
                             <input type="text" name="model" data-ac="dl-firearm-model" required autocomplete="off" placeholder="e.g., G17, P320, M&P 9" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Caliber</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Caliber</label>
                             <input type="text" name="caliber" data-ac="dl-caliber" required autocomplete="off" placeholder="e.g., 9mm, .45 ACP, .40 S&W" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Barrel Length (optional)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Barrel Length (optional)</label>
                             <input type="text" name="twist_rate" placeholder='e.g., 4.5"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Acquisition Price ($)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Acquisition Price ($)</label>
                             <input type="number" step="0.01" name="price" placeholder="500.00" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Serial Number (optional)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Serial Number (optional)</label>
                             <input type="text" name="serial_number" placeholder="e.g., ABC123456" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Photo</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Photo</label>
                             <div class="flex gap-2 mb-1">
                                 <button type="button" onclick="document.getElementById('img-handgun-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
                                 <button type="button" onclick="document.getElementById('img-handgun-gal').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
@@ -377,23 +385,23 @@
                     <h3 class="text-sm font-bold uppercase tracking-wider text-amber-400">🛠️ Log TC Receiver</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Platform</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Platform</label>
                             <select name="platform" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                                 <option value="Encore">Encore</option>
                                 <option value="Contender">Contender</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Serial Number</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Serial Number</label>
                             <input type="text" name="serial_number" placeholder="e.g., EN-123456" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Acquisition Price ($)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Acquisition Price ($)</label>
                             <input type="number" step="0.01" name="price" placeholder="350.00" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Photo</label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Photo</label>
                         <div class="flex gap-2 mb-1">
                             <button type="button" onclick="document.getElementById('img-tcrx-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
                             <button type="button" onclick="document.getElementById('img-tcrx-gal').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
@@ -409,52 +417,52 @@
                     <h3 class="text-sm font-bold uppercase tracking-wider text-blue-400">🎯 Log TC Barrel</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Platform</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Platform</label>
                             <select name="tc_platform" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                                 <option value="Encore">Encore</option>
                                 <option value="Contender">Contender</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Caliber</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Caliber</label>
                             <input type="text" name="caliber" data-ac="dl-caliber" required autocomplete="off" placeholder="e.g., .44 Mag, .223 Rem" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Barrel Length</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Barrel Length</label>
                             <input type="text" name="barrel_length" placeholder='e.g., 15", 24"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Twist Rate</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Twist Rate</label>
                             <input type="text" name="twist_rate" placeholder='e.g., 1:12"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Finish / Color</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Finish / Color</label>
                             <input type="text" name="hardware_color" placeholder="e.g., Blued, Stainless" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Acquisition Price ($)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Acquisition Price ($)</label>
                             <input type="number" step="0.01" name="price" placeholder="250.00" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-900/40 p-3 rounded-md border border-gray-700">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Threaded Muzzle?</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Threaded Muzzle?</label>
                             <select name="is_threaded" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
                                 <option value="false">No</option>
                                 <option value="true">Yes</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Muzzle Brake?</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Muzzle Brake?</label>
                             <select name="has_muzzle_brake" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
                                 <option value="false">No</option>
                                 <option value="true">Yes</option>
                             </select>
                         </div>
                         <div class="col-span-2">
-                            <label class="block text-xs text-gray-400 mb-1">Photo</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Photo</label>
                             <div class="flex gap-2 mb-1">
                                 <button type="button" onclick="document.getElementById('img-tcbar-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
                                 <button type="button" onclick="document.getElementById('img-tcbar-gal').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
@@ -471,37 +479,37 @@
                     <h3 class="text-sm font-bold uppercase tracking-wider text-blue-400">🔭 Log Scope / Optic</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Brand</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Brand</label>
                             <input type="text" name="brand" data-ac="dl-scope-brand" autocomplete="off" placeholder="e.g., Vortex, Leupold, Nightforce" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Model</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Model</label>
                             <input type="text" name="model" data-ac="dl-scope-model" autocomplete="off" placeholder="e.g., Viper HST 4-16x44" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Magnification</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Magnification</label>
                             <input type="text" name="magnification" placeholder="e.g., 4-16x44, 1-6x24" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Adjustment Units</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Adjustment Units</label>
                             <select name="units" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                                 <option value="MOA">MOA</option>
                                 <option value="MRAD">MRAD</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Quantity</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Quantity</label>
                             <input type="number" name="quantity" min="1" value="1" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Acquisition Price ($)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Acquisition Price ($)</label>
                             <input type="number" step="0.01" name="price" placeholder="500.00" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Photo</label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Photo</label>
                         <div class="flex gap-2 mb-1">
                             <button type="button" onclick="document.getElementById('img-scope-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
                             <button type="button" onclick="document.getElementById('img-scope-gal').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
@@ -512,7 +520,7 @@
                     <!-- Optional: mount immediately on add -->
                     <div class="bg-gray-900/50 border border-gray-700 rounded-lg p-3 space-y-2">
                         <div class="flex items-center gap-3">
-                            <label class="text-xs text-gray-400 whitespace-nowrap">Install now?</label>
+                            <label class="text-xs text-gray-200 font-semibold whitespace-nowrap">Install now?</label>
                             <select id="scope-add-installed" onchange="toggleScopeAddMount()" class="bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
                                 <option value="no">No — store unmounted</option>
                                 <option value="yes">Yes — mount on…</option>
@@ -540,9 +548,13 @@
                             Scan Barcode
                         </button>
                     </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="ammo-factory-upc-input" placeholder="Enter UPC to auto-fill form…" inputmode="numeric" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-blue-500">
+                        <button type="button" onclick="lookupFormUpc('ammo-factory', 'ammo-factory-upc-input')" class="px-3 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded transition cursor-pointer whitespace-nowrap">🔍 Lookup UPC</button>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Ammo Type</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Ammo Type</label>
                             <select name="ammo_category" id="ammo-factory-cat" onchange="_toggleFactoryAmmoFields(this.value)" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                                 <option value="">Select type…</option>
                                 <option value="centerfire">Centerfire (Rifle)</option>
@@ -554,39 +566,39 @@
                             </select>
                         </div>
                         <div id="ammo-factory-upc-row" class="hidden">
-                            <label class="block text-xs text-gray-400 mb-1">Scanned UPC <span class="text-gray-600">(saved)</span></label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Scanned UPC <span class="text-gray-600">(saved)</span></label>
                             <input type="text" id="ammo-factory-upc-display" readonly class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm text-gray-400 font-mono cursor-not-allowed">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Ammunition Manufacturer</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Ammunition Manufacturer</label>
                             <input type="text" name="brand" id="ammo-factory-brand" data-ac="dl-ammo-brand" autocomplete="off" required placeholder="e.g., Federal, Hornady, Winchester" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Product Model Name</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Product Model Name</label>
                             <input type="text" name="ammo_model" id="ammo-factory-model" placeholder="e.g., Power-Point, Superformance" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Caliber Designation</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Caliber Designation</label>
                             <input type="text" name="caliber" id="ammo-factory-caliber" data-ac="dl-caliber" autocomplete="off" required placeholder="e.g., 6.5 Creedmoor, .308 Win" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div id="ammo-factory-bullet-type-row">
-                            <label class="block text-xs text-gray-400 mb-1">Bullet Projectile Form Factor</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Bullet Projectile Form Factor</label>
                             <input type="text" name="bullet_type" id="ammo-factory-bullet-type" placeholder="e.g., Soft Point, ELD-M" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div id="ammo-factory-weight-row">
-                            <label class="block text-xs text-gray-400 mb-1">Bullet Weight (Grains)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Bullet Weight (Grains)</label>
                             <input type="number" step="0.1" name="bullet_weight" id="ammo-factory-weight" placeholder="e.g., 150" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div id="ammo-factory-bc-row">
-                            <label class="block text-xs text-gray-400 mb-1">Ballistic Coefficient (G1 BC)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Ballistic Coefficient (G1 BC)</label>
                             <input type="number" step="0.001" name="bullet_bc" id="ammo-factory-bc" placeholder="e.g., 0.415" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div id="ammo-factory-shell-row" class="hidden">
-                            <label class="block text-xs text-gray-400 mb-1">Shell Length (inches)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Shell Length (inches)</label>
                             <select name="shell_size" id="ammo-factory-shell" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                                 <option value="">Select length…</option>
                                 <option value="2-3/4">2-3/4"</option>
@@ -597,24 +609,24 @@
                     </div>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Sealed Boxes</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Sealed Boxes</label>
                             <input type="number" min="0" name="qty_sealed" id="ammo-factory-qty-sealed" placeholder="e.g., 5" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Rounds/Box</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Rounds/Box</label>
                             <input type="number" min="1" name="rounds_per_box" id="ammo-factory-rpb" placeholder="e.g., 20" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Open Box (rounds)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Open Box (rounds)</label>
                             <input type="number" min="0" name="qty_open" id="ammo-factory-qty-open" placeholder="e.g., 14" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Price Per Box ($)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Price Per Box ($)</label>
                             <input type="number" step="0.01" min="0" name="price_paid" id="ammo-factory-price" placeholder="e.g., 29.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div class="border-t border-gray-700 pt-3">
-                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
                         <div class="flex gap-2 mb-1.5">
                             <button type="button" onclick="document.getElementById('pw-ammo-factory-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
                             <button type="button" onclick="document.getElementById('pw-ammo-factory-input').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
@@ -635,11 +647,11 @@
                             <input type="text" name="caliber" data-ac="dl-caliber" autocomplete="off" required placeholder="e.g., 6.5 Creedmoor" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Custom Load Recipe ID / Name</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Custom Load Recipe ID / Name</label>
                             <input type="text" name="recipe_name" placeholder="e.g., 6.5 Match Batch-A" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Cartridge Overall Length (C.O.A.L. - Inches)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Cartridge Overall Length (C.O.A.L. - Inches)</label>
                             <input type="number" step="0.001" name="coal" placeholder="e.g., 2.800" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
@@ -648,15 +660,15 @@
                         <div class="space-y-3">
                             <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Propellant & Ignition Architecture</h4>
                             <div>
-                                <label class="block text-xs text-gray-500 mb-1">Smokeless Powder Brand / Type</label>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Smokeless Powder Brand / Type</label>
                                 <input type="text" name="powder_id" data-ac="dl-handload-powder" autocomplete="off" required placeholder="e.g., H4350, Varget" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-500 mb-1">Powder Charge Mass Weight (Grains)</label>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Powder Charge Mass Weight (Grains)</label>
                                 <input type="number" step="0.1" name="powder_charge" placeholder="e.g., 41.5" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-500 mb-1">Primer Type Configuration</label>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Primer Type Configuration</label>
                                 <input type="text" name="primer_id" data-ac="dl-handload-primer" autocomplete="off" placeholder="e.g., Federal 210M, CCI 200" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                             </div>
                         </div>
@@ -664,23 +676,23 @@
                         <div class="space-y-3">
                             <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Projectile Component & Brass Stock</h4>
                             <div>
-                                <label class="block text-xs text-gray-500 mb-1">Component Bullet / Projectile Variant</label>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Component Bullet / Projectile Variant</label>
                                 <input type="text" name="bullet_id" data-ac="dl-handload-bullet" autocomplete="off" required placeholder="e.g., Hornady 140gr ELD-M" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-500 mb-1">Bullet Weight (Grains)</label>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Bullet Weight (Grains)</label>
                                 <input type="number" step="0.1" name="bullet_weight" placeholder="e.g., 140" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-500 mb-1">Ballistic Coefficient (G1 BC)</label>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Ballistic Coefficient (G1 BC)</label>
                                 <input type="number" step="0.001" name="bullet_bc" placeholder="e.g., 0.620" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-500 mb-1">Brass Casing Brand Asset</label>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Brass Casing Brand Asset</label>
                                 <input type="text" name="brass_brand" data-ac="dl-casing-brand" autocomplete="off" placeholder="e.g., Lapua, Starline" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-500 mb-1">Casing Fire-Form Cycle Count</label>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Casing Fire-Form Cycle Count</label>
                                 <input type="number" name="brass_firings" value="0" min="0" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                             </div>
                         </div>
@@ -695,29 +707,29 @@
                             <p class="text-xs text-gray-500">Select which inventory items to draw from and enter rounds loaded. Leave blank to skip deduction for that component.</p>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div>
-                                    <label class="block text-xs text-gray-400 mb-1">Rounds Loaded</label>
+                                    <label class="block text-xs text-gray-200 font-semibold mb-1">Rounds Loaded</label>
                                     <input type="number" name="rounds_loaded" id="deduct-rounds" min="1" placeholder="e.g., 50" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                                 </div>
                                 <div>
-                                    <label class="block text-xs text-gray-400 mb-1">Powder Stock to Deduct From</label>
+                                    <label class="block text-xs text-gray-200 font-semibold mb-1">Powder Stock to Deduct From</label>
                                     <select name="deduct_powder_id" id="deduct-powder-select" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                                         <option value="">— Skip powder deduction —</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-xs text-gray-400 mb-1">Primer Stock to Deduct From</label>
+                                    <label class="block text-xs text-gray-200 font-semibold mb-1">Primer Stock to Deduct From</label>
                                     <select name="deduct_primer_id" id="deduct-primer-select" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                                         <option value="">— Skip primer deduction —</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-xs text-gray-400 mb-1">Bullet Stock to Deduct From</label>
+                                    <label class="block text-xs text-gray-200 font-semibold mb-1">Bullet Stock to Deduct From</label>
                                     <select name="deduct_bullet_id" id="deduct-bullet-select" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                                         <option value="">— Skip bullet deduction —</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-xs text-gray-400 mb-1">Casing Stock to Deduct From</label>
+                                    <label class="block text-xs text-gray-200 font-semibold mb-1">Casing Stock to Deduct From</label>
                                     <select name="deduct_casing_id" id="deduct-casing-select" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                                         <option value="">— Skip casing deduction —</option>
                                     </select>
@@ -727,7 +739,7 @@
                     </div>
 
                     <div class="border-t border-gray-700 pt-3">
-                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
                         <div class="flex gap-2 mb-1.5">
                             <button type="button" onclick="document.getElementById('pw-ammo-handload-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
                             <button type="button" onclick="document.getElementById('pw-ammo-handload-input').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
@@ -758,46 +770,50 @@
                             Scan Barcode
                         </button>
                     </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="powder-upc-input" placeholder="Enter UPC to auto-fill form…" inputmode="numeric" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-blue-500">
+                        <button type="button" onclick="lookupFormUpc('powder', 'powder-upc-input')" class="px-3 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded transition cursor-pointer whitespace-nowrap">🔍 Lookup UPC</button>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Brand</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Brand</label>
                             <input type="text" name="brand" id="powder-brand" data-ac="dl-powder-brand" autocomplete="off" placeholder="e.g., Hodgdon, Alliant, Vihtavuori" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Product Name</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Product Name</label>
                             <input type="text" name="name" id="powder-name" data-ac="dl-powder-name" autocomplete="off" placeholder="e.g., H4350, Varget, N165" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <!-- Container fields (hidden when muzzleloader) -->
                         <div id="pw-container-size-col">
-                            <label class="block text-xs text-gray-400 mb-1">Container Size</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Container Size</label>
                             <select id="pw-container-size" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                                 <option value="1">1 lb</option>
                                 <option value="8">8 lb</option>
                             </select>
                         </div>
                         <div id="pw-container-count-col">
-                            <label class="block text-xs text-gray-400 mb-1"># Containers</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1"># Containers</label>
                             <input type="number" step="1" min="1" id="pw-container-count" placeholder="e.g., 2" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <!-- Quantity (shown only when muzzleloader: pellets/firesticks) -->
                         <div id="pw-direct-weight-col" class="hidden md:col-span-2">
-                            <label class="block text-xs text-gray-400 mb-1">Quantity on Hand</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Quantity on Hand</label>
                             <input type="number" step="1" min="0" id="pw-direct-weight" placeholder="e.g., 50, 100 (count)" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                     </div>
                     <input type="hidden" name="weight_lbs" id="pw-weight-lbs-hidden">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Price Paid ($)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Price Paid ($)</label>
                             <input type="number" step="0.01" name="price" id="powder-price" placeholder="e.g., 32.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Notes</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Notes</label>
                             <input type="text" name="notes" placeholder="Optional notes" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div class="border-t border-gray-700 pt-3">
-                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
                         <div class="flex gap-2 mb-1.5">
                             <button type="button" onclick="document.getElementById('pw-powder-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
                             <button type="button" onclick="document.getElementById('pw-powder-input').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
@@ -834,17 +850,21 @@
                             Scan Barcode
                         </button>
                     </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="primer-upc-input" placeholder="Enter UPC to auto-fill form…" inputmode="numeric" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-blue-500">
+                        <button type="button" onclick="lookupFormUpc('primer', 'primer-upc-input')" class="px-3 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded transition cursor-pointer whitespace-nowrap">🔍 Lookup UPC</button>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Brand</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Brand</label>
                             <input type="text" name="brand" id="primer-brand" data-ac="dl-primer-brand" autocomplete="off" placeholder="e.g., Federal, CCI, Winchester" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Model</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Model</label>
                             <input type="text" name="model" id="primer-model" autocomplete="off" placeholder="e.g., 210M, BR2, 41" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Primer Type</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Primer Type</label>
                             <select name="primer_type" id="primer-type" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                                 <option value="">-- Select Type --</option>
                                 <option>Large Rifle</option>
@@ -859,22 +879,22 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Quantity on Hand</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Quantity on Hand</label>
                             <input type="number" name="quantity" id="primer-quantity" placeholder="e.g., 1000" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Price per 1000 ($)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Price per 1000 ($)</label>
                             <input type="number" step="0.01" name="price" id="primer-price" placeholder="e.g., 89.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Notes</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Notes</label>
                             <input type="text" name="notes" placeholder="Optional notes" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div class="border-t border-gray-700 pt-3">
-                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
                         <div class="flex gap-2 mb-1.5">
                             <button type="button" onclick="document.getElementById('pw-primer-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
                             <button type="button" onclick="document.getElementById('pw-primer-input').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
@@ -899,62 +919,66 @@
                             Scan Barcode
                         </button>
                     </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="bullet-comp-upc-input" placeholder="Enter UPC to auto-fill form…" inputmode="numeric" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-blue-500">
+                        <button type="button" onclick="lookupFormUpc('bullet-comp', 'bullet-comp-upc-input')" class="px-3 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded transition cursor-pointer whitespace-nowrap">🔍 Lookup UPC</button>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Brand</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Brand</label>
                             <input type="text" name="brand" id="bullet-comp-brand" data-ac="dl-bullet-brand" autocomplete="off" placeholder="e.g., Hornady, Sierra, Berger" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Product Line</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Product Line</label>
                             <input type="text" name="product_line" id="bullet-comp-product-line" data-ac="dl-bullet-product-line" autocomplete="off" placeholder="e.g., ELD-M, MatchKing, Hybrid" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Caliber</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Caliber</label>
                             <input type="text" name="caliber" id="bullet-comp-caliber" data-ac="dl-caliber" autocomplete="off" required placeholder="e.g., .264 cal / 6.5mm" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Weight (grains)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Weight (grains)</label>
                             <input type="number" step="0.1" name="weight_gr" id="bullet-comp-weight" placeholder="e.g., 140" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Bullet Type</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Bullet Type</label>
                             <input type="text" name="bullet_type" id="bullet-comp-bullet-type" placeholder="e.g., BTHP, Hybrid, FMJ" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Total Count</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Total Count</label>
                             <input type="number" name="quantity" id="bullet-comp-quantity" placeholder="e.g., 500" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">G1 BC</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">G1 BC</label>
                             <input type="number" step="0.001" name="bc_g1" id="bullet-comp-bc-g1" placeholder="e.g., 0.620" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">G7 BC</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">G7 BC</label>
                             <input type="number" step="0.001" name="bc_g7" id="bullet-comp-bc-g7" placeholder="e.g., 0.310" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Sealed Boxes</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Sealed Boxes</label>
                             <input type="number" min="0" name="qty_sealed" id="bullet-comp-qty-sealed" placeholder="e.g., 3" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Open Box (rounds)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Open Box (rounds)</label>
                             <input type="number" min="0" name="qty_open" id="bullet-comp-qty-open" placeholder="e.g., 47" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Price per Box ($)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Price per Box ($)</label>
                             <input type="number" step="0.01" name="price" id="bullet-comp-price" placeholder="e.g., 42.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Notes</label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Notes</label>
                         <input type="text" name="notes" placeholder="Optional notes" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                     </div>
                     <div class="border-t border-gray-700 pt-3">
-                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
                         <div class="flex gap-2 mb-1.5">
                             <button type="button" onclick="document.getElementById('pw-bullet-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
                             <button type="button" onclick="document.getElementById('pw-bullet-input').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
@@ -979,23 +1003,27 @@
                             Scan Barcode
                         </button>
                     </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="casing-upc-input" placeholder="Enter UPC to auto-fill form…" inputmode="numeric" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-blue-500">
+                        <button type="button" onclick="lookupFormUpc('casing', 'casing-upc-input')" class="px-3 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded transition cursor-pointer whitespace-nowrap">🔍 Lookup UPC</button>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Brand</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Brand</label>
                             <input type="text" name="brand" id="casing-brand" data-ac="dl-casing-brand" autocomplete="off" placeholder="e.g., Lapua, Starline, Federal" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Caliber</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Caliber</label>
                             <input type="text" name="caliber" id="casing-caliber" data-ac="dl-caliber" autocomplete="off" required placeholder="e.g., 6.5 Creedmoor" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Quantity on Hand</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Quantity on Hand</label>
                             <input type="number" name="quantity" id="casing-quantity" placeholder="e.g., 100" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Times Fired</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Times Fired</label>
                             <select name="times_fired" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                                 <option value="0">0 — Brand New</option>
                                 <option value="1">1 — Once Fired</option>
@@ -1006,16 +1034,16 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Price Paid per Lot ($)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Price Paid per Lot ($)</label>
                             <input type="number" step="0.01" name="price" id="casing-price" placeholder="e.g., 55.00" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Notes</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Notes</label>
                             <input type="text" name="notes" placeholder="Optional notes" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none">
                         </div>
                     </div>
                     <div class="border-t border-gray-700 pt-3">
-                        <label class="block text-xs text-gray-400 mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1.5">📷 Photos <span class="text-gray-600 font-normal">(optional)</span></label>
                         <div class="flex gap-2 mb-1.5">
                             <button type="button" onclick="document.getElementById('pw-casing-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
                             <button type="button" onclick="document.getElementById('pw-casing-input').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
@@ -1108,6 +1136,6 @@
     <datalist id="dl-handload-brass"></datalist>
 
     <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
-    <script src="/static/app.js?v=50"></script>
+    <script src="/static/app.js?v=51"></script>
 </body>
 </html>

@@ -248,7 +248,7 @@ function setCollectionFilter() {
     if (btnSold) {
         btnSold.className = currentCollectionFilter === 'sold'
             ? "px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer"
-            : "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+            : "px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer";
     }
     if (currentPlatformTab === 'tc') loadTCInventory();
     else loadCatalog();
@@ -428,7 +428,7 @@ function toggleScopeInputState() {
     } else {
         scopeBox.classList.add('opacity-40');
         const label = scopeBox.querySelector('label');
-        if (label) label.className = "block text-xs text-gray-500 mb-1";
+        if (label) label.className = "block text-xs text-gray-200 font-semibold mb-1";
         scopeInput.setAttribute('disabled', 'disabled');
         scopeInput.removeAttribute('required');
         scopeInput.value = "";
@@ -510,7 +510,7 @@ function switchInventoryTab(tab) {
     tabs.forEach(t => {
         document.getElementById(`inv-pane-${t}`)?.classList.add('hidden');
         const btn = document.getElementById(`inv-btn-${t}`);
-        if (btn) btn.className = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+        if (btn) btn.className = "px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer";
     });
     document.getElementById(`inv-pane-${tab}`)?.classList.remove('hidden');
     const activeBtn = document.getElementById(`inv-btn-${tab}`);
@@ -532,7 +532,7 @@ function switchPlatformTab(tab) {
 
     firearmTabs.forEach(t => {
         const btn = document.getElementById(`plat-btn-${t}`);
-        if (btn) btn.className = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+        if (btn) btn.className = "px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer";
     });
     const tcBtn = document.getElementById('plat-btn-tc');
 
@@ -546,7 +546,7 @@ function switchPlatformTab(tab) {
     } else {
         genPane?.classList.remove('hidden');
         tcPane?.classList.add('hidden');
-        if (tcBtn) tcBtn.className = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+        if (tcBtn) tcBtn.className = "px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer";
         if (mainAddBtn) mainAddBtn.classList.remove('hidden');
         const activeBtn = document.getElementById(`plat-btn-${tab}`);
         if (activeBtn) activeBtn.className = "px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer";
@@ -595,7 +595,7 @@ async function loadTCInventory() {
                             <input id="rcedit-sn-${r.id}" value="${r.serial_number||''}" placeholder="Serial number" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
                             <input id="rcedit-notes-${r.id}" value="${r.notes||''}" placeholder="Notes" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
                             <input type="number" step="0.01" id="rcedit-price-${r.id}" value="${r.price_paid||0}" placeholder="Price" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
-                            <p class="text-[10px] text-gray-500">Replace photos (optional)</p>
+                            <p class="text-xs text-gray-200 font-semibold">Replace photos (optional)</p>
                             <input type="file" id="rcedit-p1-${r.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-amber-400 file:py-1 file:px-2 file:rounded file:border-0 cursor-pointer">
                             <input type="file" id="rcedit-p2-${r.id}" accept="image/*" class="w-full text-[10px] text-gray-400 file:bg-gray-700 file:text-amber-400 file:py-1 file:px-2 file:rounded file:border-0 cursor-pointer">
                             <div class="flex gap-2">
@@ -676,7 +676,7 @@ function switchAddForm(formId) {
         if (!btn) return;
         btn.className = key === formId
             ? "px-3 py-1.5 text-xs font-bold rounded bg-amber-600 text-white cursor-pointer"
-            : "px-3 py-1.5 text-xs font-bold rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+            : "px-3 py-1.5 text-xs font-bold rounded text-gray-200 hover:text-white cursor-pointer";
     });
 }
 
@@ -684,7 +684,7 @@ function switchAmmoFilter(type) {
     currentAmmoFilter = type;
     const factBtn = document.getElementById('ammo-btn-factory');
     const muzzBtn = document.getElementById('ammo-btn-muzzleloader');
-    const inactive = "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+    const inactive = "px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer";
     if (factBtn) factBtn.className = type === 'factory'
         ? "px-3 py-1 rounded bg-gray-800 text-blue-400 cursor-pointer" : inactive;
     if (muzzBtn) muzzBtn.className = type === 'muzzleloader'
@@ -705,7 +705,7 @@ function switchComponentFilter(type) {
         if (t === 'casings' && currentComponentMode === 'muzzleloader') return;
         btn.className = t === type
             ? "px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer"
-            : "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+            : "px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer";
     });
     loadComponentInventory(type);
 }
@@ -717,7 +717,7 @@ function switchComponentMode(mode) {
         if (!btn) return;
         btn.className = m === mode
             ? "px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer"
-            : "px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+            : "px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer";
     });
     const casingsBtn = document.getElementById('comp-btn-casings');
     if (casingsBtn) casingsBtn.classList.toggle('hidden', mode === 'muzzleloader');
@@ -824,19 +824,19 @@ function renderPowderCard(p) {
                 <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1">Edit Powder</p>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="text-[10px] text-gray-500">Brand</label>
+                        <label class="text-xs text-gray-200 font-semibold">Brand</label>
                         <input id="cef-pow-${p.id}-brand" type="text" value="${escHtml(p.brand||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-500">Name / Model</label>
+                        <label class="text-xs text-gray-200 font-semibold">Name / Model</label>
                         <input id="cef-pow-${p.id}-name" type="text" value="${escHtml(p.name||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-500">Qty on Hand</label>
+                        <label class="text-xs text-gray-200 font-semibold">Qty on Hand</label>
                         <input id="cef-pow-${p.id}-weight_lbs" type="number" step="any" min="0" value="${p.weight_lbs??0}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-500">Price Paid ($)</label>
+                        <label class="text-xs text-gray-200 font-semibold">Price Paid ($)</label>
                         <input id="cef-pow-${p.id}-price_paid" type="number" step="0.01" min="0" value="${p.price_paid||0}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
                     </div>
                     <div class="col-span-2 flex items-center gap-2 pt-1">
@@ -844,7 +844,7 @@ function renderPowderCard(p) {
                         <label for="cef-pow-${p.id}-pellet_mode" class="text-[10px] text-gray-300 cursor-pointer">Count mode (qty) — pellets / firesticks</label>
                     </div>
                     <div class="col-span-2">
-                        <label class="text-[10px] text-gray-500">Notes</label>
+                        <label class="text-xs text-gray-200 font-semibold">Notes</label>
                         <input id="cef-pow-${p.id}-notes" type="text" value="${escHtml(p.notes||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
                     </div>
                 </div>
@@ -859,7 +859,7 @@ function renderPowderCard(p) {
             </div>
             <div class="bg-gray-900/60 rounded-lg p-3 text-center">
                 <p class="text-2xl font-bold font-mono text-emerald-400">${p.weight_lbs ?? 0} <span class="text-sm text-gray-400">${p.pellet_mode ? 'qty' : 'lbs'}</span></p>
-                <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">On Hand</p>
+                <p class="text-xs text-gray-200 font-semibold uppercase tracking-wider mt-0.5">On Hand</p>
             </div>
             <div class="border-t border-gray-700 pt-2 space-y-1">
                 ${p.notes ? `<p class="text-xs text-gray-500 italic">${p.notes}</p>` : ''}
@@ -879,13 +879,13 @@ function renderPowderCard(p) {
                         class="text-[10px] font-bold px-2 py-0.5 rounded border cursor-pointer transition ${p.pellet_mode ? 'bg-blue-900/60 text-blue-300 border-blue-700 hover:bg-blue-900/40' : 'bg-gray-700/40 text-gray-500 border-gray-700 hover:text-blue-300'}">
                         # ${p.pellet_mode ? 'Count ✓' : 'Count'}
                     </button>
-                    <button onclick="document.getElementById('comp-photos-pow-${p.id}').classList.toggle('hidden')" class="text-[10px] text-gray-500 hover:text-gray-300 cursor-pointer ml-auto">📷 Photos</button>
+                    <button onclick="document.getElementById('comp-photos-pow-${p.id}').classList.toggle('hidden')" class="text-xs text-gray-200 font-semibold hover:text-gray-300 cursor-pointer ml-auto">📷 Photos</button>
                 </div>
                 <div id="comp-photos-pow-${p.id}" class="hidden mt-2 space-y-2">
                     ${p.image_path && p.image_path_2 ? `<button onclick="swapCompPhotos('powders',${p.id})" class="text-[10px] text-amber-500 hover:text-amber-400 cursor-pointer">⭐ Make Photo 2 the Primary</button>` : ''}
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="text-[10px] text-gray-500">Replace Photo 1</label>
+                            <label class="text-xs text-gray-200 font-semibold">Replace Photo 1</label>
                             <div class="flex gap-1 mt-0.5">
                                 <button type="button" onclick="document.getElementById('cpow1-cam-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
                                 <button type="button" onclick="document.getElementById('cpow1-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
@@ -894,7 +894,7 @@ function renderPowderCard(p) {
                             <input type="file" capture="environment" accept="image/*" id="cpow1-cam-${p.id}" onchange="_camToInput('cpow1-cam-${p.id}','cpow1-${p.id}')" class="hidden">
                         </div>
                         <div>
-                            <label class="text-[10px] text-gray-500">Replace Photo 2</label>
+                            <label class="text-xs text-gray-200 font-semibold">Replace Photo 2</label>
                             <div class="flex gap-1 mt-0.5">
                                 <button type="button" onclick="document.getElementById('cpow2-cam-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
                                 <button type="button" onclick="document.getElementById('cpow2-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
@@ -930,23 +930,23 @@ function renderPrimerCard(p, lowThreshold = 200) {
                 <p class="text-[10px] font-bold uppercase tracking-wider text-orange-400 mb-1">Edit Primer</p>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="text-[10px] text-gray-500">Brand</label>
+                        <label class="text-xs text-gray-200 font-semibold">Brand</label>
                         <input id="cef-pri-${p.id}-brand" type="text" value="${escHtml(p.brand||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-orange-500">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-500">Model / Number</label>
+                        <label class="text-xs text-gray-200 font-semibold">Model / Number</label>
                         <input id="cef-pri-${p.id}-model" type="text" value="${escHtml(p.model||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-orange-500">
                     </div>
                     <div class="col-span-2">
-                        <label class="text-[10px] text-gray-500">Primer Type</label>
+                        <label class="text-xs text-gray-200 font-semibold">Primer Type</label>
                         <input id="cef-pri-${p.id}-primer_type" type="text" value="${escHtml(p.primer_type||'')}" placeholder="e.g. Large Rifle, Small Pistol..." class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-orange-500">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-500">Price Paid ($)</label>
+                        <label class="text-xs text-gray-200 font-semibold">Price Paid ($)</label>
                         <input id="cef-pri-${p.id}-price_paid" type="number" step="0.01" min="0" value="${p.price_paid||0}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-orange-500">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-500">Notes</label>
+                        <label class="text-xs text-gray-200 font-semibold">Notes</label>
                         <input id="cef-pri-${p.id}-notes" type="text" value="${escHtml(p.notes||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-orange-500">
                     </div>
                     <div class="col-span-2 flex items-center gap-2 pt-1">
@@ -968,7 +968,7 @@ function renderPrimerCard(p, lowThreshold = 200) {
             </div>
             <div class="bg-gray-900/60 rounded-lg p-3 text-center">
                 <p class="text-2xl font-bold font-mono ${qtyColor}">${(p.quantity??0).toLocaleString()} <span class="text-sm text-gray-400">count</span></p>
-                <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">${low ? '⚠️ Low Stock' : 'On Hand'}</p>
+                <p class="text-xs text-gray-200 font-semibold uppercase tracking-wider mt-0.5">${low ? '⚠️ Low Stock' : 'On Hand'}</p>
             </div>
             <div class="border-t border-gray-700 pt-2 space-y-1">
                 ${p.notes ? `<p class="text-xs text-gray-500 italic">${p.notes}</p>` : ''}
@@ -984,13 +984,13 @@ function renderPrimerCard(p, lowThreshold = 200) {
                         class="text-[10px] font-bold px-2 py-0.5 rounded border cursor-pointer transition ${p.is_muzzleloader ? 'bg-amber-900/60 text-amber-400 border-amber-700 hover:bg-amber-900/40' : 'bg-gray-700/40 text-gray-500 border-gray-700 hover:text-amber-400'}">
                         🏹 ${p.is_muzzleloader ? 'Muzzleloader ✓' : 'Muzzleloader'}
                     </button>
-                    <button onclick="document.getElementById('comp-photos-pri-${p.id}').classList.toggle('hidden')" class="text-[10px] text-gray-500 hover:text-gray-300 cursor-pointer">📷 Photos</button>
+                    <button onclick="document.getElementById('comp-photos-pri-${p.id}').classList.toggle('hidden')" class="text-xs text-gray-200 font-semibold hover:text-gray-300 cursor-pointer">📷 Photos</button>
                 </div>
                 <div id="comp-photos-pri-${p.id}" class="hidden mt-2 space-y-2">
                     ${p.image_path && p.image_path_2 ? `<button onclick="swapCompPhotos('primers',${p.id})" class="text-[10px] text-amber-500 hover:text-amber-400 cursor-pointer">⭐ Make Photo 2 the Primary</button>` : ''}
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="text-[10px] text-gray-500">Replace Photo 1</label>
+                            <label class="text-xs text-gray-200 font-semibold">Replace Photo 1</label>
                             <div class="flex gap-1 mt-0.5">
                                 <button type="button" onclick="document.getElementById('cpri1-cam-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
                                 <button type="button" onclick="document.getElementById('cpri1-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
@@ -999,7 +999,7 @@ function renderPrimerCard(p, lowThreshold = 200) {
                             <input type="file" capture="environment" accept="image/*" id="cpri1-cam-${p.id}" onchange="_camToInput('cpri1-cam-${p.id}','cpri1-${p.id}')" class="hidden">
                         </div>
                         <div>
-                            <label class="text-[10px] text-gray-500">Replace Photo 2</label>
+                            <label class="text-xs text-gray-200 font-semibold">Replace Photo 2</label>
                             <div class="flex gap-1 mt-0.5">
                                 <button type="button" onclick="document.getElementById('cpri2-cam-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
                                 <button type="button" onclick="document.getElementById('cpri2-${p.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
@@ -1037,39 +1037,39 @@ function renderBulletCard(b, lowThreshold = 100) {
                 <p class="text-[10px] font-bold uppercase tracking-wider text-blue-400 mb-1">Edit Bullet</p>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="text-[10px] text-gray-500">Brand</label>
+                        <label class="text-xs text-gray-200 font-semibold">Brand</label>
                         <input id="cef-bul-${b.id}-brand" type="text" value="${escHtml(b.brand||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-500">Product Line</label>
+                        <label class="text-xs text-gray-200 font-semibold">Product Line</label>
                         <input id="cef-bul-${b.id}-product_line" type="text" value="${escHtml(b.product_line||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-500">Caliber</label>
+                        <label class="text-xs text-gray-200 font-semibold">Caliber</label>
                         <input id="cef-bul-${b.id}-caliber" type="text" value="${escHtml(b.caliber||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-500">Weight (gr)</label>
+                        <label class="text-xs text-gray-200 font-semibold">Weight (gr)</label>
                         <input id="cef-bul-${b.id}-weight_gr" type="number" step="0.1" min="0" value="${b.weight_gr||''}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-500">Bullet Type</label>
+                        <label class="text-xs text-gray-200 font-semibold">Bullet Type</label>
                         <input id="cef-bul-${b.id}-bullet_type" type="text" value="${escHtml(b.bullet_type||'')}" placeholder="e.g. HPBT, FMJ..." class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-500">Price Paid ($)</label>
+                        <label class="text-xs text-gray-200 font-semibold">Price Paid ($)</label>
                         <input id="cef-bul-${b.id}-price_paid" type="number" step="0.01" min="0" value="${b.price_paid||0}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-500">BC G1</label>
+                        <label class="text-xs text-gray-200 font-semibold">BC G1</label>
                         <input id="cef-bul-${b.id}-bc_g1" type="number" step="0.001" min="0" value="${b.bc_g1||''}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-500">BC G7</label>
+                        <label class="text-xs text-gray-200 font-semibold">BC G7</label>
                         <input id="cef-bul-${b.id}-bc_g7" type="number" step="0.001" min="0" value="${b.bc_g7||''}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
                     </div>
                     <div class="col-span-2">
-                        <label class="text-[10px] text-gray-500">Notes</label>
+                        <label class="text-xs text-gray-200 font-semibold">Notes</label>
                         <input id="cef-bul-${b.id}-notes" type="text" value="${escHtml(b.notes||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
                     </div>
                     <div class="col-span-2 flex items-center gap-2 pt-1">
@@ -1092,8 +1092,8 @@ function renderBulletCard(b, lowThreshold = 100) {
             </div>
             <div class="bg-gray-900/60 rounded-lg p-3 text-center">
                 <p class="text-2xl font-bold font-mono ${qtyColor}">${(b.quantity??0).toLocaleString()} <span class="text-sm text-gray-400">count</span></p>
-                ${(b.qty_sealed || b.qty_open) ? `<p class="text-[10px] text-gray-500 mt-0.5">${[b.qty_sealed ? `${b.qty_sealed} sealed box${b.qty_sealed!==1?'es':''}` : '', b.qty_open ? `${b.qty_open} open` : ''].filter(Boolean).join(' + ')}</p>` : ''}
-                <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">${low ? '⚠️ Low Stock' : 'On Hand'}</p>
+                ${(b.qty_sealed || b.qty_open) ? `<p class="text-xs text-gray-200 font-semibold mt-0.5">${[b.qty_sealed ? `${b.qty_sealed} sealed box${b.qty_sealed!==1?'es':''}` : '', b.qty_open ? `${b.qty_open} open` : ''].filter(Boolean).join(' + ')}</p>` : ''}
+                <p class="text-xs text-gray-200 font-semibold uppercase tracking-wider mt-0.5">${low ? '⚠️ Low Stock' : 'On Hand'}</p>
             </div>
             <div class="border-t border-gray-700 pt-2">
                 ${b.notes ? `<p class="text-xs text-gray-500 italic">${b.notes}</p>` : ''}
@@ -1109,13 +1109,13 @@ function renderBulletCard(b, lowThreshold = 100) {
                         class="text-[10px] font-bold px-2 py-0.5 rounded border cursor-pointer transition ${b.is_muzzleloader ? 'bg-amber-900/60 text-amber-400 border-amber-700 hover:bg-amber-900/40' : 'bg-gray-700/40 text-gray-500 border-gray-700 hover:text-amber-400'}">
                         🏹 ${b.is_muzzleloader ? 'Muzzleloader ✓' : 'Muzzleloader'}
                     </button>
-                    <button onclick="document.getElementById('comp-photos-bul-${b.id}').classList.toggle('hidden')" class="text-[10px] text-gray-500 hover:text-gray-300 cursor-pointer">📷 Photos</button>
+                    <button onclick="document.getElementById('comp-photos-bul-${b.id}').classList.toggle('hidden')" class="text-xs text-gray-200 font-semibold hover:text-gray-300 cursor-pointer">📷 Photos</button>
                 </div>
                 <div id="comp-photos-bul-${b.id}" class="hidden mt-2 space-y-2">
                     ${b.image_path && b.image_path_2 ? `<button onclick="swapCompPhotos('bullets',${b.id})" class="text-[10px] text-amber-500 hover:text-amber-400 cursor-pointer">⭐ Make Photo 2 the Primary</button>` : ''}
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="text-[10px] text-gray-500">Replace Photo 1</label>
+                            <label class="text-xs text-gray-200 font-semibold">Replace Photo 1</label>
                             <div class="flex gap-1 mt-0.5">
                                 <button type="button" onclick="document.getElementById('cbul1-cam-${b.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
                                 <button type="button" onclick="document.getElementById('cbul1-${b.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
@@ -1124,7 +1124,7 @@ function renderBulletCard(b, lowThreshold = 100) {
                             <input type="file" capture="environment" accept="image/*" id="cbul1-cam-${b.id}" onchange="_camToInput('cbul1-cam-${b.id}','cbul1-${b.id}')" class="hidden">
                         </div>
                         <div>
-                            <label class="text-[10px] text-gray-500">Replace Photo 2</label>
+                            <label class="text-xs text-gray-200 font-semibold">Replace Photo 2</label>
                             <div class="flex gap-1 mt-0.5">
                                 <button type="button" onclick="document.getElementById('cbul2-cam-${b.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
                                 <button type="button" onclick="document.getElementById('cbul2-${b.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
@@ -1163,23 +1163,23 @@ function renderCasingCard(c, lowThreshold = 50) {
                 <p class="text-[10px] font-bold uppercase tracking-wider text-purple-400 mb-1">Edit Casing</p>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="text-[10px] text-gray-500">Brand</label>
+                        <label class="text-xs text-gray-200 font-semibold">Brand</label>
                         <input id="cef-cas-${c.id}-brand" type="text" value="${escHtml(c.brand||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-purple-500">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-500">Caliber</label>
+                        <label class="text-xs text-gray-200 font-semibold">Caliber</label>
                         <input id="cef-cas-${c.id}-caliber" type="text" value="${escHtml(c.caliber||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-purple-500">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-500">Times Fired</label>
+                        <label class="text-xs text-gray-200 font-semibold">Times Fired</label>
                         <input id="cef-cas-${c.id}-times_fired" type="number" step="1" min="0" value="${c.times_fired??0}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-purple-500">
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-500">Price Paid ($)</label>
+                        <label class="text-xs text-gray-200 font-semibold">Price Paid ($)</label>
                         <input id="cef-cas-${c.id}-price_paid" type="number" step="0.01" min="0" value="${c.price_paid||0}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-purple-500">
                     </div>
                     <div class="col-span-2">
-                        <label class="text-[10px] text-gray-500">Notes</label>
+                        <label class="text-xs text-gray-200 font-semibold">Notes</label>
                         <input id="cef-cas-${c.id}-notes" type="text" value="${escHtml(c.notes||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-purple-500">
                     </div>
                 </div>
@@ -1200,7 +1200,7 @@ function renderCasingCard(c, lowThreshold = 50) {
             </div>
             <div class="bg-gray-900/60 rounded-lg p-3 text-center">
                 <p class="text-2xl font-bold font-mono ${qtyColor}">${(c.quantity??0).toLocaleString()} <span class="text-sm text-gray-400">count</span></p>
-                <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">${low ? '⚠️ Low Stock' : 'On Hand'}</p>
+                <p class="text-xs text-gray-200 font-semibold uppercase tracking-wider mt-0.5">${low ? '⚠️ Low Stock' : 'On Hand'}</p>
             </div>
             <div class="border-t border-gray-700 pt-2 space-y-1">
                 ${c.notes ? `<p class="text-xs text-gray-500 italic">${c.notes}</p>` : ''}
@@ -1211,12 +1211,12 @@ function renderCasingCard(c, lowThreshold = 50) {
                 <button onclick="updateComponentQty('casings',${c.id},'quantity')" class="px-3 py-1.5 bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold rounded cursor-pointer">Save</button>
             </div>
             <div class="border-t border-gray-700 pt-2">
-                <button onclick="document.getElementById('comp-photos-cas-${c.id}').classList.toggle('hidden')" class="text-[10px] text-gray-500 hover:text-gray-300 cursor-pointer">📷 Manage Photos</button>
+                <button onclick="document.getElementById('comp-photos-cas-${c.id}').classList.toggle('hidden')" class="text-xs text-gray-200 font-semibold hover:text-gray-300 cursor-pointer">📷 Manage Photos</button>
                 <div id="comp-photos-cas-${c.id}" class="hidden mt-2 space-y-2">
                     ${c.image_path && c.image_path_2 ? `<button onclick="swapCompPhotos('casings',${c.id})" class="text-[10px] text-amber-500 hover:text-amber-400 cursor-pointer">⭐ Make Photo 2 the Primary</button>` : ''}
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="text-[10px] text-gray-500">Replace Photo 1</label>
+                            <label class="text-xs text-gray-200 font-semibold">Replace Photo 1</label>
                             <div class="flex gap-1 mt-0.5">
                                 <button type="button" onclick="document.getElementById('ccas1-cam-${c.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
                                 <button type="button" onclick="document.getElementById('ccas1-${c.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
@@ -1225,7 +1225,7 @@ function renderCasingCard(c, lowThreshold = 50) {
                             <input type="file" capture="environment" accept="image/*" id="ccas1-cam-${c.id}" onchange="_camToInput('ccas1-cam-${c.id}','ccas1-${c.id}')" class="hidden">
                         </div>
                         <div>
-                            <label class="text-[10px] text-gray-500">Replace Photo 2</label>
+                            <label class="text-xs text-gray-200 font-semibold">Replace Photo 2</label>
                             <div class="flex gap-1 mt-0.5">
                                 <button type="button" onclick="document.getElementById('ccas2-cam-${c.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
                                 <button type="button" onclick="document.getElementById('ccas2-${c.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
@@ -1252,7 +1252,7 @@ function renderBulletsGrouped(bullets, container, lowThreshold = 100) {
         <div class="mb-8">
             <div class="flex items-center gap-3 mb-3">
                 <span class="text-xs font-bold uppercase tracking-wider text-amber-500 font-mono">${cal}</span>
-                <span class="text-[10px] text-gray-500">${items.length} variant${items.length !== 1 ? 's' : ''}</span>
+                <span class="text-xs text-gray-200 font-semibold">${items.length} variant${items.length !== 1 ? 's' : ''}</span>
                 <div class="flex-1 border-t border-gray-700/60"></div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1484,7 +1484,7 @@ function renderScopeCard(s) {
         const openSlots = slotsLeft > 0
             ? `<p class="text-xs text-gray-600 italic">${slotsLeft} open slot${slotsLeft > 1 ? 's' : ''}</p>` : '';
         mountsHtml = `<div class="space-y-1">
-            <p class="text-[10px] text-gray-500 font-mono">${mountCount}/${qty} installed</p>
+            <p class="text-xs text-gray-200 font-semibold font-mono">${mountCount}/${qty} installed</p>
             ${mountItems}${openSlots}
         </div>`;
     }
@@ -1561,7 +1561,7 @@ function renderScopeCard(s) {
                     </div>
                 </div>
                 <div class="flex gap-2 items-center">
-                    <label class="text-xs text-gray-400 whitespace-nowrap">Qty owned:</label>
+                    <label class="text-xs text-gray-200 font-semibold whitespace-nowrap">Qty owned:</label>
                     <input id="sedit-qty-${s.id}" type="number" min="1" value="${qty}" class="w-20 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none">
                 </div>
                 <div class="flex gap-2">
@@ -1851,7 +1851,7 @@ async function loadAmmoInventory(type) {
                     const isActive = cat === currentAmmoCategoryFilter;
                     const cls = isActive
                         ? `px-3 py-1 rounded bg-gray-800 ${CAT_COLORS[cat]} cursor-pointer text-xs font-bold`
-                        : 'px-3 py-1 rounded text-gray-400 hover:text-gray-200 cursor-pointer text-xs font-bold';
+                        : 'px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer text-xs font-bold';
                     const count = Object.values(catGroups[cat]).flat().length;
                     return `<button id="ammo-cat-btn-${cat}" onclick="switchAmmoCategory('${cat}')" class="${cls}">${CAT_LABELS[cat]} <span class="opacity-60 font-normal">${count}</span></button>`;
                 }).join('');
@@ -1877,7 +1877,7 @@ async function loadAmmoInventory(type) {
                     <div class="mb-6">
                         <div class="flex items-center gap-3 mb-3">
                             <span class="text-xs font-bold uppercase tracking-wider text-amber-500 font-mono">${cal}</span>
-                            <span class="text-[10px] text-gray-500">${loads.length} load${loads.length !== 1 ? 's' : ''}</span>
+                            <span class="text-xs text-gray-200 font-semibold">${loads.length} load${loads.length !== 1 ? 's' : ''}</span>
                             <div class="flex-1 border-t border-gray-700/60"></div>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1901,7 +1901,7 @@ async function loadAmmoInventory(type) {
 
 function renderMuzzleloaderComponentsSection(powders, bullets, primers) {
     if (!powders.length && !bullets.length && !primers.length) return '';
-    const addLink = `<a href="/?tab=add-tab&cat=components" class="text-[10px] text-gray-500 hover:text-amber-400 transition cursor-pointer">+ Add Components</a>`;
+    const addLink = `<a href="/?tab=add-tab&cat=components" class="text-xs text-gray-200 font-semibold hover:text-amber-400 transition cursor-pointer">+ Add Components</a>`;
     let html = `<div class="mt-4 border-t border-gray-700/50 pt-4">
         <div class="flex items-center gap-3 mb-3">
             <span class="text-xs font-bold uppercase tracking-wider text-gray-400">⚙️ Components On Hand</span>
@@ -1962,14 +1962,21 @@ function renderAmmoTile(ammo) {
     const imgHtml = ammo.image_path
         ? `<img src="${ammo.image_path}" class="w-full h-full object-contain">`
         : `<span class="text-3xl">📦</span>`;
+    const parts = [];
+    if (sealed) parts.push(`${sealed}bx`);
+    if (open) parts.push(`${open} loose`);
+    const breakdownHtml = parts.length
+        ? `<span class="block text-[11px] text-gray-300 font-mono leading-tight">${parts.join(' + ')}</span>`
+        : '';
     return `
     <div onclick="window.location.href='ammo-detail.html?id=${ammo.id}'"
          class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden hover:border-amber-500/60 transition cursor-pointer shadow-lg">
         <div class="aspect-square bg-gray-950 flex items-center justify-center overflow-hidden">
             ${imgHtml}
         </div>
-        <div class="bg-gray-900/80 text-center py-1.5">
+        <div class="bg-gray-900/80 text-center py-1.5 px-1">
             <span class="text-xs font-bold font-mono ${countColor}">${total} rds</span>
+            ${breakdownHtml}
         </div>
     </div>`;
 }
@@ -2007,7 +2014,7 @@ function renderAmmoCard(ammo) {
             const total = sealed * rpb + open;
             stockLine = `<div class="bg-gray-900/60 rounded p-2 text-center mt-1">
                 <p class="text-sm font-bold font-mono text-blue-400">${total} <span class="text-xs text-gray-400">rds</span></p>
-                <p class="text-[10px] text-gray-500">${parts.join(' + ')}${price ? ` · $${price.toFixed(2)}/box` : ''}</p>
+                <p class="text-xs text-gray-200 font-semibold">${parts.join(' + ')}${price ? ` · $${price.toFixed(2)}/box` : ''}</p>
             </div>`;
         }
     }
@@ -2080,7 +2087,7 @@ function switchFormCategory(targetCat) {
             if (btn) btn.className = "px-4 py-1.5 text-xs font-bold rounded bg-amber-600 text-white cursor-pointer";
         } else {
             pane?.classList.add('hidden');
-            if (btn) btn.className = "px-4 py-1.5 text-xs font-bold rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+            if (btn) btn.className = "px-4 py-1.5 text-xs font-bold rounded text-gray-200 hover:text-white cursor-pointer";
         }
     });
 }
@@ -2095,10 +2102,10 @@ function toggleAmmoType(type) {
     if (type === 'factory') {
         if (factForm) factForm.classList.remove('hidden');
         if (btnFact) btnFact.className = "px-3 py-1 text-xs font-bold rounded bg-blue-600 text-white cursor-pointer";
-        if (btnHand) btnHand.className = "px-3 py-1 text-xs font-bold rounded text-gray-400 bg-gray-950 hover:text-white cursor-pointer";
+        if (btnHand) btnHand.className = "px-3 py-1 text-xs font-bold rounded text-gray-200 bg-gray-950 hover:text-white cursor-pointer";
     } else {
         if (handForm) handForm.classList.remove('hidden');
-        if (btnFact) btnFact.className = "px-3 py-1 text-xs font-bold rounded text-gray-400 bg-gray-950 hover:text-white cursor-pointer";
+        if (btnFact) btnFact.className = "px-3 py-1 text-xs font-bold rounded text-gray-200 bg-gray-950 hover:text-white cursor-pointer";
         if (btnHand) btnHand.className = "px-3 py-1 text-xs font-bold rounded bg-emerald-600 text-white cursor-pointer";
     }
 }
@@ -3092,7 +3099,7 @@ async function loadCatalog(frameType = currentFrameType()) {
                     <h3 class="text-base font-bold text-white tracking-tight">${gunLabel}</h3>
                     <span class="text-xs text-gray-400 font-mono whitespace-nowrap">$${parseFloat(gun.price_paid || 0).toFixed(2)}</span>
                 </div>
-                ${gun.serial_number ? `<p class="text-[10px] text-gray-500 font-mono">S/N: ${gun.serial_number}</p>` : ''}
+                ${gun.serial_number ? `<p class="text-xs text-gray-200 font-semibold font-mono">S/N: ${gun.serial_number}</p>` : ''}
                 <div class="flex gap-2 pt-1 border-t border-gray-700">
                     ${soldBtnMarkup}
                     <div class="flex-1"></div>
@@ -3104,10 +3111,28 @@ async function loadCatalog(frameType = currentFrameType()) {
     });
 }
 
+function _submitBtn(form) { return form ? form.querySelector('[type=submit]') : null; }
+function _setBusy(form, busy) {
+    const btn = _submitBtn(form);
+    if (!btn) return;
+    if (busy) {
+        btn._origText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '⏳ Saving...';
+        btn.style.opacity = '0.6';
+        btn.style.cursor = 'not-allowed';
+    } else {
+        btn.disabled = false;
+        btn.textContent = btn._origText || btn.textContent;
+        btn.style.opacity = '';
+        btn.style.cursor = '';
+    }
+}
+
 const firearmForm = document.getElementById('firearm-form');
 if (firearmForm) {
     firearmForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); const formData = new FormData(e.target);
+        e.preventDefault(); _setBusy(firearmForm, true); const formData = new FormData(e.target);
         try {
             const response = await fetch('/firearms/', { method: 'POST', body: formData });
             if (response.ok) {
@@ -3130,7 +3155,7 @@ if (firearmForm) {
 const shotgunForm = document.getElementById('shotgun-form');
 if (shotgunForm) {
     shotgunForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); const formData = new FormData(e.target);
+        e.preventDefault(); _setBusy(shotgunForm, true); const formData = new FormData(e.target);
         try {
             const response = await fetch('/firearms/', { method: 'POST', body: formData });
             if (response.ok) {
@@ -3140,15 +3165,15 @@ if (shotgunForm) {
                     saveLookupValue('firearm_model', fd.get('model')),
                 ]);
                 e.target.reset(); showToast('Shotgun logged successfully.'); switchTab('catalog-tab');
-            } else { showToast('Failed to save shotgun.', 'error'); }
-        } catch (err) { showToast('Failed to save shotgun.', 'error'); }
+            } else { _setBusy(shotgunForm, false); showToast('Failed to save shotgun.', 'error'); }
+        } catch (err) { _setBusy(shotgunForm, false); showToast('Failed to save shotgun.', 'error'); }
     });
 }
 
 const handgunForm = document.getElementById('handgun-form');
 if (handgunForm) {
     handgunForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); const formData = new FormData(e.target);
+        e.preventDefault(); _setBusy(handgunForm, true); const formData = new FormData(e.target);
         try {
             const response = await fetch('/firearms/', { method: 'POST', body: formData });
             if (response.ok) {
@@ -3159,8 +3184,8 @@ if (handgunForm) {
                     saveLookupValue('caliber',       fd.get('caliber')),
                 ]);
                 e.target.reset(); showToast('Handgun logged successfully.'); switchTab('catalog-tab');
-            } else { showToast('Failed to save handgun.', 'error'); }
-        } catch (err) { showToast('Failed to save handgun.', 'error'); }
+            } else { _setBusy(handgunForm, false); showToast('Failed to save handgun.', 'error'); }
+        } catch (err) { _setBusy(handgunForm, false); showToast('Failed to save handgun.', 'error'); }
     });
 }
 
@@ -3168,6 +3193,7 @@ const factoryAmmoForm = document.getElementById('ammo-factory-form');
 if (factoryAmmoForm) {
     factoryAmmoForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        _setBusy(factoryAmmoForm, true);
         const formData = new FormData(e.target);
         const { f1: af1, f2: af2 } = _getPWFiles('pw-ammo-factory');
         if (af1) formData.set('image', af1, af1.name);
@@ -3181,11 +3207,14 @@ if (factoryAmmoForm) {
                     saveLookupValue('caliber',    formData.get('caliber')),
                 ]);
                 e.target.reset(); _resetPW('pw-ammo-factory'); _showPendingUpc(null);
+                _setBusy(factoryAmmoForm, false);
                 showToast('Factory load registered.');
             } else {
+                _setBusy(factoryAmmoForm, false);
                 showToast('Failed to save ammo load.', 'error');
             }
         } catch (err) {
+            _setBusy(factoryAmmoForm, false);
             showToast('Error saving ammo load.', 'error');
         }
     });
@@ -3195,6 +3224,7 @@ const handloadForm = document.getElementById('ammo-handload-form');
 if (handloadForm) {
     handloadForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        _setBusy(handloadForm, true);
         const formData = new FormData(e.target);
         formData.set('is_handload', 'true');
         const { f1: af1, f2: af2 } = _getPWFiles('pw-ammo-handload');
@@ -3202,7 +3232,7 @@ if (handloadForm) {
         if (af2) formData.set('image_2', af2, af2.name);
         try {
             const response = await fetch('/ammo/', { method: 'POST', body: formData });
-            if (!response.ok) { showToast('Failed to save handload recipe.', 'error'); return; }
+            if (!response.ok) { _setBusy(handloadForm, false); showToast('Failed to save handload recipe.', 'error'); return; }
 
             await Promise.all([
                 saveLookupValue('caliber',          formData.get('caliber')),
@@ -3247,8 +3277,10 @@ if (handloadForm) {
             const di = document.getElementById('deduct-toggle-icon');
             if (ds) ds.classList.add('hidden');
             if (di) di.textContent = '▶';
+            _setBusy(handloadForm, false);
             showToast('Handload committed.' + (hasDeduction ? ` Inventory updated for ${rounds} rounds.` : ''));
         } catch (err) {
+            _setBusy(handloadForm, false);
             showToast('Error saving handload recipe.', 'error');
         }
     });
@@ -3258,6 +3290,7 @@ const tcReceiverForm = document.getElementById('tc-receiver-form');
 if (tcReceiverForm) {
     tcReceiverForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        _setBusy(tcReceiverForm, true);
         const formData = new FormData(e.target);
         try {
             const res = await fetch('/tc-receivers/', { method: 'POST', body: formData });
@@ -3266,9 +3299,10 @@ if (tcReceiverForm) {
                 showToast('TC Receiver registered.');
                 window.location.href = '/inventory?inv=platforms&platform=tc';
             } else {
+                _setBusy(tcReceiverForm, false);
                 showToast('Failed to register TC Receiver.', 'error');
             }
-        } catch (err) { showToast('Error saving TC Receiver.', 'error'); }
+        } catch (err) { _setBusy(tcReceiverForm, false); showToast('Error saving TC Receiver.', 'error'); }
     });
 }
 
@@ -3276,6 +3310,7 @@ const tcBarrelForm = document.getElementById('tc-barrel-form');
 if (tcBarrelForm) {
     tcBarrelForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        _setBusy(tcBarrelForm, true);
         const formData = new FormData(e.target);
         // Convert string "true"/"false" booleans from select elements
         formData.set('is_threaded', formData.get('is_threaded') === 'true');
@@ -3287,9 +3322,10 @@ if (tcBarrelForm) {
                 showToast('TC Barrel registered.');
                 window.location.href = '/inventory?inv=platforms&platform=tc';
             } else {
+                _setBusy(tcBarrelForm, false);
                 showToast('Failed to register TC Barrel.', 'error');
             }
-        } catch (err) { showToast('Error saving TC Barrel.', 'error'); }
+        } catch (err) { _setBusy(tcBarrelForm, false); showToast('Error saving TC Barrel.', 'error'); }
     });
 }
 
@@ -3328,13 +3364,14 @@ const addScopeForm = document.getElementById('add-scope-form');
 if (addScopeForm) {
     addScopeForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        _setBusy(addScopeForm, true);
         const formData = new FormData(e.target);
         const installedSel = document.getElementById('scope-add-installed');
         const mountSel     = document.getElementById('scope-add-mount-select');
 
         try {
             const res = await fetch('/scopes/', { method: 'POST', body: formData });
-            if (!res.ok) { showToast('Failed to register scope.', 'error'); return; }
+            if (!res.ok) { _setBusy(addScopeForm, false); showToast('Failed to register scope.', 'error'); return; }
             const scope = await res.json();
             await Promise.all([
                 saveLookupValue('scope_brand', formData.get('brand')),
@@ -3358,7 +3395,7 @@ if (addScopeForm) {
 
             showToast('Scope registered.');
             window.location.href = '/inventory?inv=optics';
-        } catch (err) { showToast('Error saving scope.', 'error'); }
+        } catch (err) { _setBusy(addScopeForm, false); showToast('Error saving scope.', 'error'); }
     });
 }
 
@@ -3374,7 +3411,7 @@ function switchAddComponent(formId) {
         if (!btn) return;
         btn.className = key === formId
             ? "px-3 py-1.5 text-xs font-bold rounded bg-emerald-600 text-white cursor-pointer"
-            : "px-3 py-1.5 text-xs font-bold rounded text-gray-400 hover:text-gray-200 cursor-pointer";
+            : "px-3 py-1.5 text-xs font-bold rounded text-gray-200 hover:text-white cursor-pointer";
     });
 }
 
@@ -3422,6 +3459,7 @@ const powderForm = document.getElementById('powder-form');
 if (powderForm) {
     powderForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        _setBusy(powderForm, true);
         const isPelletMode = document.getElementById('pw-pellet-mode-hidden')?.value === 'true';
         if (isPelletMode) {
             const directQty = parseInt(document.getElementById('pw-direct-weight')?.value || '0', 10);
@@ -3441,8 +3479,8 @@ if (powderForm) {
             if (res.ok) {
                 await Promise.all([saveLookupValue('powder_brand', fd.get('brand')), saveLookupValue('powder_name', fd.get('name'))]);
                 e.target.reset(); _resetPW('pw-powder'); showToast('Powder logged.'); window.location.href = '/inventory?inv=components&comp=powders';
-            } else showToast('Failed to log powder.', 'error');
-        } catch(_) { showToast('Error saving powder.', 'error'); }
+            } else { _setBusy(powderForm, false); showToast('Failed to log powder.', 'error'); }
+        } catch(_) { _setBusy(powderForm, false); showToast('Error saving powder.', 'error'); }
     });
 }
 
@@ -3450,6 +3488,7 @@ const primerForm = document.getElementById('primer-form');
 if (primerForm) {
     primerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        _setBusy(primerForm, true);
         const fd = new FormData(e.target);
         const { f1, f2 } = _getPWFiles('pw-primer');
         if (f1) fd.set('image_1', f1, f1.name);
@@ -3460,8 +3499,8 @@ if (primerForm) {
             if (res.ok) {
                 await saveLookupValue('primer_brand', fd.get('brand'));
                 e.target.reset(); _resetPW('pw-primer'); showToast('Primers logged.'); window.location.href = '/inventory?inv=components&comp=primers';
-            } else showToast('Failed to log primers.', 'error');
-        } catch(_) { showToast('Error saving primers.', 'error'); }
+            } else { _setBusy(primerForm, false); showToast('Failed to log primers.', 'error'); }
+        } catch(_) { _setBusy(primerForm, false); showToast('Error saving primers.', 'error'); }
     });
 }
 
@@ -3469,6 +3508,7 @@ const bulletCompForm = document.getElementById('bullet-comp-form');
 if (bulletCompForm) {
     bulletCompForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        _setBusy(bulletCompForm, true);
         const fd = new FormData(e.target);
         const { f1, f2 } = _getPWFiles('pw-bullet');
         if (f1) fd.set('image_1', f1, f1.name);
@@ -3483,8 +3523,8 @@ if (bulletCompForm) {
                     saveLookupValue('caliber', fd.get('caliber')),
                 ]);
                 e.target.reset(); _resetPW('pw-bullet'); showToast('Bullets logged.'); window.location.href = '/inventory?inv=components&comp=bullets';
-            } else showToast('Failed to log bullets.', 'error');
-        } catch(_) { showToast('Error saving bullets.', 'error'); }
+            } else { _setBusy(bulletCompForm, false); showToast('Failed to log bullets.', 'error'); }
+        } catch(_) { _setBusy(bulletCompForm, false); showToast('Error saving bullets.', 'error'); }
     });
 }
 
@@ -3492,6 +3532,7 @@ const casingForm = document.getElementById('casing-form');
 if (casingForm) {
     casingForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        _setBusy(casingForm, true);
         const fd = new FormData(e.target);
         const { f1, f2 } = _getPWFiles('pw-casing');
         if (f1) fd.set('image_1', f1, f1.name);
@@ -3505,8 +3546,8 @@ if (casingForm) {
                     saveLookupValue('caliber', fd.get('caliber')),
                 ]);
                 e.target.reset(); _resetPW('pw-casing'); showToast('Casings logged.'); window.location.href = '/inventory?inv=components&comp=casings';
-            } else showToast('Failed to log casings.', 'error');
-        } catch(_) { showToast('Error saving casings.', 'error'); }
+            } else { _setBusy(casingForm, false); showToast('Failed to log casings.', 'error'); }
+        } catch(_) { _setBusy(casingForm, false); showToast('Error saving casings.', 'error'); }
     });
 }
 
@@ -3671,6 +3712,17 @@ function _showPendingUpc(upc) {
     if (row && disp) { disp.value = upc || ''; row.classList.toggle('hidden', !upc); }
 }
 
+async function lookupFormUpc(formTarget, inputId) {
+    const input = document.getElementById(inputId);
+    const upc = (input?.value || '').trim();
+    if (!upc) { showToast('Enter a UPC to look up', 'info'); return; }
+    _barcodeFormTarget = formTarget;
+    const btn = input?.nextElementSibling;
+    if (btn) { btn._origText = btn.textContent; btn.disabled = true; btn.textContent = '⏳'; btn.style.opacity = '0.6'; }
+    await triggerBarcodeLookup(upc);
+    if (btn) { btn.disabled = false; btn.textContent = btn._origText; btn.style.opacity = ''; }
+}
+
 async function triggerBarcodeLookup(upc) {
     upc = (upc || '').trim();
     if (!upc) return;
@@ -3710,7 +3762,7 @@ function _fillFormFromBarcode(data) {
 
     if (_barcodeFormTarget === 'ammo-factory') {
         _setIfEmpty('ammo-factory-brand', data.brand);
-        _setIfEmpty('ammo-factory-model', data.product_line);
+        _setIfEmpty('ammo-factory-model', data.product_line || data.bullet_type);
         _setIfEmpty('ammo-factory-caliber', data.caliber);
         _setIfEmpty('ammo-factory-bullet-type', data.bullet_type);
         _setIfEmpty('ammo-factory-weight', data.weight_gr);
@@ -3768,5 +3820,14 @@ window.onload = () => {
         else if (cat === 'tc-barrel') { switchFormCategory('cat-platforms'); switchAddForm('add-tc-barrel'); }
         else if (cat === 'tc-receiver') { switchFormCategory('cat-platforms'); switchAddForm('add-tc-receiver'); }
         else switchFormCategory('cat-' + cat);
+    }
+    // Close user-menu dropdown when clicking outside
+    const userMenu = document.getElementById('user-menu');
+    if (userMenu) {
+        document.addEventListener('click', e => {
+            if (!userMenu.classList.contains('hidden') && !userMenu.parentElement.contains(e.target)) {
+                userMenu.classList.add('hidden');
+            }
+        });
     }
 };

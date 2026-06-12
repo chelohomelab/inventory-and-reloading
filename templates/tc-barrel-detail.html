@@ -71,12 +71,12 @@
                     </div>
 
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 text-xs">
-                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-gray-500 block mb-1">Platform:</span><span id="val-platform" class="text-gray-200 font-bold">---</span></div>
-                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-gray-500 block mb-1">Barrel Length:</span><span id="val-length" class="text-gray-200 font-bold">---</span></div>
-                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-gray-500 block mb-1">Twist Rate:</span><span id="val-twist" class="text-gray-200 font-bold">---</span></div>
-                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-gray-500 block mb-1">Finish:</span><span id="val-finish" class="text-gray-200 font-bold">---</span></div>
-                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-gray-500 block mb-1">Features:</span><span id="val-features" class="text-gray-200 font-bold">---</span></div>
-                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-gray-500 block mb-1">Cost Basis Valuation:</span><span id="val-price" class="text-emerald-400 font-mono font-bold">---</span></div>
+                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-xs text-gray-200 font-semibold block mb-1">Platform:</span><span id="val-platform" class="text-gray-200 font-bold">---</span></div>
+                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-xs text-gray-200 font-semibold block mb-1">Barrel Length:</span><span id="val-length" class="text-gray-200 font-bold">---</span></div>
+                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-xs text-gray-200 font-semibold block mb-1">Twist Rate:</span><span id="val-twist" class="text-gray-200 font-bold">---</span></div>
+                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-xs text-gray-200 font-semibold block mb-1">Finish:</span><span id="val-finish" class="text-gray-200 font-bold">---</span></div>
+                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-xs text-gray-200 font-semibold block mb-1">Features:</span><span id="val-features" class="text-gray-200 font-bold">---</span></div>
+                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700"><span class="text-xs text-gray-200 font-semibold block mb-1">Cost Basis Valuation:</span><span id="val-price" class="text-emerald-400 font-mono font-bold">---</span></div>
                     </div>
                 </div>
             </div>
@@ -89,23 +89,23 @@
             </div>
             <form id="edit-specs-form" onsubmit="saveBarrelEdits(event)" class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
                 <div>
-                    <label class="block text-gray-400 mb-1">Caliber</label>
+                    <label class="block text-xs text-gray-200 font-semibold mb-1">Caliber</label>
                     <input type="text" id="edit-caliber" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-gray-400 mb-1">Barrel Length</label>
+                    <label class="block text-xs text-gray-200 font-semibold mb-1">Barrel Length</label>
                     <input type="text" id="edit-length" placeholder='e.g. 15"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-gray-400 mb-1">Twist Rate</label>
+                    <label class="block text-xs text-gray-200 font-semibold mb-1">Twist Rate</label>
                     <input type="text" id="edit-twist" placeholder='e.g. 1:12"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-gray-400 mb-1">Finish / Hardware Color</label>
+                    <label class="block text-xs text-gray-200 font-semibold mb-1">Finish / Hardware Color</label>
                     <input type="text" id="edit-finish" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-gray-400 mb-1">Cost Basis ($)</label>
+                    <label class="block text-xs text-gray-200 font-semibold mb-1">Cost Basis ($)</label>
                     <input type="number" step="0.01" id="edit-price" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none">
                 </div>
                 <div class="flex flex-col gap-3 justify-center">
@@ -159,7 +159,7 @@
 
                 <div class="space-y-3 text-xs">
                     <div>
-                        <label class="block text-gray-400 mb-1">Target Ballistic Loadout</label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Target Ballistic Loadout</label>
                         <select id="ballistic-load-select" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-emerald-500 font-medium">
                             <option value="manual">Manual Entry</option>
                         </select>
@@ -167,22 +167,22 @@
 
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-gray-400 mb-1">Velocity (FPS)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Velocity (FPS)</label>
                             <input type="number" id="bal-input-velocity" value="0" oninput="runBallisticEngine()" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 font-mono text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-gray-400 mb-1">Coeff (G1 BC)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Coeff (G1 BC)</label>
                             <input type="number" step="0.001" id="bal-input-bc" value="0.0" oninput="runBallisticEngine()" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 font-mono text-white focus:outline-none">
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3 border-t border-gray-700 pt-3">
                         <div>
-                            <label class="block text-gray-400 mb-1">Scope Height (In)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Scope Height (In)</label>
                             <input type="number" step="0.1" id="bal-input-sh" value="1.5" oninput="runBallisticEngine()" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 font-mono text-white focus:outline-none">
                         </div>
                         <div>
-                            <label class="block text-gray-400 mb-1">Kill-Zone (⌀ In)</label>
+                            <label class="block text-xs text-gray-200 font-semibold mb-1">Kill-Zone (⌀ In)</label>
                             <input type="number" step="0.5" id="bal-input-kz" value="6.0" oninput="runBallisticEngine()" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 font-mono text-white focus:outline-none">
                         </div>
                     </div>
@@ -196,7 +196,7 @@
                     </div>
 
                     <div class="border-t border-gray-700 pt-3">
-                        <label class="block text-gray-400 mb-1 font-bold">➕ Custom Range (Yards)</label>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">➕ Custom Range (Yards)</label>
                         <div class="flex space-x-2">
                             <input type="number" id="bal-custom-distance" placeholder="275" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 font-mono text-white focus:outline-none">
                             <button onclick="addCustomDistanceRow()" class="px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded transition cursor-pointer">Add</button>

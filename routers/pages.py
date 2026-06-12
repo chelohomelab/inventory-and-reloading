@@ -49,3 +49,13 @@ async def handgun_detail(request: Request):
 @router.get("/admin/trash", response_class=HTMLResponse)
 async def admin_trash(request: Request):
     return templates.TemplateResponse("admin_trash.html", {"request": request, "user": request.state.user})
+
+
+@router.get("/wishlist", response_class=HTMLResponse)
+async def wishlist_page(request: Request):
+    return templates.TemplateResponse("wishlist.html", {"request": request, "user": request.state.user})
+
+
+@router.get("/admin/scanner", response_class=HTMLResponse)
+async def scanner_page(request: Request):
+    return templates.TemplateResponse("scanner.html", {"request": request, "user": request.state.user})

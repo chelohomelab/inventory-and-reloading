@@ -1,3 +1,4 @@
+import html
 import json
 import os
 import re
@@ -14,6 +15,7 @@ from dependencies import get_db
 router = APIRouter()
 
 _UPC_CACHE_DIR = os.path.join(os.path.dirname(__file__), '..', 'static', 'uploads', 'upc_cache')
+_FLARESOLVERR_URL = os.environ.get('FLARESOLVERR_URL', 'http://192.168.125.2:8191')
 
 
 def _download_upc_image(upc: str, url: str) -> str | None:
@@ -138,43 +140,40 @@ def _parse_caliber(text: str) -> str | None:
 
     # Named abbreviations that need explicit return values
     abbrevs = [
-        (r'\b6\.5\s*creed\b', '6.5 Creedmoor'),
-        (r'\b6\.5\s*cm\b', '6.5 Creedmoor'),
+        (r'\b6\.5\s*(?:mm\s*)?creedmoor\b', '6.5 Creedmoor'),
+        (r'\b6\.5\s*creed\b',               '6.5 Creedmoor'),
+        (r'\b6\.5\s*cm\b',                  '6.5 Creedmoor'),
+        (r'\b6\s*(?:mm\s*)?creedmoor\b',    '6 Creedmoor'),
+        (r'\b6\.5\s*(?:mm\s*)?prc\b',       '6.5 PRC'),
+        (r'\b6\.5\s*(?:mm\s*)?grendel\b',   '6.5 Grendel'),
+        (r'\b6\.8\s*(?:mm\s*)?western\b',   '6.8 Western'),
+        (r'\b7\s*mm\s*rem(?:ington)?\s*mag\b', '7mm Rem Mag'),
+        (r'\b7\s*mm\s*prc\b',               '7mm PRC'),
+        (r'\b308\s*win(?:chester)?\b',      '.308 Win'),
+        (r'\b30\s*-\s*06\b',               '.30-06'),
+        (r'\b300\s*win(?:chester)?\s*mag\b', '.300 Win Mag'),
+        (r'\b338\s*lapua\b',               '.338 Lapua'),
+        (r'\b243\s*win(?:chester)?\b',      '.243 Win'),
+        (r'\b223\s*rem(?:ington)?\b',       '.223 Rem'),
+        (r'\b5\.56\s*(?:mm\s*)?nato\b',     '5.56 NATO'),
+        (r'\b224\s*valkyrie\b',            '.224 Valkyrie'),
+        (r'\b6\s*mm\s*arc\b',              '6mm ARC'),
     ]
     for abbr, name in abbrevs:
         if re.search(abbr, t, re.IGNORECASE):
             return name
 
     patterns = [
-        r'\b6\.5\s*creedmoor\b',
-        r'\b6\.5\s*prc\b',
-        r'\b6\.5\s*grendel\b',
-        r'\b6\s*creedmoor\b',
-        r'\b6\s*mm\s*creedmoor\b',
-        r'\b6\.8\s*western\b',
         r'\b6\.5-284\b',
         r'\b6\.5x55\b',
-        r'\b7mm\s*rem(?:ington)?\s*mag\b',
         r'\b7mm-08\b',
-        r'\b7mm\s*prc\b',
         r'\b\.308\s*win(?:chester)?\b',
-        r'\b308\s*win(?:chester)?\b',
         r'\b\.30-06\b',
-        r'\b30-06\b',
-        r'\b\.300\s*win(?:chester)?\s*mag\b',
         r'\b\.300\s*prc\b',
         r'\b\.300\s*wsm\b',
-        r'\b\.338\s*lapua\b',
-        r'\b\.243\s*win(?:chester)?\b',
-        r'\b243\s*win(?:chester)?\b',
         r'\b\.22-250\b',
-        r'\b\.223\s*rem(?:ington)?\b',
-        r'\b5\.56\s*nato\b',
-        r'\b\.224\s*valkyrie\b',
-        r'\b6mm\s*arc\b',
-        r'\b6\.5\b.*?\b(?:creedmoor|prc|grendel)\b',
         r'(?<!\d)\.\d{2,3}(?!\d)',   # .277, .264, .308 — lookbehind/ahead avoids matching decimals
-        r'\b\d+(?:\.\d+)?mm\b',      # 7mm, 6.5mm — fractional form prevents "5mm" from "6.5mm"
+        r'\b\d+(?:\.\d+)?mm\b',      # 7mm, 6.5mm — last resort numeric fallback
     ]
     for p in patterns:
         m = re.search(p, t, re.IGNORECASE)
@@ -201,7 +200,8 @@ def _parse_bullet_type(text: str) -> str | None:
         'Scenar', 'Mega', 'FMJ', 'FMJBT', 'Lock Base',
         'Trophy Bonded', 'Fusion', 'Power-Shok',
         'Gold Dot', 'Hot-Cor', 'DeepCurl',
-        'FMJ', 'BTHP', 'HPBT', 'HP', 'SP', 'BT',
+        'PSP BT', 'PSP', 'PSPBT',
+        'FMJ', 'FMJBT', 'BTHP', 'HPBT', 'HP', 'SP', 'BT',
         'Soft Point', 'Hollow Point', 'Boat Tail',
         'Power-Point', 'Silvertip',
         'Core-Lokt', 'CoreLokt',
@@ -219,6 +219,12 @@ def _parse_product_line(text: str) -> str | None:
     if re.search(r'\bLr\s*Xbt\b', text, re.IGNORECASE): return 'LRX'
     if re.search(r'\bTt\s*Sx\b', text, re.IGNORECASE):  return 'TTSX'
     if re.search(r'\bTac\s*Tx\b', text, re.IGNORECASE): return 'TAC-TX'
+    # Aliases: product names as they appear in retailer titles → canonical bc_reference.json name
+    if re.search(r'\bELD\s*-?\s*X\b', text, re.IGNORECASE):          return 'ELD-X'
+    if re.search(r'\bELD\s*-?\s*M(?:atch)?\b', text, re.IGNORECASE): return 'ELD-M'
+    # Bare "ELD" → ELD-M (Hornady Match uses ELD-M; ELD-X is always labelled with an X)
+    if re.search(r'\bELD\b', text, re.IGNORECASE):
+        return 'ELD-M'
     known_lines = [
         'ELD-X', 'ELD-M', 'A-TIP', 'SST', 'GMX', 'FTX', 'V-Max', 'XTP',
         'MatchKing', 'Tipped MatchKing', 'GameKing',
@@ -294,7 +300,10 @@ def _parse_powder_name(title: str) -> tuple[str | None, str | None]:
     return None, None
 
 
+_JUNK_BRANDS = {'brand', 'manufacturer', 'n/a', 'na', 'unknown', 'other', 'generic', 'misc'}
+
 def _parse_brand(raw_brand: str, title: str) -> str | None:
+    raw_brand = html.unescape(raw_brand or '').strip()
     known_brands = [
         'Hornady', 'Federal', 'Winchester', 'Remington', 'Nosler',
         'Sierra', 'Berger', 'Lapua', 'Barnes', 'Speer',
@@ -302,12 +311,16 @@ def _parse_brand(raw_brand: str, title: str) -> str | None:
         'Black Hills', 'HSM', 'Weatherby', 'Magtech', 'Wolf',
         'Norma', 'Sako', 'Vihtavuori', 'Cutting Edge', 'Hammer',
     ]
-    if raw_brand:
+    if raw_brand and raw_brand.lower() not in _JUNK_BRANDS:
         raw_l = raw_brand.lower()
         for b in known_brands:
             b_l = b.lower()
             # Match exact, or prefix ("Barnes Bullets" → "Barnes")
             if raw_l == b_l or raw_l.startswith(b_l + ' '):
+                return b
+        # Unrecognized but non-junk — still check title before accepting the raw value
+        for b in known_brands:
+            if re.search(r'\b' + re.escape(b) + r'\b', title, re.IGNORECASE):
                 return b
         return raw_brand.title()
     for b in known_brands:
@@ -316,14 +329,25 @@ def _parse_brand(raw_brand: str, title: str) -> str | None:
     return None
 
 
-def _lookup_bc(brand: str, product_line: str | None, weight_gr: float | None) -> dict:
+def _caliber_matches_hint(caliber: str, hint: str) -> bool:
+    """True when the leading numeric part of caliber matches the hint (e.g. '6.5 Creedmoor' ~ '6.5mm')."""
+    if not caliber or not hint:
+        return False
+    def _lead(s: str) -> str:
+        m = re.match(r'^[.]?(\d+(?:\.\d+)?)', s.strip().lstrip('.'))
+        return m.group(1) if m else ''
+    return bool(_lead(caliber) and _lead(caliber) == _lead(hint))
+
+
+def _lookup_bc(brand: str, product_line: str | None, weight_gr: float | None,
+               caliber: str | None = None) -> dict:
     if weight_gr is None:
         return {}
     ref = _load_bc_ref()
     brand_l = brand.lower() if brand else ''
     line_l = product_line.lower() if product_line else ''
 
-    # Try brand + product_line + weight (exact)
+    # Tier 1: brand + product_line + weight
     if line_l:
         for entry in ref:
             if (entry['brand'] == brand_l and
@@ -331,12 +355,86 @@ def _lookup_bc(brand: str, product_line: str | None, weight_gr: float | None) ->
                     abs(entry['weight_gr'] - weight_gr) < 0.6):
                 return {'bc_g1': entry.get('bc_g1'), 'bc_g7': entry.get('bc_g7')}
 
-    # Try brand + weight only
+    # Tier 2: brand + weight only (unique match)
     candidates = [e for e in ref if e['brand'] == brand_l and abs(e['weight_gr'] - weight_gr) < 0.6]
     if len(candidates) == 1:
         return {'bc_g1': candidates[0].get('bc_g1'), 'bc_g7': candidates[0].get('bc_g7')}
 
+    # Tier 3: brand + weight + caliber (narrows multi-weight-matches by caliber)
+    if caliber and candidates:
+        cal_candidates = [e for e in candidates
+                          if _caliber_matches_hint(caliber, e.get('caliber_hint', ''))]
+        if len(cal_candidates) == 1:
+            return {'bc_g1': cal_candidates[0].get('bc_g1'), 'bc_g7': cal_candidates[0].get('bc_g7')}
+        # Multiple entries with same caliber — return if they all agree on BC values
+        if cal_candidates:
+            bc_set = {(e.get('bc_g1'), e.get('bc_g7')) for e in cal_candidates}
+            if len(bc_set) == 1:
+                c = cal_candidates[0]
+                return {'bc_g1': c.get('bc_g1'), 'bc_g7': c.get('bc_g7')}
+
     return {}
+
+
+def _scrape_barcodelookup(upc: str) -> dict | None:
+    """Fetch product data from barcodelookup.com via FlareSolverr. Returns a raw-data dict or None."""
+    if not _FLARESOLVERR_URL:
+        return None
+    try:
+        payload = json.dumps({
+            "cmd": "request.get",
+            "url": f"https://www.barcodelookup.com/{upc}",
+            "maxTimeout": 45000,
+        }).encode()
+        req = urllib.request.Request(
+            f"{_FLARESOLVERR_URL}/v1",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=55) as resp:
+            d = json.loads(resp.read().decode())
+        body = d.get("solution", {}).get("response", "")
+        if not body or len(body) < 500:
+            return None
+
+        # Confirm the page is a product page for this UPC (not a 404 / login wall)
+        if upc not in body:
+            return None
+        h1 = re.search(r'<h1[^>]*>\s*UPC\s+' + re.escape(upc) + r'\s*</h1>', body, re.IGNORECASE)
+        if not h1:
+            return None
+
+        # Product title from <h4> (first meaningful one is the product name)
+        h4 = re.search(r'<h4[^>]*>\s*(.*?)\s*</h4>', body, re.DOTALL)
+        title = re.sub(r'<[^>]+>', '', h4.group(1)).strip() if h4 else ''
+        _noise = {'edit the product data', 'write a product review', 'log in to your api account', ''}
+        if title.lower() in _noise:
+            return None
+
+        # Manufacturer lives inside a <span> after "Manufacturer: "
+        mfr = re.search(r'Manufacturer:\s*<[^>]+>\s*([^<\n]{2,60})\s*</span>', body, re.IGNORECASE)
+        raw_brand = mfr.group(1).strip() if mfr else ''
+
+        # Store affiliate links carry product slugs in a nested ?url= query parameter
+        raw_hrefs = re.findall(r'href="([^"]{20,})"', body)
+        slug_words: list[str] = []
+        for href in raw_hrefs:
+            decoded = urllib.parse.unquote(href)
+            parsed = urllib.parse.urlparse(decoded)
+            qs = urllib.parse.parse_qs(parsed.query)
+            inner_url = qs.get('url', [None])[0]
+            if inner_url:
+                inner_path = urllib.parse.urlparse(inner_url).path.rstrip('/')
+                slug = inner_path.split('/')[-1]
+                if len(slug) > 10:
+                    slug_words.append(slug.replace('-', ' '))
+
+        combined = f"{title} {raw_brand} {' '.join(slug_words[:6])}"
+
+        return {"title": title, "raw_brand": raw_brand, "combined": combined}
+    except Exception:
+        return None
 
 
 @router.get("/barcode/lookup")
@@ -349,25 +447,44 @@ def barcode_lookup(upc: str, db: Session = Depends(get_db)):
     if cached:
         return _cache_to_response(cached)
 
+    # ── Primary: UPC Item DB ──────────────────────────────────────────────────
     url = f"https://api.upcitemdb.com/prod/trial/lookup?upc={urllib.parse.quote(upc)}"
+    api_data: dict = {}
+    _upcdb_ok = False
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "homelab-inventory/1.6"})
         with urllib.request.urlopen(req, timeout=6) as resp:
             api_data = json.loads(resp.read().decode())
-    except Exception as e:
-        raise HTTPException(502, f"UPC lookup failed: {e}")
+        _upcdb_ok = True
+    except Exception:
+        pass
 
-    items = api_data.get("items", [])
+    items = api_data.get("items", []) if _upcdb_ok else []
+
+    # ── Fallback: barcodelookup.com via FlareSolverr ──────────────────────────
+    _scraped: dict | None = None
     if not items:
-        raise HTTPException(404, "Barcode not found in UPC database")
+        _scraped = _scrape_barcodelookup(upc)
+        if not _scraped and not _upcdb_ok:
+            raise HTTPException(502, "UPC lookup failed: UPC Item DB unreachable and FlareSolverr unavailable")
+        if not _scraped:
+            raise HTTPException(404, "Barcode not found in UPC database")
 
-    item = items[0]
-    title = item.get("title") or item.get("description") or ""
-    raw_brand = item.get("brand") or ""
-    lowest_price = item.get("lowest_recorded_price")
+    if _scraped:
+        title = _scraped["title"]
+        raw_brand = _scraped["raw_brand"]
+        combined = _scraped["combined"]
+        lowest_price = None
+        api_images: list = []
+    else:
+        item = items[0]
+        title = item.get("title") or item.get("description") or ""
+        raw_brand = item.get("brand") or ""
+        lowest_price = item.get("lowest_recorded_price")
+        api_images = item.get("images") or []
+        combined = title
 
-    # Download product image once if available
-    api_images = item.get("images") or []
+    # Download product image once if available (UPC Item DB path only)
     image_path = None
     for img_url in api_images:
         if img_url:
@@ -375,20 +492,20 @@ def barcode_lookup(upc: str, db: Session = Depends(get_db)):
             if image_path:
                 break
 
-    brand = _parse_brand(raw_brand, title)
-    weight_gr = _parse_weight(title)
-    caliber = _parse_caliber(title)
-    bullet_type = _parse_bullet_type(title)
-    product_line = _parse_product_line(title)
-    rounds_per_box = _parse_rounds(title)
-    primer_type = _parse_primer_type(title)
-    powder_brand, powder_name = _parse_powder_name(title)
+    brand = _parse_brand(raw_brand, combined)
+    weight_gr = _parse_weight(combined)
+    caliber = _parse_caliber(combined)
+    bullet_type = _parse_bullet_type(combined)
+    product_line = _parse_product_line(combined)
+    rounds_per_box = _parse_rounds(combined)
+    primer_type = _parse_primer_type(combined)
+    powder_brand, powder_name = _parse_powder_name(combined)
 
-    bc_data = _lookup_bc(brand or '', product_line, weight_gr)
+    bc_data = _lookup_bc(brand or '', product_line, weight_gr, caliber)
 
     # Infer product type so the frontend can auto-navigate to the right form
-    _is_ammo_title  = bool(re.search(r'\b(?:ammo|ammunition|centerfire|rimfire|shotshell|slug|buckshot)\b', title, re.IGNORECASE))
-    _is_bullet_title = bool(re.search(r'\bbullets?\b', title, re.IGNORECASE))
+    _is_ammo_title  = bool(re.search(r'\b(?:ammo|ammunition|centerfire|rimfire|shotshell|slug|buckshot)\b', combined, re.IGNORECASE))
+    _is_bullet_title = bool(re.search(r'\bbullets?\b', combined, re.IGNORECASE))
     # Product lines that only appear on component bullets, never on factory-ammo boxes
     _component_only = {'eld-x','eld-m','a-tip','matchking','tipped matchking','vld','hybrid',
                        'accubond','partition','lrx','ttsx','tsx','tac-tx','rdf','juggernaut','e-tip'}
@@ -396,18 +513,18 @@ def barcode_lookup(upc: str, db: Session = Depends(get_db)):
 
     if powder_name:
         product_type = "powder"
-    elif primer_type or re.search(r'\bprimer\b', title, re.IGNORECASE):
+    elif primer_type or re.search(r'\bprimer\b', combined, re.IGNORECASE):
         product_type = "primer"
     elif _is_ammo_title:
-        product_type = "ammo"          # explicit ammo keyword in title
+        product_type = "ammo"
     elif rounds_per_box and caliber and not _is_bullet_title and not _is_component_line:
-        product_type = "ammo"          # rounds+caliber → factory ammo, unless clearly a component bullet
+        product_type = "ammo"
     elif weight_gr and (bullet_type or bc_data or product_line):
-        product_type = "bullet"        # component bullet
+        product_type = "bullet"
     elif caliber and not weight_gr and not rounds_per_box:
         product_type = "casing"
     else:
-        product_type = None            # unknown, keep current form
+        product_type = None
 
     return {
         "upc": upc,
@@ -424,7 +541,7 @@ def barcode_lookup(upc: str, db: Session = Depends(get_db)):
         "bc_g1": bc_data.get("bc_g1"),
         "bc_g7": bc_data.get("bc_g7"),
         "primer_type": primer_type,
-        "primer_model": _parse_primer_model(title),
+        "primer_model": _parse_primer_model(combined),
         "image_path": image_path,
-        "source": "api",
+        "source": "scrape" if _scraped else "api",
     }

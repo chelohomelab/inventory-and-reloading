@@ -130,3 +130,14 @@ class TCBarrelPatchPayload(BaseModel):
 
 class UseRoundsPayload(BaseModel):
     rounds: int
+
+
+class WishlistPatchPayload(BaseModel):
+    item_type: Optional[str] = None
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    caliber: Optional[str] = None
+    priority: Optional[str] = None
+    est_price: Optional[float] = None
+    notes: Optional[str] = None
+    url: Optional[str] = None
