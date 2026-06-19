@@ -506,7 +506,9 @@ function switchTab(tabId) {
 
 function switchInventoryTab(tab) {
     currentInventoryTab = tab;
-    const tabs = ['platforms', 'optics', 'ammo', 'components', 'handloads'];
+    // 'handloads' is now a sub-filter under ammo, not a top-level tab
+    if (tab === 'handloads') { switchInventoryTab('ammo'); switchAmmoFilter('handload'); return; }
+    const tabs = ['platforms', 'optics', 'ammo', 'components'];
     tabs.forEach(t => {
         document.getElementById(`inv-pane-${t}`)?.classList.add('hidden');
         const btn = document.getElementById(`inv-btn-${t}`);
@@ -520,7 +522,6 @@ function switchInventoryTab(tab) {
     if (tab === 'optics')      loadScopes();
     if (tab === 'ammo')        loadAmmoInventory(currentAmmoFilter);
     if (tab === 'components')  loadComponentInventory(currentComponentFilter);
-    if (tab === 'handloads')   loadAmmoInventory('handload');
 }
 
 function switchPlatformTab(tab) {
@@ -682,13 +683,16 @@ function switchAddForm(formId) {
 
 function switchAmmoFilter(type) {
     currentAmmoFilter = type;
+    const inactive = "px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer";
     const factBtn = document.getElementById('ammo-btn-factory');
     const muzzBtn = document.getElementById('ammo-btn-muzzleloader');
-    const inactive = "px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer";
+    const handBtn = document.getElementById('ammo-btn-handload');
     if (factBtn) factBtn.className = type === 'factory'
         ? "px-3 py-1 rounded bg-gray-800 text-blue-400 cursor-pointer" : inactive;
     if (muzzBtn) muzzBtn.className = type === 'muzzleloader'
         ? "px-3 py-1 rounded bg-gray-800 text-yellow-500 cursor-pointer" : inactive;
+    if (handBtn) handBtn.className = type === 'handload'
+        ? "px-3 py-1 rounded bg-gray-800 text-amber-400 cursor-pointer" : inactive;
     loadAmmoInventory(type);
 }
 
@@ -1784,7 +1788,7 @@ async function removeScopeMount(scopeId, mountType, mountId) {
 }
 
 async function loadAmmoInventory(type) {
-    const containerId = type === 'handload' ? 'handloads-container' : 'ammo-container';
+    const containerId = 'ammo-container';
     const container = document.getElementById(containerId);
     if (!container) return;
     container.innerHTML = '<p class="text-gray-400 italic text-sm">Loading ammunition...</p>';
@@ -1856,13 +1860,19 @@ async function loadAmmoInventory(type) {
                     return `<button id="ammo-cat-btn-${cat}" onclick="switchAmmoCategory('${cat}')" class="${cls}">${CAT_LABELS[cat]} <span class="opacity-60 font-normal">${count}</span></button>`;
                 }).join('');
             }
-            // Render tiles for active category only
-            const activeTiles = currentAmmoCategoryFilter && catGroups[currentAmmoCategoryFilter]
-                ? Object.values(catGroups[currentAmmoCategoryFilter]).flat()
-                : [];
-            container.innerHTML = activeTiles.length
-                ? `<div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">${activeTiles.map(renderAmmoTile).join('')}</div>`
-                : `<p class="text-gray-500 italic text-sm">No factory loads in this category.</p>`;
+            // Render tiles grouped and sorted by caliber
+            const activeGroups = currentAmmoCategoryFilter && catGroups[currentAmmoCategoryFilter]
+                ? catGroups[currentAmmoCategoryFilter]
+                : {};
+            const calHtml = Object.entries(activeGroups).sort(([a],[b]) => a.localeCompare(b)).map(([cal, loads]) => `
+                <div class="mb-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-400/80 font-mono">${escHtml(cal)}</span>
+                        <div class="flex-1 border-t border-gray-700/40"></div>
+                    </div>
+                    <div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">${loads.map(renderAmmoTile).join('')}</div>
+                </div>`).join('');
+            container.innerHTML = calHtml || `<p class="text-gray-500 italic text-sm">No factory loads in this category.</p>`;
         } else {
             if (catFilterRow) catFilterRow.classList.add('hidden');
             // Handloads: full cards with caliber sub-groups; muzzleloader: tiles
@@ -3728,6 +3738,11 @@ async function triggerBarcodeLookup(upc) {
     if (!upc) return;
     const status = document.getElementById('barcode-status');
     if (status) status.textContent = 'Looking up barcode…';
+    // Populate the form's UPC input so user can see/re-trigger lookup
+    if (_barcodeFormTarget) {
+        const el = document.getElementById(`${_barcodeFormTarget}-upc-input`);
+        if (el) el.value = upc;
+    }
     try {
         const resp = await fetch(`/barcode/lookup?upc=${encodeURIComponent(upc)}`);
         if (!resp.ok) {
