@@ -8,7 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 import database as models
 from config import UPLOAD_DIR
-from routers import auth, pages, firearms, scopes, tc, ammunition, components, settings, profile, admin, performance, barcode, wishlist, scanner
+from routers import auth, pages, firearms, scopes, tc, ammunition, components, settings, profile, admin, performance, barcode, wishlist, scanner, backup
 
 app = FastAPI(title="Homelab Modular Firearm Catalog")
 
@@ -70,3 +70,4 @@ app.include_router(performance.router)
 app.include_router(barcode.router)
 app.include_router(wishlist.router)
 app.include_router(scanner.router)
+app.include_router(backup.router)
