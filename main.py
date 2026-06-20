@@ -13,6 +13,16 @@ from routers import auth, pages, firearms, scopes, tc, ammunition, components, s
 app = FastAPI(title="Homelab Modular Firearm Catalog")
 
 
+class NoCacheMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        if "text/html" in response.headers.get("content-type", ""):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
+
 class AuthMiddleware(BaseHTTPMiddleware):
     _PUBLIC = {"/login", "/setup"}
 
@@ -51,6 +61,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+app.add_middleware(NoCacheMiddleware)
 app.add_middleware(AuthMiddleware)
 models.init_db()
 os.makedirs(UPLOAD_DIR, exist_ok=True)
