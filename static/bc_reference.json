@@ -1135,24 +1135,236 @@
     "bc_g1": 0.395,
     "bc_g7": 0.199
   },
-  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 100, "caliber_hint": ".243", "bc_g1": 0.281, "bc_g7": null},
-  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 115, "caliber_hint": ".270", "bc_g1": 0.310, "bc_g7": null},
-  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 130, "caliber_hint": ".270", "bc_g1": 0.356, "bc_g7": null},
-  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 150, "caliber_hint": ".270", "bc_g1": 0.398, "bc_g7": null},
-  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 150, "caliber_hint": ".308", "bc_g1": 0.314, "bc_g7": null},
-  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 165, "caliber_hint": ".308", "bc_g1": 0.338, "bc_g7": null},
-  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 180, "caliber_hint": ".308", "bc_g1": 0.383, "bc_g7": null},
-  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 150, "caliber_hint": ".30-06", "bc_g1": 0.314, "bc_g7": null},
-  {"brand": "remington", "product_line": "core-lokt", "weight_gr": 180, "caliber_hint": ".30-06", "bc_g1": 0.383, "bc_g7": null},
-  {"brand": "winchester", "product_line": "power-point", "weight_gr": 130, "caliber_hint": ".270", "bc_g1": 0.350, "bc_g7": null},
-  {"brand": "winchester", "product_line": "power-point", "weight_gr": 150, "caliber_hint": ".308", "bc_g1": 0.330, "bc_g7": null},
-  {"brand": "winchester", "product_line": "power-point", "weight_gr": 150, "caliber_hint": ".30-06", "bc_g1": 0.330, "bc_g7": null},
-  {"brand": "winchester", "product_line": "silvertip", "weight_gr": 130, "caliber_hint": ".270", "bc_g1": 0.398, "bc_g7": null},
-  {"brand": "federal", "product_line": "power-shok", "weight_gr": 130, "caliber_hint": ".270", "bc_g1": 0.356, "bc_g7": null},
-  {"brand": "federal", "product_line": "power-shok", "weight_gr": 150, "caliber_hint": ".308", "bc_g1": 0.314, "bc_g7": null},
-  {"brand": "hornady", "product_line": "american whitetail", "weight_gr": 129, "caliber_hint": "6.5mm", "bc_g1": 0.485, "bc_g7": null},
-  {"brand": "hornady", "product_line": "american whitetail", "weight_gr": 150, "caliber_hint": ".308", "bc_g1": 0.338, "bc_g7": null},
-  {"brand": "hornady", "product_line": "sst", "weight_gr": 129, "caliber_hint": "6.5mm", "bc_g1": 0.488, "bc_g7": 0.251},
-  {"brand": "hornady", "product_line": "sst", "weight_gr": 130, "caliber_hint": ".270", "bc_g1": 0.430, "bc_g7": null},
-  {"brand": "hornady", "product_line": "sst", "weight_gr": 150, "caliber_hint": ".308", "bc_g1": 0.415, "bc_g7": null}
+  {
+    "brand": "remington",
+    "product_line": "core-lokt",
+    "weight_gr": 100,
+    "caliber_hint": ".243",
+    "bc_g1": 0.281,
+    "bc_g7": null
+  },
+  {
+    "brand": "remington",
+    "product_line": "core-lokt",
+    "weight_gr": 115,
+    "caliber_hint": ".270",
+    "bc_g1": 0.31,
+    "bc_g7": null
+  },
+  {
+    "brand": "remington",
+    "product_line": "core-lokt",
+    "weight_gr": 130,
+    "caliber_hint": ".270",
+    "bc_g1": 0.356,
+    "bc_g7": null
+  },
+  {
+    "brand": "remington",
+    "product_line": "core-lokt",
+    "weight_gr": 150,
+    "caliber_hint": ".270",
+    "bc_g1": 0.398,
+    "bc_g7": null
+  },
+  {
+    "brand": "remington",
+    "product_line": "core-lokt",
+    "weight_gr": 150,
+    "caliber_hint": ".308",
+    "bc_g1": 0.314,
+    "bc_g7": null
+  },
+  {
+    "brand": "remington",
+    "product_line": "core-lokt",
+    "weight_gr": 165,
+    "caliber_hint": ".308",
+    "bc_g1": 0.338,
+    "bc_g7": null
+  },
+  {
+    "brand": "remington",
+    "product_line": "core-lokt",
+    "weight_gr": 180,
+    "caliber_hint": ".308",
+    "bc_g1": 0.383,
+    "bc_g7": null
+  },
+  {
+    "brand": "remington",
+    "product_line": "core-lokt",
+    "weight_gr": 150,
+    "caliber_hint": ".30-06",
+    "bc_g1": 0.314,
+    "bc_g7": null
+  },
+  {
+    "brand": "remington",
+    "product_line": "core-lokt",
+    "weight_gr": 180,
+    "caliber_hint": ".30-06",
+    "bc_g1": 0.383,
+    "bc_g7": null
+  },
+  {
+    "brand": "winchester",
+    "product_line": "power-point",
+    "weight_gr": 130,
+    "caliber_hint": ".270",
+    "bc_g1": 0.35,
+    "bc_g7": null
+  },
+  {
+    "brand": "winchester",
+    "product_line": "power-point",
+    "weight_gr": 150,
+    "caliber_hint": ".308",
+    "bc_g1": 0.33,
+    "bc_g7": null
+  },
+  {
+    "brand": "winchester",
+    "product_line": "power-point",
+    "weight_gr": 150,
+    "caliber_hint": ".30-06",
+    "bc_g1": 0.33,
+    "bc_g7": null
+  },
+  {
+    "brand": "winchester",
+    "product_line": "silvertip",
+    "weight_gr": 130,
+    "caliber_hint": ".270",
+    "bc_g1": 0.398,
+    "bc_g7": null
+  },
+  {
+    "brand": "federal",
+    "product_line": "power-shok",
+    "weight_gr": 130,
+    "caliber_hint": ".270",
+    "bc_g1": 0.356,
+    "bc_g7": null
+  },
+  {
+    "brand": "federal",
+    "product_line": "power-shok",
+    "weight_gr": 150,
+    "caliber_hint": ".308",
+    "bc_g1": 0.314,
+    "bc_g7": null
+  },
+  {
+    "brand": "hornady",
+    "product_line": "american whitetail",
+    "weight_gr": 129,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.485,
+    "bc_g7": null
+  },
+  {
+    "brand": "hornady",
+    "product_line": "american whitetail",
+    "weight_gr": 150,
+    "caliber_hint": ".308",
+    "bc_g1": 0.338,
+    "bc_g7": null
+  },
+  {
+    "brand": "hornady",
+    "product_line": "sst",
+    "weight_gr": 129,
+    "caliber_hint": "6.5mm",
+    "bc_g1": 0.488,
+    "bc_g7": 0.251
+  },
+  {
+    "brand": "hornady",
+    "product_line": "sst",
+    "weight_gr": 130,
+    "caliber_hint": ".270",
+    "bc_g1": 0.43,
+    "bc_g7": null
+  },
+  {
+    "brand": "hornady",
+    "product_line": "sst",
+    "weight_gr": 150,
+    "caliber_hint": ".308",
+    "bc_g1": 0.415,
+    "bc_g7": null
+  },
+  {
+    "brand": "pmc",
+    "product_line": "bronze",
+    "weight_gr": 55,
+    "caliber_hint": ".223",
+    "bc_g1": 0.243,
+    "bc_g7": null
+  },
+  {
+    "brand": "pmc",
+    "product_line": "bronze",
+    "weight_gr": 62,
+    "caliber_hint": ".223",
+    "bc_g1": 0.307,
+    "bc_g7": null
+  },
+  {
+    "brand": "pmc",
+    "product_line": "bronze",
+    "weight_gr": 147,
+    "caliber_hint": ".308",
+    "bc_g1": 0.393,
+    "bc_g7": null
+  },
+  {
+    "brand": "pmc",
+    "product_line": "bronze",
+    "weight_gr": 150,
+    "caliber_hint": ".308",
+    "bc_g1": 0.394,
+    "bc_g7": null
+  },
+  {
+    "brand": "pmc",
+    "product_line": "bronze",
+    "weight_gr": 115,
+    "caliber_hint": "9mm",
+    "bc_g1": 0.13,
+    "bc_g7": null
+  },
+  {
+    "brand": "pmc",
+    "product_line": "bronze",
+    "weight_gr": 124,
+    "caliber_hint": "9mm",
+    "bc_g1": 0.138,
+    "bc_g7": null
+  },
+  {
+    "brand": "pmc",
+    "product_line": "bronze",
+    "weight_gr": 230,
+    "caliber_hint": ".45",
+    "bc_g1": 0.149,
+    "bc_g7": null
+  },
+  {
+    "brand": "pmc",
+    "product_line": "x-tac",
+    "weight_gr": 55,
+    "caliber_hint": "5.56",
+    "bc_g1": 0.243,
+    "bc_g7": null
+  },
+  {
+    "brand": "pmc",
+    "product_line": "x-tac",
+    "weight_gr": 62,
+    "caliber_hint": "5.56",
+    "bc_g1": 0.307,
+    "bc_g7": null
+  }
 ]

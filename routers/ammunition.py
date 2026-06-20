@@ -1,4 +1,5 @@
 import os
+from datetime import date
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
@@ -51,6 +52,7 @@ def _ammo_dict(a: models.Ammo) -> dict:
         "image_path_2": getattr(a, "image_path_2", None),
         "ammo_category": getattr(a, "ammo_category", None),
         "shell_size": getattr(a, "shell_size", None),
+        "upc": getattr(a, "upc", None),
     }
 
 
@@ -113,6 +115,10 @@ async def add_ammo(
                          brand=brand, product_line=ammo_model, caliber=caliber,
                          weight_gr=bullet_weight, bullet_type=bullet_id or bullet_type,
                          bc_g1=bullet_bc, rounds_per_box=rounds_per_box)
+    if qty_sealed > 0 or qty_open > 0:
+        price_val = price_paid if (price_paid and price_paid > 0) else None
+        _upsert_purchase_log(db, a.id, date.today().isoformat(), qty_sealed, qty_open, price_val)
+        db.commit()
     return _ammo_dict(a)
 
 
@@ -176,6 +182,19 @@ def swap_ammo_photos(ammo_id: int, db: Session = Depends(get_db)):
     return _ammo_dict(a)
 
 
+@router.get("/ammo/by-upc")
+def get_ammo_by_upc(upc: str, db: Session = Depends(get_db)):
+    a = db.query(models.Ammo).filter(
+        models.Ammo.upc == upc,
+        models.Ammo.is_handload == False
+    ).first()
+    if not a:
+        return {"found": False}
+    result = _ammo_dict(a)
+    result["found"] = True
+    return result
+
+
 @router.get("/ammo/")
 def list_ammo(db: Session = Depends(get_db)):
     return [_ammo_dict(a) for a in db.query(models.Ammo).all()]
@@ -197,11 +216,132 @@ def patch_ammo(ammo_id: int, payload: AmmoPatchPayload, db: Session = Depends(ge
     a = db.query(models.Ammo).filter(models.Ammo.id == ammo_id).first()
     if not a:
         raise HTTPException(status_code=404, detail="Ammo not found")
-    for field, value in payload.dict(exclude_unset=True).items():
+    update = payload.dict(exclude_unset=True)
+    for field, value in update.items():
         setattr(a, field, value)
+    if "price_paid" in update and update["price_paid"] and update["price_paid"] > 0:
+        db.query(models.AmmoPurchaseLog).filter(
+            models.AmmoPurchaseLog.ammo_id == ammo_id,
+            models.AmmoPurchaseLog.price_per_box == None,
+        ).update({"price_per_box": update["price_paid"]})
     db.commit()
     db.refresh(a)
     return _ammo_dict(a)
+
+
+def _upsert_purchase_log(db, ammo_id: int, entry_date: str,
+                         boxes: int, loose: int, price_val) -> "models.AmmoPurchaseLog":
+    """Merge into an existing log row with the same date+price, or create a new one."""
+    q = db.query(models.AmmoPurchaseLog).filter(
+        models.AmmoPurchaseLog.ammo_id == ammo_id,
+        models.AmmoPurchaseLog.date == entry_date,
+    )
+    q = q.filter(models.AmmoPurchaseLog.price_per_box == None) \
+        if price_val is None else \
+        q.filter(models.AmmoPurchaseLog.price_per_box == price_val)
+    existing = q.first()
+    if existing:
+        existing.qty_sealed = (existing.qty_sealed or 0) + boxes
+        existing.qty_open = (existing.qty_open or 0) + loose
+        return existing
+    entry = models.AmmoPurchaseLog(
+        ammo_id=ammo_id, date=entry_date,
+        qty_sealed=boxes, qty_open=loose, price_per_box=price_val,
+    )
+    db.add(entry)
+    return entry
+
+
+@router.post("/ammo/{ammo_id}/add-stock")
+def add_stock(ammo_id: int, payload: dict, db: Session = Depends(get_db)):
+    a = db.query(models.Ammo).filter(models.Ammo.id == ammo_id).first()
+    if not a:
+        raise HTTPException(status_code=404, detail="Ammo not found")
+
+    boxes = int(payload.get("qty_sealed", 0))
+    loose = int(payload.get("qty_open", 0))
+    price = payload.get("price_per_box")
+    if price is not None:
+        try:
+            price = float(price)
+        except (ValueError, TypeError):
+            price = None
+
+    if boxes == 0 and loose == 0:
+        raise HTTPException(status_code=400, detail="No quantity provided")
+
+    a.qty_sealed = (a.qty_sealed or 0) + boxes
+    a.qty_open = (a.qty_open or 0) + loose
+    if price is not None and price > 0:
+        a.price_paid = price
+
+    _upsert_purchase_log(db, ammo_id, date.today().isoformat(), boxes, loose,
+                         price if (price and price > 0) else None)
+    db.commit()
+    db.refresh(a)
+    return _ammo_dict(a)
+
+
+@router.patch("/ammo/{ammo_id}/purchase-log/{entry_id}")
+def patch_purchase_log_entry(ammo_id: int, entry_id: int, payload: dict, db: Session = Depends(get_db)):
+    entry = db.query(models.AmmoPurchaseLog).filter(
+        models.AmmoPurchaseLog.id == entry_id,
+        models.AmmoPurchaseLog.ammo_id == ammo_id,
+    ).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Log entry not found")
+    raw = payload.get("price_per_box")
+    if raw == "" or raw is None:
+        entry.price_per_box = None
+    else:
+        try:
+            entry.price_per_box = float(raw)
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=400, detail="Invalid price")
+    db.commit()
+    return {"id": entry.id, "date": entry.date, "qty_sealed": entry.qty_sealed,
+            "qty_open": entry.qty_open, "price_per_box": entry.price_per_box}
+
+
+@router.post("/ammo/{ammo_id}/purchase-log")
+def add_purchase_log_entry(ammo_id: int, payload: dict, db: Session = Depends(get_db)):
+    a = db.query(models.Ammo).filter(models.Ammo.id == ammo_id).first()
+    if not a:
+        raise HTTPException(status_code=404, detail="Ammo not found")
+    entry_date = payload.get("date") or date.today().isoformat()
+    boxes = int(payload.get("qty_sealed", 0))
+    loose = int(payload.get("qty_open", 0))
+    raw_price = payload.get("price_per_box")
+    price = float(raw_price) if raw_price else None
+    price_val = price if (price and price > 0) else None
+    entry = _upsert_purchase_log(db, ammo_id, entry_date, boxes, loose, price_val)
+    db.commit()
+    db.refresh(entry)
+    return {"id": entry.id, "date": entry.date, "qty_sealed": entry.qty_sealed,
+            "qty_open": entry.qty_open, "price_per_box": entry.price_per_box}
+
+
+@router.get("/ammo/{ammo_id}/purchase-log")
+def get_purchase_log(ammo_id: int, db: Session = Depends(get_db)):
+    a = db.query(models.Ammo).filter(models.Ammo.id == ammo_id).first()
+    if not a:
+        raise HTTPException(status_code=404, detail="Ammo not found")
+    entries = (
+        db.query(models.AmmoPurchaseLog)
+        .filter(models.AmmoPurchaseLog.ammo_id == ammo_id)
+        .order_by(models.AmmoPurchaseLog.date.desc())
+        .all()
+    )
+    return [
+        {
+            "id": e.id,
+            "date": e.date,
+            "qty_sealed": e.qty_sealed,
+            "qty_open": e.qty_open,
+            "price_per_box": e.price_per_box,
+        }
+        for e in entries
+    ]
 
 
 @router.delete("/ammo/{ammo_id}")

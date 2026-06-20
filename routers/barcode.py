@@ -1,15 +1,18 @@
 import html
+import io
 import json
 import os
 import re
+import uuid
 import urllib.request
 import urllib.parse
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 import database as _models
+from config import UPLOAD_DIR
 from dependencies import get_db
 
 router = APIRouter()
@@ -19,23 +22,34 @@ _FLARESOLVERR_URL = os.environ.get('FLARESOLVERR_URL', 'http://192.168.125.2:819
 
 
 def _download_upc_image(upc: str, url: str) -> str | None:
-    """Download a product image and save locally. Returns the /static/… path or None."""
+    """Download a product image, compress it, and save locally. Returns the /static/… path or None."""
     os.makedirs(_UPC_CACHE_DIR, exist_ok=True)
-    ext = '.jpg'
-    for suffix in ('.png', '.webp', '.gif'):
-        if url.lower().split('?')[0].endswith(suffix):
-            ext = suffix
-            break
-    dest = os.path.join(_UPC_CACHE_DIR, f"{upc}{ext}")
+    dest = os.path.join(_UPC_CACHE_DIR, f"{upc}.jpg")
     if os.path.exists(dest):
-        return f"/static/uploads/upc_cache/{upc}{ext}"
+        return f"/static/uploads/upc_cache/{upc}.jpg"
+    # Backwards compat: check old extension-preserving filenames
+    for old_ext in ('.png', '.webp', '.gif'):
+        old = os.path.join(_UPC_CACHE_DIR, f"{upc}{old_ext}")
+        if os.path.exists(old):
+            return f"/static/uploads/upc_cache/{upc}{old_ext}"
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "homelab-inventory/1.6"})
+        req = urllib.request.Request(url, headers={"User-Agent": "homelab-inventory/1.8"})
         with urllib.request.urlopen(req, timeout=6) as resp:
             data = resp.read()
+        try:
+            from PIL import Image as _Img, ImageOps as _IOps
+            import io as _io
+            img = _Img.open(_io.BytesIO(data))
+            img = _IOps.exif_transpose(img)
+            img.thumbnail((800, 800), _Img.LANCZOS)
+            out = _io.BytesIO()
+            img.convert("RGB").save(out, format="JPEG", quality=75, optimize=True)
+            data = out.getvalue()
+        except Exception:
+            pass
         with open(dest, 'wb') as f:
             f.write(data)
-        return f"/static/uploads/upc_cache/{upc}{ext}"
+        return f"/static/uploads/upc_cache/{upc}.jpg"
     except Exception:
         return None
 
@@ -44,6 +58,7 @@ def upsert_upc_cache(db: Session, upc: str, **kwargs) -> None:
     """Create or update a UPC cache entry with the supplied keyword fields."""
     if not upc:
         return
+    upc = _normalize_upc(upc)
     entry = db.query(_models.UpcCache).filter(_models.UpcCache.upc == upc).first()
     if entry is None:
         entry = _models.UpcCache(upc=upc)
@@ -73,6 +88,7 @@ def _cache_to_response(entry: "_models.UpcCache") -> dict:
         "primer_type": entry.primer_type,
         "primer_model": entry.primer_model,
         "image_path": entry.image_path,
+        "ammo_category": getattr(entry, 'ammo_category', None),
         "source": "cache",
     }
 
@@ -226,25 +242,88 @@ def _parse_product_line(text: str) -> str | None:
     if re.search(r'\bELD\b', text, re.IGNORECASE):
         return 'ELD-M'
     known_lines = [
+        # Hornady
         'ELD-X', 'ELD-M', 'A-TIP', 'SST', 'GMX', 'FTX', 'V-Max', 'XTP',
-        'MatchKing', 'Tipped MatchKing', 'GameKing',
-        'Hybrid', 'OTM', 'VLD', 'Juggernaut',
-        'AccuBond Long Range', 'AccuBond', 'Ballistic Tip', 'Partition', 'RDF',
-        'TTSX', 'TSX', 'LRX',
+        'Precision Hunter', 'Critical Defense', 'Critical Duty', 'American Gunner',
+        'Outfitter', 'Subsonic', 'BLACK', 'Superformance',
+        # Sierra
+        'MatchKing', 'Tipped MatchKing', 'GameKing', 'Hybrid', 'OTM', 'VLD', 'Juggernaut', 'RDF',
+        # Nosler
+        'AccuBond Long Range', 'AccuBond', 'Ballistic Tip', 'Partition', 'E-Tip',
+        'Trophy Grade', 'Defense', 'Custom Competition',
+        # Barnes
+        'TTSX', 'TSX', 'LRX', 'VOR-TX', 'TAC-X',
+        # Lapua
         'Scenar-L', 'Scenar', 'Mega', 'Lock Base',
-        'Gold Medal Match', 'Gold Medal Berger', 'Trophy Bonded Tip',
-        'Fusion', 'Power-Shok', 'American Eagle',
-        'Precision Hunter', 'Match', 'Black Hills',
+        # Federal
+        'Gold Medal Match', 'Gold Medal Berger', 'Gold Medal',
+        'Trophy Bonded Tip', 'Trophy Bonded',
+        'Fusion', 'Power-Shok', 'American Eagle', 'Vital-Shok',
+        'Punch', 'HST', 'Hydra-Shok', 'Force X2',
         'Expedition Big Game Long Range', 'Expedition Big Game',
-        'Power-Point', 'Silvertip', 'Super-X',
-        'Core-Lokt', 'Premier Match',
-        'Gold Dot', 'Hot-Cor',
-        'AccuTip', 'Slugger', 'Express', 'Managed-Recoil',
+        'Terminal Ascent', 'Edge TLR',
+        # Winchester
+        'Power-Point', 'Silvertip', 'Super-X', 'Super Suppressed',
+        'Deer Season XP', 'Varmint X', 'Defender', 'PDX1',
+        'Ranger', 'Train & Defend',
+        # Remington
+        'Core-Lokt', 'Premier Match', 'Golden Saber', 'HTP', 'UMC', 'Golden Bullet',
+        'Express', 'Slugger', 'AccuTip', 'Managed-Recoil', 'Disruptor',
+        # CCI
+        'Mini-Mag', 'Stinger', 'Velocitor', 'Blazer Brass', 'Blazer', 'Clean-22', 'Quiet',
+        # Speer
+        'Gold Dot', 'Hot-Cor', 'Lawman',
+        # PMC
+        'Bronze', 'X-Tac', 'Xtac', 'Starfire',
+        # Black Hills / Fiocchi / Sig / Norma / misc
+        'Black Hills', 'Match', 'Premier Match',
+        'Shooting Dynamics', 'Elite Performance', 'V-Crown', 'Elite Hunter',
+        'Oryx', 'TipStrike', 'MRP',
     ]
     t = text
     for line in sorted(known_lines, key=len, reverse=True):
         if re.search(r'\b' + re.escape(line) + r'\b', t, re.IGNORECASE):
             return line
+    return None
+
+
+def _infer_ammo_category(caliber: str, title: str) -> str | None:
+    """Infer ammo_category from caliber and title. Returns centerfire/handgun/rimfire/shotgun/shotgun_slug/muzzleloader or None."""
+    t = ((caliber or '') + ' ' + (title or '')).lower()
+
+    if re.search(r'muzzleloader|black\s*powder|percussion', t):
+        return 'muzzleloader'
+
+    # Rimfire calibers
+    if re.search(r'\b\.22\s*(lr|long\s*rifle|short|long|cb|wmr|mag|winchester\s*mag)\b|\b\.17\s*(hmr|wsm|mach\s*2)\b', t):
+        return 'rimfire'
+
+    # Shotgun slug (check before generic shotgun)
+    if re.search(r'\bslug\b', t) and re.search(r'\bgauge\b|\bga\b|\.410\b|\bshell\b', t):
+        return 'shotgun_slug'
+    if re.search(r'\bslug\b', t) and not re.search(r'\brifle\b|\bpistol\b', t):
+        return 'shotgun_slug'
+
+    # Shotgun
+    if re.search(r'\d+\s*gauge|\d+\s*ga\b|\.410\b|\bshotgun\b|\bshot\s*shell\b|\bbirdshot\b|\bbuckshot\b', t):
+        return 'shotgun'
+
+    # Handgun / pistol calibers
+    if re.search(r'\b9\s*mm\b|\b9x19\b|9\s*luger|\.380\s*acp|\.380\s*auto|\b\.45\s*acp\b|\b\.45\s*auto\b|'
+                 r'\.40\s*s\s*&\s*w|\.40\s*sw|\b10\s*mm\b|\b\.357\s*mag|\b\.357\s*sig|\b\.44\s*mag|'
+                 r'\b\.38\s*spl|\b\.38\s*special|\b\.32\s*acp|\b\.25\s*acp|\b\.45\s*gap|'
+                 r'\b5\.7\s*x\s*28|\b4\.6\s*x\s*30|\bpistol\b|\bhandgun\b', t):
+        return 'handgun'
+
+    # Centerfire rifle (keyword or caliber pattern)
+    if re.search(r'\bcenterfire\b|\brifle\b', t):
+        return 'centerfire'
+    if re.search(r'\b\.22[3-9]\b|\b5\.56|\b\.243\b|\b\.270\b|\b\.30[0-9-]|\b\.308\b|'
+                 r'\b30-06|\b7\s*mm|\b7x|\b6\.5|\b6\.\d|\b\.300\b|\b\.338\b|'
+                 r'\b\.350\b|\b\.375\b|\b\.416\b|\b\.45-70\b|\b\.458\b|'
+                 r'\b\.50\b|\b\.510\b|\b8x|\b7\.62', t):
+        return 'centerfire'
+
     return None
 
 
@@ -437,15 +516,42 @@ def _scrape_barcodelookup(upc: str) -> dict | None:
         return None
 
 
+def _normalize_upc(upc: str) -> str:
+    """Normalize UPC: strip leading zero from 13-digit EAN-13 that is really a UPC-A."""
+    if len(upc) == 13 and upc.startswith('0'):
+        return upc[1:]
+    return upc
+
+
 @router.get("/barcode/lookup")
 def barcode_lookup(upc: str, db: Session = Depends(get_db)):
     if not re.match(r'^\d{6,14}$', upc):
         raise HTTPException(400, "Invalid UPC")
 
+    upc = _normalize_upc(upc)
+
     # Local cache takes priority — user-corrected data is always best
     cached = db.query(_models.UpcCache).filter(_models.UpcCache.upc == upc).first()
     if cached:
-        return _cache_to_response(cached)
+        resp = _cache_to_response(cached)
+        existing = db.query(_models.Ammo).filter(
+            _models.Ammo.upc == upc, _models.Ammo.is_handload == False
+        ).first()
+        resp["existing_ammo_id"] = existing.id if existing else None
+        return resp
+
+    # If UPC is already in inventory (no cache entry yet), redirect immediately
+    existing_ammo = db.query(_models.Ammo).filter(
+        _models.Ammo.upc == upc, _models.Ammo.is_handload == False
+    ).first()
+    if existing_ammo:
+        return {
+            "upc": upc,
+            "title": None,
+            "product_type": "ammo",
+            "existing_ammo_id": existing_ammo.id,
+            "source": "inventory",
+        }
 
     # ── Primary: UPC Item DB ──────────────────────────────────────────────────
     url = f"https://api.upcitemdb.com/prod/trial/lookup?upc={urllib.parse.quote(upc)}"
@@ -466,7 +572,7 @@ def barcode_lookup(upc: str, db: Session = Depends(get_db)):
     if not items:
         _scraped = _scrape_barcodelookup(upc)
         if not _scraped and not _upcdb_ok:
-            raise HTTPException(502, "UPC lookup failed: UPC Item DB unreachable and FlareSolverr unavailable")
+            raise HTTPException(404, "UPC not found — lookup services unavailable")
         if not _scraped:
             raise HTTPException(404, "Barcode not found in UPC database")
 
@@ -482,7 +588,19 @@ def barcode_lookup(upc: str, db: Session = Depends(get_db)):
         raw_brand = item.get("brand") or ""
         lowest_price = item.get("lowest_recorded_price")
         api_images = item.get("images") or []
-        combined = title
+        # Build a richer combined text from all text fields the API provides.
+        # Offer/store titles from retailers often include grain weight and bullet type
+        # even when the main product title doesn't.
+        _extra_parts = [
+            item.get("description") or "",
+            item.get("model") or "",
+            item.get("size") or "",
+        ]
+        for offer in (item.get("offers") or [])[:6]:
+            _extra_parts.append(offer.get("title") or "")
+        for store in (item.get("stores") or [])[:6]:
+            _extra_parts.append(store.get("name") or "")
+        combined = " ".join([title] + [p for p in _extra_parts if p])
 
     # Download product image once if available (UPC Item DB path only)
     image_path = None
@@ -526,6 +644,32 @@ def barcode_lookup(upc: str, db: Session = Depends(get_db)):
     else:
         product_type = None
 
+    primer_model = _parse_primer_model(combined)
+    ammo_category = _infer_ammo_category(caliber, combined) if product_type == 'ammo' else None
+
+    # Persist to local cache so repeat scans never hit the internet
+    upsert_upc_cache(db, upc,
+        title=title,
+        product_type=product_type,
+        brand=powder_brand or brand,
+        product_line=product_line,
+        powder_name=powder_name,
+        caliber=caliber,
+        weight_gr=weight_gr,
+        bullet_type=bullet_type,
+        rounds_per_box=rounds_per_box,
+        bc_g1=bc_data.get("bc_g1"),
+        bc_g7=bc_data.get("bc_g7"),
+        primer_type=primer_type,
+        primer_model=primer_model,
+        image_path=image_path,
+        ammo_category=ammo_category,
+    )
+
+    existing = db.query(_models.Ammo).filter(
+        _models.Ammo.upc == upc, _models.Ammo.is_handload == False
+    ).first()
+
     return {
         "upc": upc,
         "title": title,
@@ -541,7 +685,73 @@ def barcode_lookup(upc: str, db: Session = Depends(get_db)):
         "bc_g1": bc_data.get("bc_g1"),
         "bc_g7": bc_data.get("bc_g7"),
         "primer_type": primer_type,
-        "primer_model": _parse_primer_model(combined),
+        "primer_model": primer_model,
         "image_path": image_path,
+        "ammo_category": ammo_category,
         "source": "scrape" if _scraped else "api",
+        "existing_ammo_id": existing.id if existing else None,
     }
+
+
+@router.get("/barcode/image-search")
+def image_search(q: str):
+    """Search DuckDuckGo for product images. Returns up to 8 thumbnail URLs."""
+    ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
+    try:
+        encoded_q = urllib.parse.quote(q)
+        # Step 1: fetch DDG page to extract vqd token
+        req1 = urllib.request.Request(
+            f"https://duckduckgo.com/?q={encoded_q}&ia=images",
+            headers={"User-Agent": ua}
+        )
+        with urllib.request.urlopen(req1, timeout=8) as r:
+            html_body = r.read().decode("utf-8", errors="replace")
+        vqd_match = re.search(r'vqd=(["\'])([^"\']+)\1', html_body)
+        if not vqd_match:
+            vqd_match = re.search(r'vqd=([\d-]+)', html_body)
+        if not vqd_match:
+            return {"images": []}
+        vqd = vqd_match.group(2) if vqd_match.lastindex == 2 else vqd_match.group(1)
+        # Step 2: query DDG image API
+        api_url = (
+            f"https://duckduckgo.com/i.js?q={encoded_q}&vqd={urllib.parse.quote(vqd)}"
+            "&o=json&p=1&s=0&u=bing&f=,,,&l=us-en"
+        )
+        req2 = urllib.request.Request(api_url, headers={"User-Agent": ua, "Referer": "https://duckduckgo.com/"})
+        with urllib.request.urlopen(req2, timeout=8) as r2:
+            data = json.loads(r2.read().decode("utf-8"))
+        results = data.get("results", [])[:8]
+        images = [{"url": item.get("image"), "thumb": item.get("thumbnail"), "title": item.get("title", "")} for item in results if item.get("image")]
+        return {"images": images}
+    except Exception:
+        return {"images": []}
+
+
+@router.post("/barcode/fetch-image")
+def fetch_image(payload: dict):
+    """Download an external image URL and save it locally. Returns the /static/… path."""
+    url = payload.get("url", "")
+    if not url or not url.startswith("http"):
+        raise HTTPException(status_code=400, detail="Invalid URL")
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "homelab-inventory/1.8"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = r.read()
+        try:
+            from PIL import Image as _Img, ImageOps as _IOps
+            import io as _io
+            img = _Img.open(_io.BytesIO(data))
+            img = _IOps.exif_transpose(img)
+            img.thumbnail((1200, 1200), _Img.LANCZOS)
+            out = _io.BytesIO()
+            img.convert("RGB").save(out, format="JPEG", quality=80, optimize=True)
+            data = out.getvalue()
+        except Exception:
+            pass
+        filename = f"web_{uuid.uuid4()}.jpg"
+        dest = os.path.join(UPLOAD_DIR, filename)
+        with open(dest, "wb") as f:
+            f.write(data)
+        return {"path": f"/static/uploads/{filename}"}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))

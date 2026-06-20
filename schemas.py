@@ -36,6 +36,7 @@ class AmmoPatchPayload(BaseModel):
     rounds_per_box: Optional[int] = None
     ammo_category: Optional[str] = None
     shell_size: Optional[str] = None
+    upc: Optional[str] = None
 
 
 class PowderPatch(BaseModel):
