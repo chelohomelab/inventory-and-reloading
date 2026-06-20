@@ -194,6 +194,7 @@ class Ammo(Base):
     upc = Column(String, nullable=True)
 
     shot_strings = relationship("ShotString", back_populates="ammo")
+    purchase_log = relationship("AmmoPurchaseLog", back_populates="ammo", order_by="AmmoPurchaseLog.date")
 
 class ShotString(Base):
     __tablename__ = "shot_strings"
@@ -236,6 +237,7 @@ class UpcCache(Base):
     primer_model = Column(String, nullable=True)
     powder_name  = Column(String, nullable=True)
     image_path   = Column(String, nullable=True)
+    ammo_category = Column(String, nullable=True)
     updated_at   = Column(String, nullable=True)
 
 
@@ -295,6 +297,17 @@ class Wishlist(Base):
     url = Column(String, nullable=True)
     created_at = Column(String, nullable=True)
 
+class AmmoPurchaseLog(Base):
+    __tablename__ = "ammo_purchase_log"
+    id = Column(Integer, primary_key=True, index=True)
+    ammo_id = Column(Integer, ForeignKey("ammo.id"), nullable=False)
+    date = Column(String, nullable=False)   # ISO date YYYY-MM-DD
+    qty_sealed = Column(Integer, default=0)
+    qty_open = Column(Integer, default=0)
+    price_per_box = Column(Float, nullable=True)
+
+    ammo = relationship("Ammo", back_populates="purchase_log")
+
 class ScannerEntry(Base):
     __tablename__ = "scanner_entries"
     id = Column(Integer, primary_key=True, index=True)
@@ -333,6 +346,9 @@ def init_db():
         _add_col('ammo', 'ammo_category', 'ammo_category VARCHAR')
         _add_col('ammo', 'shell_size', 'shell_size VARCHAR')
         _add_col('ammo', 'upc', 'upc VARCHAR')
+
+    if 'upc_cache' in inspector.get_table_names():
+        _add_col('upc_cache', 'ammo_category', 'ammo_category VARCHAR')
 
     for tbl, col in [
         ('casing_inventory', 'image_path'),

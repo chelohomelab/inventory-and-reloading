@@ -43,19 +43,18 @@
                     <div id="thumbnail-gallery-strip" class="flex gap-2 overflow-x-auto pb-1"></div>
                     <div id="photo-panel" class="hidden bg-gray-900 border border-gray-700 rounded-lg p-3 space-y-2">
                         <p class="text-xs font-bold text-amber-400 uppercase tracking-wide">📷 Update Photos</p>
-                        <div class="flex gap-2 items-center">
-                            <div class="flex gap-1.5 flex-1">
-                                <button type="button" onclick="document.getElementById('photo-slot-cam').click()" class="flex-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer transition">📷 Camera</button>
-                                <button type="button" onclick="document.getElementById('photo-slot').click()" class="flex-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer transition">🖼 Gallery</button>
-                            </div>
-                            <button onclick="uploadDetailPhoto()" class="px-2 py-1 bg-blue-800 hover:bg-blue-700 text-white text-[10px] font-bold rounded cursor-pointer transition">Upload</button>
+                        <div class="flex gap-1.5">
+                            <button type="button" onclick="document.getElementById('photo-slot-cam').click()" class="flex-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer transition">📷 Camera</button>
+                            <button type="button" onclick="document.getElementById('photo-slot').click()" class="flex-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer transition">🖼 Gallery (multi)</button>
                         </div>
+                        <div id="detail-photo-preview" class="hidden flex gap-2 flex-wrap"></div>
+                        <button id="detail-upload-btn" onclick="uploadSelectedPhotos()" class="hidden w-full py-1.5 bg-blue-700 hover:bg-blue-600 text-white text-[10px] font-bold rounded cursor-pointer transition">⬆ Upload Selected Photos</button>
                         <div class="flex gap-2 items-center pt-1 border-t border-gray-800">
                             <span class="text-[10px] text-gray-500 flex-1">Rotate displayed photo:</span>
                             <button onclick="rotateCurrentPhoto()" class="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white text-[10px] font-bold rounded cursor-pointer transition">↻ 90°</button>
                         </div>
-                        <input type="file" id="photo-slot" accept="image/*" class="hidden">
-                        <input type="file" accept="image/*" capture="environment" id="photo-slot-cam" onchange="_camToInput('photo-slot-cam','photo-slot')" class="hidden">
+                        <input type="file" multiple accept="image/*" id="photo-slot" onchange="previewDetailPhotos()" class="hidden">
+                        <input type="file" accept="image/*" capture="environment" id="photo-slot-cam" onchange="addDetailPhotoFromCamera()" class="hidden">
                     </div>
                 </div>
                 <!-- Info column -->
@@ -118,6 +117,10 @@
                         <label class="block text-xs text-gray-200 font-semibold mb-1">Price per Box ($)</label>
                         <input type="number" step="0.01" min="0" id="ef-price" placeholder="e.g., 24.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
                     </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">UPC Barcode</label>
+                        <input type="text" id="ef-upc" placeholder="e.g., 741569060080" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white font-mono focus:outline-none focus:border-amber-500">
+                    </div>
                 </div>
 
                 <div class="text-xs">
@@ -161,18 +164,77 @@
 
         <!-- Stock & Use Rounds -->
         <div id="stock-section" class="bg-gray-800 border border-gray-700 rounded-xl p-5 shadow-xl hidden">
-            <div class="flex justify-between items-start flex-wrap gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <!-- On Hand -->
                 <div>
                     <h3 class="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2">📦 On Hand</h3>
-                    <div id="stock-display" class="text-center"></div>
+                    <div id="stock-display"></div>
                 </div>
-                <div class="flex-1 min-w-[180px]">
+
+                <!-- Add Stock -->
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-green-400 mb-2">Add Stock</h3>
+                    <div class="flex gap-2 mb-2">
+                        <input type="number" id="add-boxes-input" min="0" placeholder="# of boxes" class="min-w-0 flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-green-500">
+                        <button onclick="addStock()" class="shrink-0 px-4 py-2 bg-green-700 hover:bg-green-600 text-white text-xs font-bold rounded cursor-pointer transition">Add</button>
+                    </div>
+                    <div class="relative">
+                        <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">$</span>
+                        <input type="number" id="add-price-input" min="0" step="0.01" placeholder="Price per box (optional)" class="w-full bg-gray-700 border border-gray-600 rounded p-2 pl-5 text-sm text-white focus:outline-none focus:border-green-500">
+                    </div>
+                </div>
+
+                <!-- Log Rounds Used -->
+                <div>
                     <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Log Rounds Used</h3>
-                    <div class="flex gap-2 items-center">
-                        <input type="number" id="use-rounds-input" min="1" placeholder="# rounds" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500">
-                        <button onclick="logRoundsUsed()" class="px-3 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded cursor-pointer transition">Log</button>
+                    <div class="flex gap-2">
+                        <input type="number" id="use-rounds-input" min="1" placeholder="# rounds" class="min-w-0 flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                        <button onclick="logRoundsUsed()" class="shrink-0 px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded cursor-pointer transition">Log</button>
                     </div>
                     <p class="text-[10px] text-gray-600 mt-1">For shots fired outside a recorded range session</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Purchase History -->
+        <div id="purchase-log-section" class="bg-gray-800 border border-gray-700 rounded-xl shadow-xl overflow-hidden hidden">
+            <div class="px-5 py-4 border-b border-gray-700 flex justify-between items-center">
+                <h2 class="text-sm font-bold uppercase tracking-wider text-green-400">💰 Purchase History</h2>
+                <span id="purchase-log-badge" class="text-xs bg-gray-900 text-gray-400 px-2 py-0.5 rounded font-mono border border-gray-700">0 entries</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-gray-900 text-gray-400 uppercase tracking-wider">
+                            <th class="px-4 py-2">Date</th>
+                            <th class="px-4 py-2 text-right">Boxes</th>
+                            <th class="px-4 py-2 text-right">Price / Box</th>
+                            <th class="px-4 py-2 text-right">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="purchase-log-body" class="divide-y divide-gray-700 text-gray-300"></tbody>
+                </table>
+            </div>
+            <!-- Log past purchase -->
+            <div class="px-5 py-3 border-t border-gray-700">
+                <button onclick="togglePastPurchaseForm()" class="text-xs text-green-500 hover:text-green-400 font-bold transition cursor-pointer">+ Log a past purchase</button>
+                <div id="past-purchase-form" class="hidden mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
+                    <div>
+                        <label class="block text-[10px] text-gray-400 mb-1">Date</label>
+                        <input type="date" id="pp-date" class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 mb-1">Boxes</label>
+                        <input type="number" id="pp-boxes" min="0" placeholder="0" class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 mb-1">Price / Box ($)</label>
+                        <input type="number" id="pp-price" min="0" step="0.01" placeholder="0.00" class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-green-500">
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="savePastPurchase()" class="flex-1 px-3 py-1.5 bg-green-700 hover:bg-green-600 text-white text-xs font-bold rounded cursor-pointer transition">Save</button>
+                        <button onclick="togglePastPurchaseForm()" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded cursor-pointer transition">✕</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -314,24 +376,68 @@
             } catch { showToast('Error contacting server.', 'error'); }
         }
 
-        async function uploadDetailPhoto() {
+        let _detailPendingFiles = [];
+
+        function previewDetailPhotos() {
             const input = document.getElementById('photo-slot');
-            const file = input?.files[0];
-            if (!file) { showToast('Select a photo first.', 'error'); return; }
-            const slot = currentPhotoCount < 2 ? currentPhotoCount + 1 : 1;
-            const fd = new FormData();
-            fd.append('image', file);
-            fd.append('slot', String(slot));
-            try {
-                const res = await fetch(`/ammo/${currentAmmoId}/update-photo/`, { method: 'POST', body: fd });
-                if (res.ok) {
-                    showToast('Photo updated.');
-                    input.value = '';
-                    loadAmmoData();
-                } else {
-                    showToast('Upload failed.', 'error');
-                }
-            } catch { showToast('Error uploading.', 'error'); }
+            const newFiles = Array.from(input.files || []);
+            _detailPendingFiles = [..._detailPendingFiles, ...newFiles].slice(0, 2);
+            _renderDetailPreview();
+            input.value = '';
+        }
+
+        function addDetailPhotoFromCamera() {
+            const cam = document.getElementById('photo-slot-cam');
+            const file = cam?.files[0];
+            if (!file) return;
+            _detailPendingFiles = [..._detailPendingFiles, file].slice(0, 2);
+            _renderDetailPreview();
+            cam.value = '';
+        }
+
+        function _renderDetailPreview() {
+            const container = document.getElementById('detail-photo-preview');
+            const btn = document.getElementById('detail-upload-btn');
+            if (!container) return;
+            if (!_detailPendingFiles.length) {
+                container.classList.add('hidden');
+                if (btn) btn.classList.add('hidden');
+                return;
+            }
+            container.classList.remove('hidden');
+            if (btn) btn.classList.remove('hidden');
+            container.innerHTML = _detailPendingFiles.map((f, i) => `
+                <div class="relative">
+                    <img src="${URL.createObjectURL(f)}" class="h-20 w-28 object-contain rounded bg-gray-950 border border-gray-700">
+                    <button onclick="_removeDetailPhoto(${i})" class="absolute top-0.5 right-0.5 bg-gray-900/80 text-red-400 text-[10px] rounded-full w-4 h-4 flex items-center justify-center cursor-pointer leading-none">✕</button>
+                </div>`).join('');
+        }
+
+        function _removeDetailPhoto(idx) {
+            _detailPendingFiles.splice(idx, 1);
+            _renderDetailPreview();
+        }
+
+        async function uploadSelectedPhotos() {
+            if (!_detailPendingFiles.length) return;
+            const btn = document.getElementById('detail-upload-btn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
+            let uploaded = 0;
+            for (const file of _detailPendingFiles) {
+                const slot = currentPhotoCount < 2 ? currentPhotoCount + 1 : 1;
+                const fd = new FormData();
+                fd.append('image', file);
+                fd.append('slot', String(slot));
+                try {
+                    const res = await fetch(`/ammo/${currentAmmoId}/update-photo/`, { method: 'POST', body: fd });
+                    if (res.ok) { currentPhotoCount = Math.min(currentPhotoCount + 1, 2); uploaded++; }
+                } catch {}
+            }
+            _detailPendingFiles = [];
+            _renderDetailPreview();
+            if (btn) { btn.disabled = false; btn.textContent = '⬆ Upload Selected Photos'; }
+            if (uploaded > 0) { showToast(`${uploaded} photo${uploaded !== 1 ? 's' : ''} uploaded.`); loadAmmoData(); }
+            else showToast('Upload failed.', 'error');
         }
 
         window.onload = function() {
@@ -351,7 +457,12 @@
                 return;
             }
             renderAmmoProfile(ammoData);
+            const priceInput = document.getElementById('add-price-input');
+            if (priceInput && ammoData.price_paid) {
+                priceInput.placeholder = `Last: $${parseFloat(ammoData.price_paid).toFixed(2)}`;
+            }
             loadSessions();
+            loadPurchaseLog();
         }
 
         function renderAmmoProfile(a) {
@@ -406,6 +517,11 @@
             }
             cells += cell('Range Sessions', a.usage_count !== undefined ? a.usage_count : '—', 'text-blue-400');
             if (a.price_paid) cells += cell('Price / Box', `$${parseFloat(a.price_paid).toFixed(2)}`, 'text-green-400 font-mono');
+            if (a.upc) cells += cell('UPC', a.upc, 'text-gray-400 font-mono text-[11px]');
+            cells += `<div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700">
+                <span class="text-xs text-gray-200 font-semibold block mb-1">Total Spent</span>
+                <span id="total-spent-value" class="text-gray-600 font-bold font-mono">—</span>
+            </div>`;
             grid.innerHTML = cells;
 
             // Show stock section for all ammo
@@ -419,13 +535,11 @@
                 const rpb = a.rounds_per_box || 20;
                 const total = sealed * rpb + open;
                 if (total > 0 || sealed > 0 || open > 0) {
-                    const parts = [];
-                    if (sealed) parts.push(`${sealed} box${sealed !== 1 ? 'es' : ''}`);
-                    if (open) parts.push(`${open} loose`);
+                    const boxLabel = sealed ? `${sealed} box${sealed !== 1 ? 'es' : ''}` : '';
                     stockEl.innerHTML = `
                         <span class="text-2xl font-bold font-mono text-blue-400">${total}</span>
                         <span class="text-sm text-gray-400 ml-1">rounds</span>
-                        <p class="text-[11px] text-gray-500 mt-0.5">${parts.join(' + ')}</p>`;
+                        ${boxLabel ? `<p class="text-[11px] text-gray-500 mt-0.5">${boxLabel}</p>` : ''}`;
                 } else {
                     stockEl.innerHTML = `<span class="text-gray-600 text-sm">No stock recorded</span>`;
                 }
@@ -444,6 +558,7 @@
             document.getElementById('ef-category').value = a.ammo_category || '';
             document.getElementById('ef-shell-size').value = a.shell_size || '';
             document.getElementById('ef-price').value = a.price_paid || '';
+            document.getElementById('ef-upc').value = a.upc || '';
             _toggleEditAmmoFields(a.ammo_category || '');
             if (isHandload) {
                 document.getElementById('handload-fields').classList.remove('hidden');
@@ -473,6 +588,7 @@
                 ammo_category: cat || null,
                 shell_size: isShotgun ? (document.getElementById('ef-shell-size').value.trim() || null) : null,
                 price_paid: parseFloat(document.getElementById('ef-price').value) || null,
+                upc: document.getElementById('ef-upc').value.trim() || null,
             };
             if (ammoData?.is_handload) {
                 payload.charge_weight = parseFloat(document.getElementById('ef-charge').value) || null;
@@ -502,6 +618,131 @@
             } catch(err) {
                 showToast('Error contacting server.', 'error');
             }
+        }
+
+        async function addStock() {
+            const boxes = parseInt(document.getElementById('add-boxes-input')?.value) || 0;
+            const priceVal = document.getElementById('add-price-input')?.value;
+            const price = priceVal ? parseFloat(priceVal) : null;
+            if (boxes === 0) { showToast('Enter number of boxes.', 'error'); return; }
+            const payload = { qty_sealed: boxes, qty_open: 0 };
+            if (price !== null && !isNaN(price) && price > 0) payload.price_per_box = price;
+            try {
+                const res = await fetch(`/ammo/${currentAmmoId}/add-stock`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    const updated = await res.json();
+                    ammoData = { ...ammoData, ...updated };
+                    renderAmmoProfile(ammoData);
+                    document.getElementById('add-boxes-input').value = '';
+                    document.getElementById('add-price-input').value = '';
+                    if (ammoData.price_paid) {
+                        const pi = document.getElementById('add-price-input');
+                        if (pi) pi.placeholder = `Last: $${parseFloat(ammoData.price_paid).toFixed(2)}`;
+                    }
+                    const msg = `Added ${boxes} box${boxes !== 1 ? 'es' : ''}${price > 0 ? ` @ $${price.toFixed(2)}/box` : ''} to stock.`;
+                    showToast(msg);
+                    loadPurchaseLog();
+                } else {
+                    showToast('Failed to update stock.', 'error');
+                }
+            } catch { showToast('Error contacting server.', 'error'); }
+        }
+
+        async function loadPurchaseLog() {
+            const res = await fetch(`/ammo/${currentAmmoId}/purchase-log`);
+            if (!res.ok) return;
+            const entries = await res.json();
+            const section = document.getElementById('purchase-log-section');
+            const badge = document.getElementById('purchase-log-badge');
+            const tbody = document.getElementById('purchase-log-body');
+            if (!entries.length) { if (section) section.classList.add('hidden'); return; }
+            if (section) section.classList.remove('hidden');
+            if (badge) badge.textContent = `${entries.length} entr${entries.length === 1 ? 'y' : 'ies'}`;
+
+            tbody.innerHTML = entries.map(e => {
+                const boxes = e.qty_sealed || 0;
+                const subtotalVal = (e.price_per_box && boxes) ? (e.price_per_box * boxes).toFixed(2) : null;
+                const priceDisplay = e.price_per_box
+                    ? `$${parseFloat(e.price_per_box).toFixed(2)}`
+                    : '<span class="text-gray-500 italic text-[10px]">tap to set</span>';
+                return `<tr class="hover:bg-gray-700/40">
+                    <td class="px-4 py-2 font-mono text-gray-400">${e.date}</td>
+                    <td class="px-4 py-2 text-right">${boxes}</td>
+                    <td class="px-4 py-2 text-right text-green-400 font-mono cursor-pointer hover:bg-green-900/30 rounded transition"
+                        onclick="editLogPrice([${e.id}], ${JSON.stringify(e.price_per_box)}, this)"
+                        title="Tap to edit price">${priceDisplay}</td>
+                    <td class="px-4 py-2 text-right font-mono">${subtotalVal ? '$' + subtotalVal : '<span class="text-gray-600">—</span>'}</td>
+                </tr>`;
+            }).join('');
+
+            // Update Total Spent in data grid
+            const total = entries.reduce((s, e) => s + ((e.price_per_box && e.qty_sealed) ? e.price_per_box * e.qty_sealed : 0), 0);
+            const totalEl = document.getElementById('total-spent-value');
+            if (totalEl) {
+                if (total > 0) { totalEl.textContent = `$${total.toFixed(2)}`; totalEl.className = 'text-green-400 font-bold font-mono'; }
+                else { totalEl.textContent = '—'; totalEl.className = 'text-gray-600 font-bold font-mono'; }
+            }
+        }
+
+        function editLogPrice(entryIds, currentPrice, cell) {
+            if (!Array.isArray(entryIds)) entryIds = [entryIds];
+            const current = currentPrice != null ? parseFloat(currentPrice).toFixed(2) : '';
+            const idsJson = JSON.stringify(entryIds);
+            cell.innerHTML = `<input type="number" step="0.01" min="0" value="${current}"
+                class="w-20 bg-gray-900 border border-green-500 rounded px-1 py-0.5 text-green-400 font-mono text-xs text-right focus:outline-none"
+                onblur="saveLogPrice(${idsJson}, this)"
+                onkeydown="if(event.key==='Enter'){this.blur();}if(event.key==='Escape'){loadPurchaseLog();}">`;
+            cell.querySelector('input').focus();
+            cell.querySelector('input').select();
+        }
+
+        async function saveLogPrice(entryIds, inputEl) {
+            if (!Array.isArray(entryIds)) entryIds = [entryIds];
+            const raw = inputEl.value.trim();
+            const price = raw === '' ? '' : parseFloat(raw);
+            if (raw !== '' && isNaN(price)) { loadPurchaseLog(); return; }
+            const body = JSON.stringify({ price_per_box: raw === '' ? '' : price });
+            const results = await Promise.all(entryIds.map(id =>
+                fetch(`/ammo/${currentAmmoId}/purchase-log/${id}`, {
+                    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body
+                })
+            ));
+            if (results.every(r => r.ok)) { loadPurchaseLog(); showToast('Price updated.'); }
+            else { showToast('Failed to update price.', 'error'); loadPurchaseLog(); }
+        }
+
+        function togglePastPurchaseForm() {
+            const form = document.getElementById('past-purchase-form');
+            form.classList.toggle('hidden');
+            if (!form.classList.contains('hidden')) {
+                const today = new Date().toISOString().slice(0, 10);
+                document.getElementById('pp-date').value = today;
+            }
+        }
+
+        async function savePastPurchase() {
+            const d = document.getElementById('pp-date').value;
+            const boxes = parseInt(document.getElementById('pp-boxes').value) || 0;
+            const priceVal = document.getElementById('pp-price').value;
+            const price = priceVal ? parseFloat(priceVal) : null;
+            if (!d) { showToast('Enter a date.', 'error'); return; }
+            if (boxes === 0) { showToast('Enter at least 1 box.', 'error'); return; }
+            const res = await fetch(`/ammo/${currentAmmoId}/purchase-log`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: d, qty_sealed: boxes, qty_open: 0, price_per_box: price })
+            });
+            if (res.ok) {
+                togglePastPurchaseForm();
+                document.getElementById('pp-boxes').value = '';
+                document.getElementById('pp-price').value = '';
+                loadPurchaseLog();
+                showToast('Past purchase logged.');
+            } else showToast('Failed to save entry.', 'error');
         }
 
         async function logRoundsUsed() {

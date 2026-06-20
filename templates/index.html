@@ -549,7 +549,7 @@
                         </button>
                     </div>
                     <div class="flex gap-2">
-                        <input type="text" id="ammo-factory-upc-input" placeholder="Enter UPC to auto-fill form…" inputmode="numeric" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-blue-500">
+                        <input type="text" id="ammo-factory-upc-input" placeholder="Enter UPC to auto-fill form…" inputmode="numeric" onkeydown="if(event.key==='Enter'){lookupFormUpc('ammo-factory','ammo-factory-upc-input');}" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-blue-500">
                         <button type="button" onclick="lookupFormUpc('ammo-factory', 'ammo-factory-upc-input')" class="px-2.5 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded transition cursor-pointer shrink-0">🔍 Lookup</button>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -630,10 +630,14 @@
                         <div class="flex gap-2 mb-1.5">
                             <button type="button" onclick="document.getElementById('pw-ammo-factory-cam').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">📷 Camera</button>
                             <button type="button" onclick="document.getElementById('pw-ammo-factory-input').click()" class="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1.5 rounded cursor-pointer transition">🖼 Gallery</button>
+                            <button type="button" onclick="openOnlineImageSearch()" class="flex-1 text-xs bg-purple-900 hover:bg-purple-800 text-purple-300 border border-purple-700 py-1.5 rounded cursor-pointer transition">🌐 Search Online</button>
                         </div>
                         <input type="file" multiple accept="image/*" id="pw-ammo-factory-input" onchange="handlePhotoWidget('pw-ammo-factory')" class="hidden">
                         <input type="file" accept="image/*" capture="environment" id="pw-ammo-factory-cam" onchange="handlePWCamera('pw-ammo-factory')" class="hidden">
                         <div id="pw-ammo-factory-preview" class="hidden flex gap-3 mt-2 flex-wrap"></div>
+                        <div id="ammo-factory-online-search" class="hidden mt-2 bg-gray-900 rounded p-2">
+                            <div id="ammo-factory-online-grid" class="grid grid-cols-4 gap-1.5"></div>
+                        </div>
                     </div>
                     <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded text-sm hover:bg-blue-500 transition shadow-md cursor-pointer">Register Commercial Loadout</button>
                 </form>
@@ -771,7 +775,7 @@
                         </button>
                     </div>
                     <div class="flex gap-2">
-                        <input type="text" id="powder-upc-input" placeholder="Enter UPC to auto-fill form…" inputmode="numeric" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-blue-500">
+                        <input type="text" id="powder-upc-input" placeholder="Enter UPC to auto-fill form…" inputmode="numeric" onkeydown="if(event.key==='Enter'){lookupFormUpc('powder','powder-upc-input');}" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-blue-500">
                         <button type="button" onclick="lookupFormUpc('powder', 'powder-upc-input')" class="px-2.5 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded transition cursor-pointer shrink-0">🔍 Lookup</button>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -851,7 +855,7 @@
                         </button>
                     </div>
                     <div class="flex gap-2">
-                        <input type="text" id="primer-upc-input" placeholder="Enter UPC to auto-fill form…" inputmode="numeric" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-blue-500">
+                        <input type="text" id="primer-upc-input" placeholder="Enter UPC to auto-fill form…" inputmode="numeric" onkeydown="if(event.key==='Enter'){lookupFormUpc('primer','primer-upc-input');}" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-blue-500">
                         <button type="button" onclick="lookupFormUpc('primer', 'primer-upc-input')" class="px-2.5 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded transition cursor-pointer shrink-0">🔍 Lookup</button>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -920,7 +924,7 @@
                         </button>
                     </div>
                     <div class="flex gap-2">
-                        <input type="text" id="bullet-comp-upc-input" placeholder="Enter UPC to auto-fill form…" inputmode="numeric" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-blue-500">
+                        <input type="text" id="bullet-comp-upc-input" placeholder="Enter UPC to auto-fill form…" inputmode="numeric" onkeydown="if(event.key==='Enter'){lookupFormUpc('bullet-comp','bullet-comp-upc-input');}" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-blue-500">
                         <button type="button" onclick="lookupFormUpc('bullet-comp', 'bullet-comp-upc-input')" class="px-2.5 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded transition cursor-pointer shrink-0">🔍 Lookup</button>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1004,7 +1008,7 @@
                         </button>
                     </div>
                     <div class="flex gap-2">
-                        <input type="text" id="casing-upc-input" placeholder="Enter UPC to auto-fill form…" inputmode="numeric" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-blue-500">
+                        <input type="text" id="casing-upc-input" placeholder="Enter UPC to auto-fill form…" inputmode="numeric" onkeydown="if(event.key==='Enter'){lookupFormUpc('casing','casing-upc-input');}" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-blue-500">
                         <button type="button" onclick="lookupFormUpc('casing', 'casing-upc-input')" class="px-2.5 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded transition cursor-pointer shrink-0">🔍 Lookup</button>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1084,6 +1088,7 @@
                 <p class="text-[10px] text-gray-500 text-center">— or enter barcode manually —</p>
                 <div class="flex gap-2">
                     <input type="text" id="barcode-manual-input" placeholder="Enter UPC / barcode" inputmode="numeric"
+                           onkeydown="if(event.key==='Enter'){triggerBarcodeLookup(this.value);}"
                            class="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-amber-500">
                     <button onclick="triggerBarcodeLookup(document.getElementById('barcode-manual-input').value)" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded cursor-pointer">Go</button>
                 </div>
@@ -1136,6 +1141,6 @@
     <datalist id="dl-handload-brass"></datalist>
 
     <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
-    <script src="/static/app.js?v=51"></script>
+    <script src="/static/app.js?v=54"></script>
 </body>
 </html>

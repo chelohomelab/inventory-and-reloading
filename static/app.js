@@ -1972,11 +1972,9 @@ function renderAmmoTile(ammo) {
     const imgHtml = ammo.image_path
         ? `<img src="${ammo.image_path}" class="w-full h-full object-contain">`
         : `<span class="text-3xl">📦</span>`;
-    const parts = [];
-    if (sealed) parts.push(`${sealed}bx`);
-    if (open) parts.push(`${open} loose`);
-    const breakdownHtml = parts.length
-        ? `<span class="block text-[11px] text-gray-300 font-mono leading-tight">${parts.join(' + ')}</span>`
+    const boxLabel = sealed ? `${sealed}bx` : '';
+    const breakdownHtml = boxLabel
+        ? `<span class="block text-[11px] text-gray-300 font-mono leading-tight">${boxLabel}</span>`
         : '';
     return `
     <div onclick="window.location.href='ammo-detail.html?id=${ammo.id}'"
@@ -2017,14 +2015,12 @@ function renderAmmoCard(ammo) {
         const open = ammo.qty_open || 0;
         const rpb = ammo.rounds_per_box || 20;
         const price = ammo.price_paid || 0;
-        const parts = [];
-        if (sealed) parts.push(`${sealed} box${sealed !== 1 ? 'es' : ''}`);
-        if (open) parts.push(`${open} loose`);
-        if (parts.length) {
-            const total = sealed * rpb + open;
+        const total = sealed * rpb + open;
+        if (total > 0) {
+            const boxLabel = sealed ? `${sealed} box${sealed !== 1 ? 'es' : ''}` : '';
             stockLine = `<div class="bg-gray-900/60 rounded p-2 text-center mt-1">
                 <p class="text-sm font-bold font-mono text-blue-400">${total} <span class="text-xs text-gray-400">rds</span></p>
-                <p class="text-xs text-gray-200 font-semibold">${parts.join(' + ')}${price ? ` · $${price.toFixed(2)}/box` : ''}</p>
+                <p class="text-xs text-gray-200 font-semibold">${boxLabel}${price ? ` · $${price.toFixed(2)}/box` : ''}</p>
             </div>`;
         }
     }
@@ -3660,15 +3656,35 @@ async function _startLiveScanner() {
             const detector = new BarcodeDetector({
                 formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39']
             });
+            // Wait for camera to focus before scanning
+            await new Promise(r => setTimeout(r, 600));
+            status.textContent = 'Ready — point at barcode';
+            let _lastCode = null, _hits = 0;
+            const REQUIRED = 3;
             const scanFrame = async () => {
                 if (!_barcodeStream) return;
                 try {
                     const barcodes = await detector.detect(video);
                     if (barcodes.length > 0) {
                         const code = barcodes[0].rawValue;
-                        closeBarcodeScanner();
-                        triggerBarcodeLookup(code);
-                        return;
+                        if (code === _lastCode) {
+                            _hits++;
+                            status.textContent = `Confirming: ${code} (${_hits}/${REQUIRED})`;
+                            if (_hits >= REQUIRED) {
+                                status.textContent = `✓ ${code}`;
+                                closeBarcodeScanner();
+                                triggerBarcodeLookup(code);
+                                return;
+                            }
+                        } else {
+                            _lastCode = code;
+                            _hits = 1;
+                            status.textContent = `Detected: ${code}`;
+                        }
+                    } else {
+                        if (_lastCode) { status.textContent = 'Ready — point at barcode'; }
+                        _lastCode = null;
+                        _hits = 0;
                     }
                 } catch (_) {}
                 _barcodeAnimFrame = requestAnimationFrame(scanFrame);
@@ -3686,8 +3702,17 @@ async function _startLiveScanner() {
             ZXing.BarcodeFormat.CODE_128,
         ]);
         _barcodeReader = new ZXing.BrowserMultiFormatReader(hints);
+        let _zxingLastCode = null, _zxingHits = 0;
         const cb = (result) => {
-            if (result) { _barcodeReader.reset(); closeBarcodeScanner(); triggerBarcodeLookup(result.getText()); }
+            if (!result) return;
+            const code = result.getText();
+            if (code === _zxingLastCode) {
+                _zxingHits++;
+                if (_zxingHits >= 2) { _barcodeReader.reset(); closeBarcodeScanner(); triggerBarcodeLookup(code); }
+            } else {
+                _zxingLastCode = code;
+                _zxingHits = 1;
+            }
         };
         if (typeof _barcodeReader.decodeFromVideoElementContinuously === 'function') {
             _barcodeReader.decodeFromVideoElementContinuously(video, cb);
@@ -3714,6 +3739,74 @@ function closeBarcodeScanner() {
     document.getElementById('barcode-status').textContent = '';
     // Blur active element so focus doesn't return to a form field and trigger autocomplete
     document.activeElement?.blur();
+}
+
+async function _addServerImageToWidget(wid, serverPath) {
+    try {
+        const existing = (_pw[wid]?.files) || [];
+        if (existing.length > 0) return; // don't override photos already selected
+        const resp = await fetch(serverPath);
+        const blob = await resp.blob();
+        const file = new File([blob], 'product-image.jpg', { type: 'image/jpeg' });
+        _pw[wid] = { files: [file], primary: 0 };
+        _renderPW(wid);
+    } catch {}
+}
+
+function openOnlineImageSearch() {
+    const brand   = document.getElementById('ammo-factory-brand')?.value || '';
+    const caliber = document.getElementById('ammo-factory-caliber')?.value || '';
+    const model   = document.getElementById('ammo-factory-model')?.value || '';
+    const query   = [brand, caliber, model, 'ammunition'].filter(Boolean).join(' ').trim();
+    if (!query) { showToast('Fill in brand or caliber first', 'info'); return; }
+    const panel = document.getElementById('ammo-factory-online-search');
+    if (!panel) return;
+    const wasHidden = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden');
+    if (wasHidden) searchOnlineImages(query, 'pw-ammo-factory');
+}
+
+async function searchOnlineImages(query, wid) {
+    const grid = document.getElementById('ammo-factory-online-grid');
+    if (!grid) return;
+    grid.innerHTML = '<p class="text-gray-400 text-xs col-span-4 py-2 text-center">Searching…</p>';
+    try {
+        const resp = await fetch(`/barcode/image-search?q=${encodeURIComponent(query)}`);
+        const data = await resp.json();
+        if (!data.images || !data.images.length) {
+            grid.innerHTML = '<p class="text-gray-500 text-xs col-span-4 py-2 text-center">No images found.</p>';
+            return;
+        }
+        grid.innerHTML = data.images.map(img => `
+            <div onclick="selectOnlineImage('${escHtml(img.url)}','${wid}')"
+                 class="cursor-pointer rounded overflow-hidden border border-gray-700 hover:border-amber-500 transition bg-gray-950">
+                <img src="${escHtml(img.thumb || img.url)}" class="w-full h-16 object-contain"
+                     onerror="this.closest('div').remove()" title="${escHtml(img.title || '')}">
+            </div>`).join('');
+    } catch {
+        grid.innerHTML = '<p class="text-red-400 text-xs col-span-4 py-2 text-center">Search failed.</p>';
+    }
+}
+
+async function selectOnlineImage(url, wid) {
+    showToast('Downloading image…', 'info');
+    try {
+        const resp = await fetch('/barcode/fetch-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
+        if (!resp.ok) { showToast('Failed to fetch image', 'error'); return; }
+        const { path } = await resp.json();
+        const imgResp = await fetch(path);
+        const blob = await imgResp.blob();
+        const file = new File([blob], 'web-image.jpg', { type: 'image/jpeg' });
+        const existing = (_pw[wid]?.files) || [];
+        _pw[wid] = { files: [...existing, file].slice(0, 2), primary: _pw[wid]?.primary || 0 };
+        _renderPW(wid);
+        document.getElementById('ammo-factory-online-search')?.classList.add('hidden');
+        showToast('Image added', 'success');
+    } catch { showToast('Failed to fetch image', 'error'); }
 }
 
 function _showPendingUpc(upc) {
@@ -3746,15 +3839,27 @@ async function triggerBarcodeLookup(upc) {
     try {
         const resp = await fetch(`/barcode/lookup?upc=${encodeURIComponent(upc)}`);
         if (!resp.ok) {
-            // UPC not in DB — let user fill in details on whichever form they're on
             _lastScannedUpc = upc;
             closeBarcodeScanner();
-            _showPendingUpc(upc);
-            showToast('UPC not found — fill in the details and save to register it', 'info');
+            if (_barcodeFormTarget === 'ammo-factory') _showPendingUpc(upc);
+            const errBody = await resp.json().catch(() => ({}));
+            const offline = (errBody.detail || '').includes('unavailable');
+            showToast(
+                offline ? 'Lookup service offline — fill in details manually' : 'UPC not found — fill in the details and save to register it',
+                'info'
+            );
             return;
         }
         const data = await resp.json();
+        // If scanning into the add-ammo form and UPC already exists in inventory, go straight to detail
+        if (_barcodeFormTarget === 'ammo-factory' && data.existing_ammo_id) {
+            closeBarcodeScanner();
+            window.location.href = `/ammo-detail.html?id=${data.existing_ammo_id}`;
+            return;
+        }
         _fillFormFromBarcode(data);
+        // Sync the "Scanned UPC" display with the canonical UPC from the response
+        if (_barcodeFormTarget === 'ammo-factory') _showPendingUpc(data.upc || upc);
         showToast(`Found: ${data.title || upc}`, 'success');
     } catch (e) {
         showToast('Lookup failed — check connection', 'error');
@@ -3776,6 +3881,12 @@ function _fillFormFromBarcode(data) {
     _lastScannedUpc = data.upc || null;
 
     if (_barcodeFormTarget === 'ammo-factory') {
+        if (data.image_path) _addServerImageToWidget('pw-ammo-factory', data.image_path);
+        // Set category first so field visibility is toggled before filling values
+        if (data.ammo_category) {
+            const catSel = document.getElementById('ammo-factory-cat');
+            if (catSel && !catSel.value) { catSel.value = data.ammo_category; _toggleFactoryAmmoFields(data.ammo_category); }
+        }
         _setIfEmpty('ammo-factory-brand', data.brand);
         _setIfEmpty('ammo-factory-model', data.product_line || data.bullet_type);
         _setIfEmpty('ammo-factory-caliber', data.caliber);
@@ -3783,10 +3894,6 @@ function _fillFormFromBarcode(data) {
         _setIfEmpty('ammo-factory-weight', data.weight_gr);
         _setIfEmpty('ammo-factory-bc', data.bc_g1);
         _setIfEmpty('ammo-factory-rpb', data.rounds_per_box);
-        if (data.ammo_category) {
-            const catSel = document.getElementById('ammo-factory-cat');
-            if (catSel && !catSel.value) { catSel.value = data.ammo_category; _toggleFactoryAmmoFields(data.ammo_category); }
-        }
     } else if (_barcodeFormTarget === 'bullet-comp') {
         _setIfEmpty('bullet-comp-brand', data.brand);
         _setIfEmpty('bullet-comp-product-line', data.product_line);
