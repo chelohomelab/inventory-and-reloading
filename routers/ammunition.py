@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 import database as models
 from config import UPLOAD_DIR
-from dependencies import get_db, save_uploaded_file
+from dependencies import get_db, save_uploaded_file, cleanup_item_images
 from schemas import AmmoPatchPayload, UseRoundsPayload
 from routers.barcode import upsert_upc_cache
 
@@ -355,6 +355,7 @@ def delete_ammo(ammo_id: int, db: Session = Depends(get_db)):
             status_code=400,
             detail=f"Cannot delete: {usage} range session(s) reference this load. Delete those sessions first.",
         )
+    cleanup_item_images(a)
     upc = getattr(a, 'upc', None)
     db.delete(a)
     db.commit()

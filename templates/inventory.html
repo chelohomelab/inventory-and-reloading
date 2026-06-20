@@ -88,10 +88,10 @@
         <div class="p-2.5 border-b border-gray-800">
             <p class="text-[10px] text-gray-600 uppercase tracking-widest px-1 mb-1.5">Inventory</p>
             <div id="landing-stats" class="grid grid-cols-2 gap-1">
-                <div class="bg-gray-800/60 rounded-lg py-2 text-center"><div class="text-sm">🔫</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Firearms</div></div>
-                <div class="bg-gray-800/60 rounded-lg py-2 text-center"><div class="text-sm">🔭</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Optics</div></div>
-                <div class="bg-gray-800/60 rounded-lg py-2 text-center"><div class="text-sm">🧪</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Ammo</div></div>
-                <div class="bg-gray-800/60 rounded-lg py-2 text-center"><div class="text-sm">🔩</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Components</div></div>
+                <div class="bg-gray-800/60 rounded-lg py-2 text-center"><div class="text-sm">🔫</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Firearms</div><div class="text-[10px] font-bold text-gray-700 mt-0.5">$—</div></div>
+                <div class="bg-gray-800/60 rounded-lg py-2 text-center"><div class="text-sm">🔭</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Optics</div><div class="text-[10px] font-bold text-gray-700 mt-0.5">$—</div></div>
+                <div class="bg-gray-800/60 rounded-lg py-2 text-center"><div class="text-sm">🧪</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Ammo</div><div class="text-[10px] font-bold text-gray-700 mt-0.5">$—</div></div>
+                <div class="bg-gray-800/60 rounded-lg py-2 text-center"><div class="text-sm">🔩</div><div class="text-sm font-black text-gray-600">—</div><div class="text-[9px] text-gray-600 uppercase tracking-wide">Components</div><div class="text-[10px] font-bold text-gray-700 mt-0.5">$—</div></div>
             </div>
         </div>
 
@@ -139,6 +139,7 @@
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-gray-700 pb-3 gap-3">
                 <div class="flex flex-wrap items-center gap-3">
                     <h2 class="text-2xl font-bold">Inventory Vault</h2>
+                    <input type="text" id="inventory-search" placeholder="Search..." oninput="applyInventorySearch()" class="bg-gray-800 border border-gray-700 rounded px-3 py-1 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 w-40">
                     <div class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
                         <button id="inv-btn-platforms" onclick="switchInventoryTab('platforms')" class="px-3 py-1 rounded bg-gray-800 text-amber-500 cursor-pointer">🔫 Platforms</button>
                         <button id="inv-btn-optics" onclick="switchInventoryTab('optics')" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">🔭 Optics</button>
@@ -146,7 +147,18 @@
                         <button id="inv-btn-components" onclick="switchInventoryTab('components')" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">🔩 Components</button>
                     </div>
                 </div>
-                <span id="inventory-count" class="text-xs bg-gray-800 text-gray-400 font-mono px-2.5 py-1 rounded border border-gray-700 self-start sm:self-auto">0 Assets Logged</span>
+                <div class="flex items-center gap-2 self-start sm:self-auto">
+                    <span id="inventory-count" class="text-xs bg-gray-800 text-gray-400 font-mono px-2.5 py-1 rounded border border-gray-700">0 Assets Logged</span>
+                    <div class="relative">
+                        <button onclick="document.getElementById('export-menu').classList.toggle('hidden')" class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white text-xs font-bold rounded border border-gray-700 cursor-pointer transition">Export CSV</button>
+                        <div id="export-menu" class="hidden absolute right-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 w-44 overflow-hidden">
+                            <a href="/export/firearms.csv" class="block px-3 py-2 text-xs text-gray-300 hover:bg-gray-700 transition">Firearms</a>
+                            <a href="/export/scopes.csv" class="block px-3 py-2 text-xs text-gray-300 hover:bg-gray-700 transition">Optics</a>
+                            <a href="/export/ammo.csv" class="block px-3 py-2 text-xs text-gray-300 hover:bg-gray-700 transition">Ammunition</a>
+                            <a href="/export/components.csv" class="block px-3 py-2 text-xs text-gray-300 hover:bg-gray-700 transition">Components</a>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Platforms pane -->
@@ -160,7 +172,8 @@
                             <button id="plat-btn-tc" onclick="switchPlatformTab('tc')" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">🛠️ Thompson Center</button>
                         </div>
                         <div id="plat-collection-filter" class="flex bg-gray-950 p-0.5 rounded border border-gray-800 text-xs font-bold">
-                            <button onclick="setCollectionFilter()" id="btn-filter-sold" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">Sold</button>
+                            <button onclick="setCollectionFilter('active')" id="btn-filter-active" class="px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer">Active</button>
+                            <button onclick="setCollectionFilter('sold')" id="btn-filter-sold" class="px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer">Sold</button>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">

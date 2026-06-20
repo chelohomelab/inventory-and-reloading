@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from sqlalchemy.orm import Session
 
 import database as models
-from dependencies import get_db, save_uploaded_file
+from dependencies import get_db, save_uploaded_file, cleanup_item_images
 from schemas import PowderPatch, PrimerPatch, BulletComponentPatch, CasingPatch, DeductPayload
 from routers.barcode import upsert_upc_cache
 
@@ -98,6 +98,7 @@ def patch_powder(item_id: int, payload: PowderPatch, db: Session = Depends(get_d
 def delete_powder(item_id: int, db: Session = Depends(get_db)):
     p = db.query(models.PowderInventory).filter(models.PowderInventory.id == item_id).first()
     if not p: raise HTTPException(404, "Not found")
+    cleanup_item_images(p)
     upc = getattr(p, 'upc', None)
     db.delete(p); db.commit()
     if upc:
@@ -167,6 +168,7 @@ def patch_primer(item_id: int, payload: PrimerPatch, db: Session = Depends(get_d
 def delete_primer(item_id: int, db: Session = Depends(get_db)):
     p = db.query(models.PrimerInventory).filter(models.PrimerInventory.id == item_id).first()
     if not p: raise HTTPException(404, "Not found")
+    cleanup_item_images(p)
     upc = getattr(p, 'upc', None)
     db.delete(p); db.commit()
     if upc:
@@ -244,6 +246,7 @@ def patch_bullet_component(item_id: int, payload: BulletComponentPatch, db: Sess
 def delete_bullet_component(item_id: int, db: Session = Depends(get_db)):
     b = db.query(models.BulletInventory).filter(models.BulletInventory.id == item_id).first()
     if not b: raise HTTPException(404, "Not found")
+    cleanup_item_images(b)
     upc = getattr(b, 'upc', None)
     db.delete(b); db.commit()
     if upc:
@@ -308,6 +311,7 @@ def patch_casing(item_id: int, payload: CasingPatch, db: Session = Depends(get_d
 def delete_casing(item_id: int, db: Session = Depends(get_db)):
     c = db.query(models.CasingInventory).filter(models.CasingInventory.id == item_id).first()
     if not c: raise HTTPException(404, "Not found")
+    cleanup_item_images(c)
     upc = getattr(c, 'upc', None)
     db.delete(c); db.commit()
     if upc:

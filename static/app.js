@@ -63,6 +63,26 @@ let currentComponentMode = "reloading"; // "reloading" or "muzzleloader"
 let currentAmmoCategoryFilter = null; // active category for factory view
 let currentPlatformSort = "brand";
 let currentOpticSort = "brand";
+let currentSearchQuery = "";
+
+function applyInventorySearch() {
+    const el = document.getElementById('inventory-search');
+    currentSearchQuery = (el ? el.value : '').toLowerCase().trim();
+    if (currentInventoryTab === 'platforms') {
+        if (currentPlatformTab === 'tc') loadTCInventory();
+        else loadCatalog();
+    } else if (currentInventoryTab === 'optics') loadScopeInventory();
+    else if (currentInventoryTab === 'ammo') loadAmmoInventory(currentAmmoFilter);
+    else if (currentInventoryTab === 'components') loadComponentInventory(currentComponentFilter);
+}
+
+function matchesSearch(item) {
+    if (!currentSearchQuery) return true;
+    const fields = [item.brand, item.model, item.caliber, item.line_or_powder, item.bullet_type,
+                    item.serial_number, item.name, item.magnification, item.product_line].filter(Boolean);
+    const text = fields.join(' ').toLowerCase();
+    return text.includes(currentSearchQuery);
+}
 
 // ── Photo widget (multi-select + primary toggle) ──────────────────────────────
 const _pw = {}; // widget state: widgetId -> { files: File[], primary: 0 }
@@ -242,14 +262,14 @@ function toggleUserMenu() {
 }
 
 // Vault Filtering Controllers
-function setCollectionFilter() {
-    currentCollectionFilter = currentCollectionFilter === 'sold' ? 'active' : 'sold';
+function setCollectionFilter(mode) {
+    currentCollectionFilter = mode || (currentCollectionFilter === 'sold' ? 'active' : 'sold');
+    const btnActive = document.getElementById('btn-filter-active');
     const btnSold = document.getElementById('btn-filter-sold');
-    if (btnSold) {
-        btnSold.className = currentCollectionFilter === 'sold'
-            ? "px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer"
-            : "px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer";
-    }
+    const onCls = "px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer";
+    const offCls = "px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer";
+    if (btnActive) btnActive.className = currentCollectionFilter === 'active' ? onCls : offCls;
+    if (btnSold) btnSold.className = currentCollectionFilter === 'sold' ? onCls : offCls;
     if (currentPlatformTab === 'tc') loadTCInventory();
     else loadCatalog();
 }
@@ -564,9 +584,10 @@ async function loadTCInventory() {
         const [recRes, barRes] = await Promise.all([fetch('/tc-receivers/'), fetch('/tc-barrels/')]);
         const allReceivers = recRes.ok ? await recRes.json() : [];
         const barrels      = barRes.ok ? await barRes.json() : [];
-        const receivers    = allReceivers.filter(r => currentCollectionFilter === 'sold' ? r.is_sold : !r.is_sold);
+        const receivers    = allReceivers.filter(r => currentCollectionFilter === 'sold' ? r.is_sold : !r.is_sold).filter(matchesSearch);
 
-        const total = receivers.length + barrels.length;
+        const filteredBarrels = barrels.filter(matchesSearch);
+        const total = receivers.length + filteredBarrels.length;
         document.getElementById('inventory-count').innerText = `${total} TC Item${total !== 1 ? 's' : ''} Registered`;
 
         if (receivers.length === 0) {
@@ -620,10 +641,10 @@ async function loadTCInventory() {
             }).join('');
         }
 
-        if (barrels.length === 0) {
+        if (filteredBarrels.length === 0) {
             barContainer.innerHTML = '<p class="text-gray-500 italic text-sm col-span-3">No barrels registered.</p>';
         } else {
-            barContainer.innerHTML = barrels.map(b => {
+            barContainer.innerHTML = filteredBarrels.map(b => {
                 const gallery = makePhotoGallery(`bar-${b.id}`, '🎯', b.image_path, b.image_path_2, 'cover');
                 const flags = [b.is_threaded && 'Threaded', b.has_muzzle_brake && 'Brake'].filter(Boolean).join(' · ');
                 const barrelLabel = `${b.tc_platform} ${b.caliber}`;
@@ -746,6 +767,7 @@ async function loadComponentInventory(type) {
         ]);
         let items = res.ok ? await res.json() : [];
         if (!isMuzzleloaderMode) items = items.filter(i => !i.is_muzzleloader);
+        items = items.filter(matchesSearch);
         const settings = settingsRes.ok ? await settingsRes.json() : {};
         const thresholds = {
             primers: parseFloat(settings.low_stock_primers ?? 200),
@@ -1445,7 +1467,7 @@ async function loadScopes() {
     try {
         const res = await fetch('/scopes/');
         const raw = res.ok ? await res.json() : [];
-        const scopes = applySortFn(raw, currentOpticSort);
+        const scopes = applySortFn(raw.filter(matchesSearch), currentOpticSort);
         document.getElementById('inventory-count').innerText = `${scopes.length} Optic${scopes.length !== 1 ? 's' : ''} Registered`;
 
         if (scopes.length === 0) {
@@ -1816,6 +1838,7 @@ async function loadAmmoInventory(type) {
         } else {
             filtered = all.filter(a => !a.is_handload && a.ammo_category !== 'muzzleloader');
         }
+        filtered = filtered.filter(matchesSearch);
 
         document.getElementById('inventory-count').innerText = `${filtered.length} Load${filtered.length !== 1 ? 's' : ''} Registered`;
 
@@ -3069,7 +3092,7 @@ async function loadCatalog(frameType = currentFrameType()) {
         container.innerHTML = '<p class="text-red-400 italic text-sm">Failed to load catalog.</p>';
         return;
     }
-    const filtered = all.filter(g => currentCollectionFilter === 'sold' ? g.is_sold : !g.is_sold);
+    const filtered = all.filter(g => currentCollectionFilter === 'sold' ? g.is_sold : !g.is_sold).filter(matchesSearch);
     const inventory = applySortFn(filtered, currentPlatformSort);
 
     document.getElementById('inventory-count').innerText = `${inventory.length} Platform${inventory.length !== 1 ? 's' : ''} Logged`;
@@ -3586,17 +3609,19 @@ async function loadLandingStats() {
             fetch('/components/bullets/').then(r => r.json()),
             fetch('/components/casings/').then(r => r.json()),
         ]);
+        const sumPrice = arr => arr.reduce((t, x) => t + (parseFloat(x.price_paid) || 0), 0);
         const stats = [
-            { icon: '🔫', value: firearms.length, label: 'Firearms' },
-            { icon: '🔭', value: scopes.length,   label: 'Optics' },
-            { icon: '🧪', value: ammo.length,      label: 'Ammo' },
-            { icon: '🔩', value: powders.length + primers.length + bullets.length + casings.length, label: 'Components' },
+            { icon: '🔫', value: firearms.length, spent: sumPrice(firearms), label: 'Firearms' },
+            { icon: '🔭', value: scopes.length,   spent: sumPrice(scopes),   label: 'Optics' },
+            { icon: '🧪', value: ammo.length,      spent: sumPrice(ammo),     label: 'Ammo' },
+            { icon: '🔩', value: powders.length + primers.length + bullets.length + casings.length, spent: sumPrice(powders) + sumPrice(primers) + sumPrice(bullets) + sumPrice(casings), label: 'Components' },
         ];
         el.innerHTML = stats.map(s => `
             <div class="bg-gray-800/50 rounded-lg py-2.5 text-center">
                 <div class="text-base">${s.icon}</div>
                 <div class="text-sm font-black text-white">${s.value}</div>
                 <div class="text-[9px] text-gray-500 uppercase tracking-wide">${s.label}</div>
+                <div class="text-[10px] font-bold text-emerald-500 mt-0.5">$${s.spent.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
             </div>`).join('');
     } catch (_) {}
 }
