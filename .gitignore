@@ -2,6 +2,12 @@
 static/uploads/*
 !static/uploads/.gitkeep
 
+# Backup archives — private data, never commit
+backups/
+
+# Runtime data — private data, never commit
+data/
+
 # SQLite database
 *.db
 *.db-shm
