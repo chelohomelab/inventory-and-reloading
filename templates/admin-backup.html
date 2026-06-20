@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backup & Recovery — Guns & Reloading</title>
+    <link rel="icon" type="image/png" href="/static/images/app-icon.png">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0f0f0f">
+    <meta name="mobile-web-app-capable" content="yes">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      body { background-image: url('/static/images/phone-background.png'); background-size: cover; background-position: center; background-color: #0f0f0f; }
+      @media (min-width: 1024px) { body { background-image: url('/static/images/background.png'); } }
+    </style>
+</head>
+<body class="text-gray-100 font-sans antialiased">
+
+<div id="toast-container" class="fixed bottom-5 right-5 z-[100] space-y-2 pointer-events-none"></div>
+
+<nav class="bg-gray-800 border-b border-gray-700 p-4 sticky top-0 z-50">
+    <div class="container mx-auto flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <a href="/" class="text-amber-500 font-bold text-xl tracking-wide">🎯 Guns & Reloading</a>
+            <span class="text-gray-600">›</span>
+            <span class="text-sm text-gray-300 font-semibold">Backup & Recovery</span>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="/admin/users" class="text-xs text-gray-400 hover:text-gray-200 transition">Users</a>
+            <span class="text-gray-600">|</span>
+            <span class="text-xs text-gray-400 font-mono">{{ user.username }}</span>
+            <a href="/logout" class="px-2.5 py-1.5 rounded bg-gray-700 hover:bg-red-900 hover:text-red-300 font-medium text-xs text-gray-400 transition">Sign out</a>
+        </div>
+    </div>
+</nav>
+
+<main class="container mx-auto p-4 max-w-3xl space-y-6">
+
+    <!-- Header -->
+    <div>
+        <h1 class="text-2xl font-bold text-amber-400">💾 Backup & Disaster Recovery</h1>
+        <p class="text-sm text-gray-400 mt-1">Back up your database and photos, restore from a previous backup, or push to cloud storage.</p>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-gray-800 border border-gray-700 rounded-xl p-5 space-y-4">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-amber-400">Quick Actions</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <a href="/admin/backup/download"
+               class="flex flex-col items-center gap-2 p-4 bg-blue-900/40 border border-blue-700/60 rounded-lg hover:bg-blue-900/60 transition cursor-pointer text-center">
+                <span class="text-2xl">⬇️</span>
+                <span class="text-sm font-bold text-blue-300">Download Backup</span>
+                <span class="text-[11px] text-gray-400">ZIP to your device</span>
+            </a>
+            <button onclick="saveLocal()"
+               class="flex flex-col items-center gap-2 p-4 bg-green-900/40 border border-green-700/60 rounded-lg hover:bg-green-900/60 transition cursor-pointer text-center">
+                <span class="text-2xl">💽</span>
+                <span class="text-sm font-bold text-green-300">Save to Server</span>
+                <span class="text-[11px] text-gray-400">Local backup folder</span>
+            </button>
+            <button onclick="pushCloud()" {% if not rclone_available %}disabled title="rclone not installed"{% endif %}
+               class="flex flex-col items-center gap-2 p-4 {% if rclone_available %}bg-purple-900/40 border-purple-700/60 hover:bg-purple-900/60 cursor-pointer{% else %}bg-gray-800 border-gray-700 cursor-not-allowed opacity-50{% endif %} border rounded-lg transition text-center">
+                <span class="text-2xl">☁️</span>
+                <span class="text-sm font-bold {% if rclone_available %}text-purple-300{% else %}text-gray-500{% endif %}">Push to Cloud</span>
+                <span class="text-[11px] text-gray-400">{% if rclone_available %}via rclone{% else %}rclone not installed{% endif %}</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Restore -->
+    <div class="bg-gray-800 border border-gray-700 rounded-xl p-5 space-y-3">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-red-400">⚠️ Restore from Backup</h2>
+        <p class="text-xs text-gray-400">Upload a <code class="font-mono bg-gray-900 px-1 rounded">.zip</code> backup file to restore the database and photos. <strong class="text-yellow-400">This will overwrite all current data.</strong></p>
+        <div class="flex gap-3 items-center flex-wrap">
+            <input type="file" id="restore-file" accept=".zip" class="hidden" onchange="restoreFromFile(this)">
+            <button onclick="document.getElementById('restore-file').click()"
+                class="px-4 py-2 bg-red-900/60 hover:bg-red-800 border border-red-700 text-red-300 text-sm font-bold rounded-lg transition cursor-pointer">
+                📂 Choose Backup ZIP…
+            </button>
+            <span id="restore-filename" class="text-xs text-gray-500 italic">No file chosen</span>
+        </div>
+        <div id="restore-progress" class="hidden">
+            <div class="text-xs text-yellow-400 font-mono animate-pulse">Restoring… please wait</div>
+        </div>
+    </div>
+
+    <!-- Local Backups List -->
+    <div class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-700 flex justify-between items-center">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-green-400">📁 Local Backups</h2>
+            <button onclick="loadBackupList()" class="text-xs text-gray-400 hover:text-gray-200 transition">↻ Refresh</button>
+        </div>
+        <div id="backup-list" class="divide-y divide-gray-700 text-sm">
+            <div class="px-5 py-4 text-gray-500 italic text-xs">Loading…</div>
+        </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="bg-gray-800 border border-gray-700 rounded-xl p-5 space-y-4">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-gray-400">⚙️ Settings</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Local Backup Path</label>
+                <input type="text" id="cfg-local-path" value="{{ config.local_path }}"
+                    class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-amber-500">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Keep Last N Backups</label>
+                <input type="number" id="cfg-keep" value="{{ config.keep_count }}" min="1" max="30"
+                    class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">rclone Remote Name</label>
+                <input type="text" id="cfg-rclone-remote" value="{{ config.rclone_remote }}" placeholder="e.g. gdrive or b2"
+                    class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-amber-500">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">rclone Remote Path</label>
+                <input type="text" id="cfg-rclone-path" value="{{ config.rclone_path }}" placeholder="e.g. inventory-backup"
+                    class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-amber-500">
+            </div>
+        </div>
+        <button onclick="saveConfig()" class="px-4 py-2 bg-amber-700 hover:bg-amber-600 text-white text-sm font-bold rounded-lg transition cursor-pointer">
+            Save Settings
+        </button>
+
+        <!-- Scheduled backup info -->
+        <div class="mt-4 border-t border-gray-700 pt-4">
+            <p class="text-xs text-gray-400 font-semibold mb-1">Scheduled Backups (systemd timer)</p>
+            <p class="text-xs text-gray-500">Run daily at midnight. Enable with:</p>
+            <pre class="mt-1 bg-gray-900 rounded p-3 text-[11px] text-green-400 font-mono overflow-x-auto">systemctl enable --now inventory-backup.timer</pre>
+            <p class="text-xs text-gray-500 mt-2">Check status:</p>
+            <pre class="mt-1 bg-gray-900 rounded p-3 text-[11px] text-green-400 font-mono overflow-x-auto">systemctl status inventory-backup.timer
+systemctl list-timers inventory-backup.timer</pre>
+        </div>
+    </div>
+
+</main>
+
+<script>
+    function showToast(msg, type = 'success') {
+        const c = document.getElementById('toast-container');
+        const t = document.createElement('div');
+        t.className = `pointer-events-auto px-4 py-3 rounded-lg shadow-xl text-sm font-semibold border ${
+            type === 'error' ? 'bg-red-900 border-red-700 text-red-200' : 'bg-gray-800 border-gray-600 text-gray-100'
+        }`;
+        t.textContent = msg;
+        c.appendChild(t);
+        setTimeout(() => t.remove(), 4000);
+    }
+
+    function fmtSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function fmtDate(iso) {
+        return new Date(iso).toLocaleString();
+    }
+
+    async function saveLocal() {
+        showToast('Saving backup to server…');
+        try {
+            const res = await fetch('/admin/backup/save', { method: 'POST' });
+            const d = await res.json();
+            if (res.ok) {
+                showToast(`✓ Saved: ${d.file} (${fmtSize(d.size_bytes)})`);
+                loadBackupList();
+            } else {
+                showToast(d.detail || 'Save failed', 'error');
+            }
+        } catch { showToast('Error saving backup', 'error'); }
+    }
+
+    async function pushCloud() {
+        showToast('Pushing to cloud via rclone…');
+        try {
+            const res = await fetch('/admin/backup/push-cloud', { method: 'POST' });
+            const d = await res.json();
+            if (res.ok) {
+                showToast(`✓ Pushed ${d.file} → ${d.remote}`);
+                loadBackupList();
+            } else {
+                showToast(d.detail || 'Push failed', 'error');
+            }
+        } catch { showToast('Error pushing to cloud', 'error'); }
+    }
+
+    async function loadBackupList() {
+        const el = document.getElementById('backup-list');
+        try {
+            const res = await fetch('/admin/backup/list');
+            const files = await res.json();
+            if (!files.length) {
+                el.innerHTML = '<div class="px-5 py-4 text-gray-500 italic text-xs">No local backups found.</div>';
+                return;
+            }
+            el.innerHTML = files.map(f => `
+                <div class="px-5 py-3 flex items-center justify-between gap-3 hover:bg-gray-700/30">
+                    <div class="min-w-0">
+                        <p class="text-xs font-mono text-gray-200 truncate">${f.filename}</p>
+                        <p class="text-[11px] text-gray-500">${fmtDate(f.created_at)} · ${fmtSize(f.size_bytes)}</p>
+                    </div>
+                    <div class="flex gap-2 shrink-0">
+                        <button onclick="restoreFromServer('${f.filename}')"
+                            class="px-2.5 py-1 bg-yellow-900/60 hover:bg-yellow-800 border border-yellow-700 text-yellow-300 text-[11px] font-bold rounded transition cursor-pointer">
+                            Restore
+                        </button>
+                        <button onclick="deleteBackup('${f.filename}', this)"
+                            class="px-2.5 py-1 bg-red-900/40 hover:bg-red-800 border border-red-700/60 text-red-400 text-[11px] font-bold rounded transition cursor-pointer">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        } catch { el.innerHTML = '<div class="px-5 py-4 text-red-400 text-xs">Failed to load backup list.</div>'; }
+    }
+
+    async function deleteBackup(filename, btn) {
+        if (!confirm(`Delete ${filename}?`)) return;
+        const res = await fetch(`/admin/backup/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+        if (res.ok) { showToast('Backup deleted.'); loadBackupList(); }
+        else { showToast('Delete failed', 'error'); }
+    }
+
+    async function restoreFromFile(input) {
+        const file = input.files[0];
+        if (!file) return;
+        document.getElementById('restore-filename').textContent = file.name;
+        if (!confirm(`Restore from "${file.name}"?\n\nThis will OVERWRITE all current data. Are you sure?`)) {
+            input.value = '';
+            document.getElementById('restore-filename').textContent = 'No file chosen';
+            return;
+        }
+        document.getElementById('restore-progress').classList.remove('hidden');
+        const fd = new FormData();
+        fd.append('file', file);
+        try {
+            const res = await fetch('/admin/backup/restore', { method: 'POST', body: fd });
+            const d = await res.json();
+            document.getElementById('restore-progress').classList.add('hidden');
+            if (res.ok) {
+                showToast(`✓ Restored! ${d.photos_restored} photos recovered.`);
+                input.value = '';
+                document.getElementById('restore-filename').textContent = 'No file chosen';
+            } else {
+                showToast(d.detail || 'Restore failed', 'error');
+            }
+        } catch {
+            document.getElementById('restore-progress').classList.add('hidden');
+            showToast('Error during restore', 'error');
+        }
+    }
+
+    async function restoreFromServer(filename) {
+        if (!confirm(`Restore from "${filename}"?\n\nThis will OVERWRITE all current data. Are you sure?`)) return;
+        showToast('Fetching and restoring backup…');
+        try {
+            // Download the file from local backups then POST it as a restore
+            const cfg = await (await fetch('/admin/backup/config-get')).json();
+            const res = await fetch(`/admin/backup/restore-local`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename }),
+            });
+            const d = await res.json();
+            if (res.ok) {
+                showToast(`✓ Restored! ${d.photos_restored} photos recovered.`);
+            } else {
+                showToast(d.detail || 'Restore failed', 'error');
+            }
+        } catch { showToast('Error during restore', 'error'); }
+    }
+
+    async function saveConfig() {
+        const body = {
+            local_path: document.getElementById('cfg-local-path').value.trim(),
+            keep_count: parseInt(document.getElementById('cfg-keep').value) || 7,
+            rclone_remote: document.getElementById('cfg-rclone-remote').value.trim(),
+            rclone_path: document.getElementById('cfg-rclone-path').value.trim(),
+        };
+        const res = await fetch('/admin/backup/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (res.ok) { showToast('Settings saved.'); }
+        else { showToast('Failed to save settings', 'error'); }
+    }
+
+    loadBackupList();
+</script>
+
+</body>
+</html>
