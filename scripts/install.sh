@@ -25,6 +25,9 @@ cp "$APP_DIR/inventory-backup.timer" /etc/systemd/system/inventory-backup.timer
 chmod 644 /etc/systemd/system/inventory*.service /etc/systemd/system/inventory*.timer
 chmod +x "$APP_DIR/scripts/backup.sh"
 
+echo "[install] Installing rclone..."
+curl -s https://rclone.org/install.sh | bash
+
 echo "[install] Enabling and starting services..."
 systemctl daemon-reload
 systemctl enable --now inventory
@@ -35,5 +38,4 @@ echo "[install] Done! App running at http://$(hostname -I | awk '{print $1}'):80
 echo ""
 echo "Next steps:"
 echo "  1. Go to /admin/backup and restore your backup ZIP"
-echo "  2. (Optional) Install rclone: curl -s https://rclone.org/install.sh | bash"
-echo "  3. (Optional) Run: rclone config  — to set up cloud backup"
+echo "  2. Run: rclone config  — to set up cloud backup"
