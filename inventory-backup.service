@@ -1,0 +1,10 @@
+[Unit]
+Description=Inventory & Reloading — Daily Backup
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/inventory-and-reloading
+ExecStart=/opt/inventory-and-reloading/scripts/backup.sh
+StandardOutput=journal
+StandardError=journal
