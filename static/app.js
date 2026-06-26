@@ -1568,7 +1568,7 @@ function renderScopeCard(s) {
                 </div>
                 <div class="text-right shrink-0">
                     <span class="text-xs text-gray-400 font-mono">$${parseFloat(s.price_paid || 0).toFixed(2)}</span>
-                    <p class="text-[10px] mt-0.5">${firstMount ? `📍 <span class="text-emerald-400 font-medium">${firstMount.label}</span>` : `📍 <span class="text-gray-500 italic">Unmounted</span>`}</p>
+                    <p class="text-[10px] mt-0.5">${firstMount ? `📍 <a href="${firstMount.type === 'firearm' ? 'firearm-detail.html' : 'tc-barrel-detail.html'}?id=${firstMount.id}" onclick="event.stopPropagation()" class="text-emerald-400 hover:text-emerald-300 font-medium hover:underline">${firstMount.label}</a>` : `📍 <span class="text-gray-500 italic">Unmounted</span>`}</p>
                 </div>
             </div>
             <!-- Edit panel (hidden) -->
