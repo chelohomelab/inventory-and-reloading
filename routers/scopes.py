@@ -31,6 +31,8 @@ def _scope_dict(s: models.Scope) -> dict:
         "image_path": s.image_path,
         "image_path_2": s.image_path_2,
         "quantity": getattr(s, "quantity", 1) or 1,
+        "is_sold": getattr(s, "is_sold", False),
+        "price_sold": getattr(s, "price_sold", None),
         "mounts": mounts,
         # backward-compat fields kept for existing mount editor
         "mounted_on": first["label"] if first else None,
@@ -81,6 +83,22 @@ def delete_scope_photo(scope_id: int, slot: int, db: Session = Depends(get_db)):
         delete_uploaded_file(s.image_path)
         s.image_path = s.image_path_2
         s.image_path_2 = None
+    db.commit()
+    return _scope_dict(_load_scope(scope_id, db))
+
+
+@router.post("/scopes/{scope_id}/sell")
+def sell_scope(scope_id: int, payload: dict, db: Session = Depends(get_db)):
+    s = db.query(models.Scope).filter(models.Scope.id == scope_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    s.is_sold = True
+    price = payload.get("price_sold")
+    if price is not None:
+        try:
+            s.price_sold = float(price)
+        except (ValueError, TypeError):
+            pass
     db.commit()
     return _scope_dict(_load_scope(scope_id, db))
 

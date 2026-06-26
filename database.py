@@ -34,6 +34,8 @@ class Scope(Base):
     image_path = Column(String, nullable=True)
     image_path_2 = Column(String, nullable=True)
     is_deleted = Column(Boolean, default=False)
+    is_sold = Column(Boolean, default=False)
+    price_sold = Column(Float, nullable=True)
     quantity = Column(Integer, default=1)
 
     firearms = relationship("Firearm", back_populates="scope")
@@ -417,6 +419,8 @@ def init_db():
 
     if 'scopes' in inspector.get_table_names():
         _add_col('scopes', 'is_deleted', 'is_deleted BOOLEAN DEFAULT FALSE')
+        _add_col('scopes', 'is_sold',    'is_sold BOOLEAN DEFAULT FALSE')
+        _add_col('scopes', 'price_sold', 'price_sold FLOAT')
 
     # Seed default threshold settings if they don't exist
     _defaults = {

@@ -139,10 +139,36 @@
             </div>
         </div>
 
-        <!-- Trash button -->
-        <div class="flex justify-end">
-            <button onclick="trashScope()" class="px-4 py-2 bg-red-900/60 hover:bg-red-800 text-red-400 hover:text-red-200 text-xs font-bold rounded transition cursor-pointer border border-red-800/60">
-                Trash Scope
+        <!-- Sold banner (hidden by default) -->
+        <div id="sold-banner" class="hidden bg-red-950/60 border border-red-800 rounded-xl p-4 shadow-xl">
+            <div class="flex items-center justify-between">
+                <span class="text-red-400 text-sm font-bold uppercase tracking-wider">Sold</span>
+                <span id="sold-price-display" class="text-red-400 font-mono font-bold"></span>
+            </div>
+        </div>
+
+        <!-- Sell modal -->
+        <div id="sell-modal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-[110] hidden backdrop-blur-xs">
+            <div class="bg-gray-800 border border-gray-700 rounded-lg p-5 w-full max-w-sm shadow-2xl space-y-4 mx-3">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-amber-500">Log Scope Sale</h3>
+                <div>
+                    <label class="block text-xs text-gray-200 font-semibold mb-1">Sold Price ($)</label>
+                    <input type="number" id="sell-price" step="0.01" placeholder="350.00" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                </div>
+                <div class="flex justify-end space-x-2 text-xs font-bold">
+                    <button onclick="closeSellModal()" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 cursor-pointer">Cancel</button>
+                    <button onclick="confirmSell()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded text-white cursor-pointer">Confirm Sale</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div id="action-buttons" class="flex justify-end gap-2">
+            <button id="sell-btn" onclick="openSellModal()" class="px-4 py-2 bg-emerald-900/60 hover:bg-emerald-800 text-emerald-400 hover:text-emerald-200 text-xs font-bold rounded transition cursor-pointer border border-emerald-800/60">
+                $ Sell
+            </button>
+            <button onclick="deleteScope()" class="px-4 py-2 bg-red-900/60 hover:bg-red-800 text-red-400 hover:text-red-200 text-xs font-bold rounded transition cursor-pointer border border-red-800/60">
+                Delete Scope
             </button>
         </div>
 
@@ -342,17 +368,12 @@
             cells += cell('Magnification', s.magnification || null, 'text-blue-300 font-mono');
             cells += cell('Units', s.units || 'MOA', 'text-gray-300 font-mono');
             cells += cell('Price Paid', s.price_paid ? `$${parseFloat(s.price_paid).toFixed(2)}` : null, 'text-green-400 font-mono');
-            cells += cell('Quantity', qty, 'text-white font-mono');
 
-            // Mounted On
+            // Mounted On — right after price
             if (mounts.length > 0) {
                 const mountLabels = mounts.map(m => {
-                    if (m.type === 'firearm') {
-                        return `<a href="firearm-detail.html?id=${m.id}" class="text-emerald-400 hover:text-emerald-300 underline">${m.label}</a>`;
-                    } else if (m.type === 'barrel') {
-                        return `<a href="tc-barrel-detail.html?id=${m.id}" class="text-emerald-400 hover:text-emerald-300 underline">${m.label}</a>`;
-                    }
-                    return `<span class="text-emerald-400">${m.label}</span>`;
+                    const page = m.type === 'firearm' ? 'firearm-detail.html' : 'tc-barrel-detail.html';
+                    return `<a href="${page}?id=${m.id}" class="text-emerald-400 hover:text-emerald-300 underline">${m.label}</a>`;
                 }).join(', ');
                 cells += `<div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700">
                     <span class="text-xs text-gray-200 font-semibold block mb-1">Mounted On</span>
@@ -362,7 +383,21 @@
                 cells += cell('Mounted On', 'Unmounted', 'text-gray-500 italic');
             }
 
+            cells += cell('Quantity', qty, 'text-white font-mono');
+
             grid.innerHTML = cells;
+
+            // Sold state
+            const soldBanner = document.getElementById('sold-banner');
+            const sellBtn = document.getElementById('sell-btn');
+            if (s.is_sold) {
+                soldBanner.classList.remove('hidden');
+                document.getElementById('sold-price-display').innerText = s.price_sold ? `$${parseFloat(s.price_sold).toFixed(2)}` : '';
+                if (sellBtn) sellBtn.classList.add('hidden');
+            } else {
+                soldBanner.classList.add('hidden');
+                if (sellBtn) sellBtn.classList.remove('hidden');
+            }
 
             // Photo gallery
             renderImageGallery(s.image_path, s.image_path_2);
@@ -565,14 +600,35 @@
             }
         }
 
-        async function trashScope() {
-            if (!confirm('Move this scope to trash?')) return;
+        async function deleteScope() {
+            if (!confirm('Delete this scope? It will be moved to the trash.')) return;
             try {
                 const res = await fetch(`/scopes/${currentScopeId}/trash`, { method: 'POST' });
                 if (res.ok) {
                     window.location.href = '/inventory?inv=optics';
                 } else {
-                    showToast('Failed to trash scope.', 'error');
+                    showToast('Failed to delete scope.', 'error');
+                }
+            } catch { showToast('Error contacting server.', 'error'); }
+        }
+
+        function openSellModal() { document.getElementById('sell-modal').classList.remove('hidden'); }
+        function closeSellModal() { document.getElementById('sell-modal').classList.add('hidden'); }
+
+        async function confirmSell() {
+            const price = document.getElementById('sell-price').value;
+            try {
+                const res = await fetch(`/scopes/${currentScopeId}/sell`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ price_sold: price || null })
+                });
+                if (res.ok) {
+                    closeSellModal();
+                    showToast('Scope marked as sold.');
+                    loadScopeData();
+                } else {
+                    showToast('Failed to log sale.', 'error');
                 }
             } catch { showToast('Error contacting server.', 'error'); }
         }
