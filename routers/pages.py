@@ -46,6 +46,11 @@ async def handgun_detail(request: Request):
     return templates.TemplateResponse("handgun-detail.html", {"request": request, "user": request.state.user})
 
 
+@router.get("/scope-detail.html", response_class=HTMLResponse)
+async def scope_detail(request: Request):
+    return templates.TemplateResponse("scope-detail.html", {"request": request, "user": request.state.user})
+
+
 @router.get("/admin/trash", response_class=HTMLResponse)
 async def admin_trash(request: Request):
     return templates.TemplateResponse("admin_trash.html", {"request": request, "user": request.state.user})

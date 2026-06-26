@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scope Detail — Vault</title>
+    <link rel="icon" type="image/png" href="/static/images/app-icon.png">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0f0f0f">
+    <meta name="mobile-web-app-capable" content="yes">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      body { background-image: url('/static/images/phone-background.png'); background-size: cover; background-position: center; background-color: #0f0f0f; }
+      @media (min-width: 1024px) { body { background-image: url('/static/images/background.png'); } }
+    </style>
+</head>
+<body class="text-gray-100 font-sans antialiased">
+
+    <nav class="bg-gray-800 border-b border-gray-700 p-4 sticky top-0 z-50 shadow-md">
+        <div class="container mx-auto flex justify-between items-center max-w-5xl">
+            <div class="flex items-center space-x-2 text-sm">
+                <a href="/"><img src="/static/images/logo.png" alt="Inventory" class="h-6 w-auto hover:opacity-80 transition inline-block"></a>
+                <span class="text-gray-500">/</span>
+                <a href="/inventory?inv=optics" class="text-gray-400 hover:text-amber-400 transition text-xs">Optics</a>
+                <span class="text-gray-500">/</span>
+                <span id="breadcrumb-name" class="text-gray-400 font-mono truncate max-w-xs">Loading...</span>
+            </div>
+            <a href="/inventory?inv=optics" class="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-white font-bold transition">&larr; Optics</a>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 max-w-5xl space-y-6">
+
+        <!-- Header card -->
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Photo column -->
+                <div class="space-y-2">
+                    <div id="main-photo-viewport" onclick="togglePhotoPanel()" title="Click to update photos"
+                        class="w-full h-48 bg-gray-950 border border-gray-700 rounded-lg overflow-hidden flex items-center justify-center relative cursor-pointer">
+                        <span class="text-4xl">&#128301;</span>
+                    </div>
+                    <div id="thumbnail-gallery-strip" class="flex gap-2 overflow-x-auto pb-1"></div>
+                    <div id="photo-panel" class="hidden bg-gray-900 border border-gray-700 rounded-lg p-3 space-y-2">
+                        <p class="text-xs font-bold text-amber-400 uppercase tracking-wide">Update Photos</p>
+                        <div class="flex gap-1.5">
+                            <button type="button" onclick="document.getElementById('photo-slot-cam').click()" class="flex-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer transition">Camera</button>
+                            <button type="button" onclick="document.getElementById('photo-slot').click()" class="flex-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer transition">Gallery (multi)</button>
+                        </div>
+                        <div id="detail-photo-preview" class="hidden flex gap-2 flex-wrap"></div>
+                        <button id="detail-upload-btn" onclick="uploadSelectedPhotos()" class="hidden w-full py-1.5 bg-blue-700 hover:bg-blue-600 text-white text-[10px] font-bold rounded cursor-pointer transition">Upload Selected Photos</button>
+                        <input type="file" multiple accept="image/*" id="photo-slot" onchange="previewDetailPhotos()" class="hidden">
+                        <input type="file" accept="image/*" capture="environment" id="photo-slot-cam" onchange="addDetailPhotoFromCamera()" class="hidden">
+                    </div>
+                </div>
+                <!-- Info column -->
+                <div class="md:col-span-2">
+                    <div class="flex justify-between items-start flex-wrap gap-4">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="px-2 py-0.5 rounded text-[11px] font-bold border bg-blue-950 text-blue-400 border-blue-800">OPTIC</span>
+                                <span id="badge-units" class="px-3 py-1 bg-gray-900 text-gray-300 border border-gray-700 font-mono font-bold rounded-md text-sm">MOA</span>
+                            </div>
+                            <h1 id="detail-brand" class="text-3xl font-extrabold text-white tracking-tight mt-2">&mdash;</h1>
+                            <p id="detail-model" class="text-amber-500 text-sm font-medium">&mdash;</p>
+                        </div>
+                        <button onclick="toggleEditPanel()" id="edit-pencil-btn" title="Edit scope data"
+                            class="p-2 rounded-md bg-gray-700 hover:bg-amber-600 text-gray-400 hover:text-white border border-gray-600 hover:border-amber-500 transition cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <!-- Data grid -->
+                    <div id="data-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 text-xs"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit panel (hidden by default) -->
+        <div id="edit-panel" class="bg-gray-800 border border-gray-700 rounded-xl p-5 shadow-xl hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-amber-500">Edit Scope Data</h3>
+                <button onclick="toggleEditPanel()" class="text-gray-500 hover:text-gray-300 text-xs font-bold px-2 py-1 rounded hover:bg-gray-700 cursor-pointer">&#10005; Close</button>
+            </div>
+            <form id="edit-form" onsubmit="saveEdits(event)" class="space-y-4">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Brand</label>
+                        <input type="text" id="ef-brand" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Model</label>
+                        <input type="text" id="ef-model" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Magnification</label>
+                        <input type="text" id="ef-magnification" placeholder="e.g. 3-9x40" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Units</label>
+                        <select id="ef-units" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            <option value="MOA">MOA</option>
+                            <option value="MRAD">MRAD</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Quantity Owned</label>
+                        <input type="number" min="1" id="ef-quantity" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Price Paid ($)</label>
+                        <input type="number" step="0.01" min="0" id="ef-price" placeholder="e.g. 349.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+                <div class="flex justify-end pt-2">
+                    <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded transition cursor-pointer">
+                        Update Scope Data
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Mount management section -->
+        <div id="mount-section" class="bg-gray-800 border border-gray-700 rounded-xl p-5 shadow-xl">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-blue-400 mb-4">Mount Configuration</h3>
+            <div id="mount-list" class="space-y-2 mb-4"></div>
+            <div id="mount-actions" class="flex gap-2 flex-wrap"></div>
+            <!-- Mount editor (hidden) -->
+            <div id="mount-editor" class="hidden mt-4 border-t border-gray-700 pt-4 space-y-3">
+                <p class="text-xs text-gray-400 font-medium">Select platform to mount on:</p>
+                <select id="mount-select" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-xs text-white focus:outline-none focus:border-blue-500">
+                    <option value="">Loading...</option>
+                </select>
+                <div class="flex gap-2">
+                    <button onclick="saveMount()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-1.5 rounded transition cursor-pointer">Save Mount</button>
+                    <button onclick="closeMountEditor()" class="px-3 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold py-1.5 rounded transition cursor-pointer">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trash button -->
+        <div class="flex justify-end">
+            <button onclick="trashScope()" class="px-4 py-2 bg-red-900/60 hover:bg-red-800 text-red-400 hover:text-red-200 text-xs font-bold rounded transition cursor-pointer border border-red-800/60">
+                Trash Scope
+            </button>
+        </div>
+
+    </main>
+
+    <script>
+        let currentScopeId = null;
+        let currentPhotoCount = 0;
+        let currentViewSlot = 1;
+        let photoTimestamp = 0;
+        let scopeData = null;
+
+        function showToast(message, type = 'success') {
+            const existing = document.getElementById('scope-toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.id = 'scope-toast';
+            const color = type === 'error'
+                ? 'bg-red-950/90 text-red-400 border-red-800'
+                : 'bg-gray-900/95 text-emerald-400 border-emerald-800';
+            toast.className = `fixed bottom-5 right-5 z-[100] p-4 rounded-lg shadow-xl text-xs font-bold tracking-wide border ${color} transition-all duration-300`;
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3500);
+        }
+
+        function toggleEditPanel() {
+            const panel = document.getElementById('edit-panel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        function togglePhotoPanel() {
+            document.getElementById('photo-panel').classList.toggle('hidden');
+        }
+
+        function setViewSlot(slot, src) {
+            currentViewSlot = slot;
+            const vp = document.querySelector('#main-photo-viewport img');
+            if (vp) vp.src = src;
+        }
+
+        function _cacheBust(src) {
+            return photoTimestamp ? src + '?t=' + photoTimestamp : src;
+        }
+
+        function renderImageGallery(img1, img2) {
+            const images = [img1, img2].filter(Boolean);
+            currentPhotoCount = images.length;
+            currentViewSlot = 1;
+            const viewport = document.getElementById('main-photo-viewport');
+            const strip = document.getElementById('thumbnail-gallery-strip');
+            if (images.length === 0) {
+                viewport.innerHTML = `<span class="text-4xl">&#128301;</span>`;
+                strip.innerHTML = '';
+                return;
+            }
+            viewport.innerHTML = `<img src="${_cacheBust(images[0])}" class="w-full h-full object-contain">`;
+            strip.innerHTML = images.map((img, idx) => {
+                const busted = _cacheBust(img);
+                const serverSlot = idx === 0 ? 1 : 2;
+                const btnId = `photo-btns-${serverSlot}`;
+                return `<div class="shrink-0 flex flex-col items-center gap-1">
+                    <img src="${busted}" onclick="setViewSlot(${serverSlot}, '${busted}'); togglePhotoBtns('${btnId}')" class="w-14 h-14 rounded-lg object-cover border-2 ${idx === 0 ? 'border-amber-500' : 'border-gray-700'} hover:border-amber-500 transition cursor-pointer">
+                    <div id="${btnId}" class="hidden flex gap-1">
+                        ${idx > 0 ? `<button onclick="swapScopePhotos()" class="px-2 py-1 bg-amber-700 hover:bg-amber-600 rounded text-[10px] text-white cursor-pointer font-bold">Set Primary</button>` : ''}
+                        <button onclick="deleteScopePhoto(${serverSlot})" class="px-2 py-1 bg-red-800 hover:bg-red-700 rounded text-[10px] text-white cursor-pointer font-bold">Delete</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function togglePhotoBtns(activeId) {
+            document.querySelectorAll('[id^="photo-btns-"]').forEach(el => {
+                el.classList.toggle('hidden', el.id !== activeId || !el.classList.contains('hidden'));
+            });
+        }
+
+        async function swapScopePhotos() {
+            const res = await fetch(`/scopes/${currentScopeId}/swap-photos/`, { method: 'POST' });
+            if (res.ok) { showToast('Primary photo updated.'); loadScopeData(); }
+            else showToast('Failed to swap photos.', 'error');
+        }
+
+        async function deleteScopePhoto(slot) {
+            if (!confirm('Delete this photo?')) return;
+            const res = await fetch(`/scopes/${currentScopeId}/photos/${slot}`, { method: 'DELETE' });
+            if (res.ok) { showToast('Photo deleted.'); loadScopeData(); }
+            else showToast('Failed to delete photo.', 'error');
+        }
+
+        let _detailPendingFiles = [];
+
+        function previewDetailPhotos() {
+            const input = document.getElementById('photo-slot');
+            const newFiles = Array.from(input.files || []);
+            _detailPendingFiles = [..._detailPendingFiles, ...newFiles].slice(0, 2);
+            _renderDetailPreview();
+            input.value = '';
+        }
+
+        function addDetailPhotoFromCamera() {
+            const cam = document.getElementById('photo-slot-cam');
+            const file = cam?.files[0];
+            if (!file) return;
+            _detailPendingFiles = [..._detailPendingFiles, file].slice(0, 2);
+            _renderDetailPreview();
+            cam.value = '';
+        }
+
+        function _renderDetailPreview() {
+            const container = document.getElementById('detail-photo-preview');
+            const btn = document.getElementById('detail-upload-btn');
+            if (!container) return;
+            if (!_detailPendingFiles.length) {
+                container.classList.add('hidden');
+                if (btn) btn.classList.add('hidden');
+                return;
+            }
+            container.classList.remove('hidden');
+            if (btn) btn.classList.remove('hidden');
+            container.innerHTML = _detailPendingFiles.map((f, i) => `
+                <div class="relative">
+                    <img src="${URL.createObjectURL(f)}" class="h-20 w-28 object-contain rounded bg-gray-950 border border-gray-700">
+                    <button onclick="_removeDetailPhoto(${i})" class="absolute top-0.5 right-0.5 bg-gray-900/80 text-red-400 text-[10px] rounded-full w-4 h-4 flex items-center justify-center cursor-pointer leading-none">&#10005;</button>
+                </div>`).join('');
+        }
+
+        function _removeDetailPhoto(idx) {
+            _detailPendingFiles.splice(idx, 1);
+            _renderDetailPreview();
+        }
+
+        async function uploadSelectedPhotos() {
+            if (!_detailPendingFiles.length) return;
+            const btn = document.getElementById('detail-upload-btn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Uploading...'; }
+            let uploaded = 0;
+            for (const file of _detailPendingFiles) {
+                const slot = currentPhotoCount < 2 ? currentPhotoCount + 1 : 1;
+                const fd = new FormData();
+                fd.append('image', file);
+                fd.append('slot', String(slot));
+                try {
+                    const res = await fetch(`/scopes/${currentScopeId}/update-photo/`, { method: 'POST', body: fd });
+                    if (res.ok) { currentPhotoCount = Math.min(currentPhotoCount + 1, 2); uploaded++; }
+                } catch {}
+            }
+            _detailPendingFiles = [];
+            _renderDetailPreview();
+            if (btn) { btn.disabled = false; btn.textContent = 'Upload Selected Photos'; }
+            if (uploaded > 0) { showToast(`${uploaded} photo${uploaded !== 1 ? 's' : ''} uploaded.`); loadScopeData(); }
+            else showToast('Upload failed.', 'error');
+        }
+
+        window.onload = function() {
+            const params = new URLSearchParams(window.location.search);
+            currentScopeId = params.get('id');
+            if (!currentScopeId) { window.location.href = '/inventory?inv=optics'; return; }
+            loadScopeData();
+        };
+
+        async function loadScopeData() {
+            try {
+                const res = await fetch(`/scopes/${currentScopeId}`, { cache: 'no-store' });
+                if (!res.ok) throw new Error('Not found');
+                scopeData = await res.json();
+            } catch(err) {
+                document.body.innerHTML = `<div class="p-12 text-center text-red-400 font-mono text-sm">Error: Scope #${currentScopeId} not found.</div>`;
+                return;
+            }
+            renderScopeProfile(scopeData);
+        }
+
+        function renderScopeProfile(s) {
+            const brand = s.brand || '—';
+            const model = s.model || '';
+            const qty = s.quantity || 1;
+            const mounts = s.mounts || [];
+
+            document.getElementById('breadcrumb-name').innerText = brand + (model ? ' ' + model : '');
+            document.getElementById('detail-brand').innerText = brand;
+            document.getElementById('detail-model').innerText = model || '—';
+            document.getElementById('badge-units').innerText = s.units || 'MOA';
+
+            // Data grid
+            const grid = document.getElementById('data-grid');
+            const cell = (label, value, accent) =>
+                `<div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700">
+                    <span class="text-xs text-gray-200 font-semibold block mb-1">${label}</span>
+                    <span class="${accent || 'text-gray-200'} font-bold">${value || '—'}</span>
+                </div>`;
+
+            let cells = '';
+            cells += cell('Magnification', s.magnification || null, 'text-blue-300 font-mono');
+            cells += cell('Units', s.units || 'MOA', 'text-gray-300 font-mono');
+            cells += cell('Price Paid', s.price_paid ? `$${parseFloat(s.price_paid).toFixed(2)}` : null, 'text-green-400 font-mono');
+            cells += cell('Quantity', qty, 'text-white font-mono');
+
+            // Mounted On
+            if (mounts.length > 0) {
+                const mountLabels = mounts.map(m => {
+                    if (m.type === 'firearm') {
+                        return `<a href="firearm-detail.html?id=${m.id}" class="text-emerald-400 hover:text-emerald-300 underline">${m.label}</a>`;
+                    } else if (m.type === 'barrel') {
+                        return `<a href="tc-barrel-detail.html?id=${m.id}" class="text-emerald-400 hover:text-emerald-300 underline">${m.label}</a>`;
+                    }
+                    return `<span class="text-emerald-400">${m.label}</span>`;
+                }).join(', ');
+                cells += `<div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700">
+                    <span class="text-xs text-gray-200 font-semibold block mb-1">Mounted On</span>
+                    <span class="text-emerald-400 font-bold text-sm">${mountLabels}</span>
+                </div>`;
+            } else {
+                cells += cell('Mounted On', 'Unmounted', 'text-gray-500 italic');
+            }
+
+            grid.innerHTML = cells;
+
+            // Photo gallery
+            renderImageGallery(s.image_path, s.image_path_2);
+
+            // Hydrate edit form
+            document.getElementById('ef-brand').value = s.brand || '';
+            document.getElementById('ef-model').value = s.model || '';
+            document.getElementById('ef-magnification').value = s.magnification || '';
+            document.getElementById('ef-units').value = s.units || 'MOA';
+            document.getElementById('ef-quantity').value = qty;
+            document.getElementById('ef-price').value = s.price_paid || '';
+
+            // Render mount management
+            renderMountSection(s);
+        }
+
+        function renderMountSection(s) {
+            const mounts = s.mounts || [];
+            const qty = s.quantity || 1;
+            const mountList = document.getElementById('mount-list');
+            const mountActions = document.getElementById('mount-actions');
+
+            if (mounts.length === 0) {
+                mountList.innerHTML = `<p class="text-sm text-gray-500 italic">No mounts configured &mdash; this scope is unmounted.</p>`;
+            } else {
+                mountList.innerHTML = mounts.map(m => {
+                    const link = m.type === 'firearm'
+                        ? `<a href="firearm-detail.html?id=${m.id}" class="text-emerald-400 hover:text-emerald-300 underline font-medium">${m.label}</a>`
+                        : `<a href="tc-barrel-detail.html?id=${m.id}" class="text-emerald-400 hover:text-emerald-300 underline font-medium">${m.label}</a>`;
+                    return `<div class="flex items-center justify-between bg-gray-900/60 p-3 rounded-lg border border-gray-700">
+                        <span class="text-sm">${link}</span>
+                        <button onclick="removeMount('${m.type}', ${m.id})" class="px-2 py-1 bg-gray-700 hover:bg-red-900 text-gray-400 hover:text-red-300 text-[10px] font-bold rounded cursor-pointer transition">Unmount</button>
+                    </div>`;
+                }).join('');
+            }
+
+            const slotsLeft = qty - mounts.length;
+            let actionsHtml = '';
+            if (qty === 1) {
+                actionsHtml = `<button onclick="openMountEditor()" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">
+                    ${mounts.length > 0 ? 'Change Mount' : 'Mount Scope'}
+                </button>`;
+            } else {
+                if (slotsLeft > 0) {
+                    actionsHtml = `<button onclick="openMountEditor()" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">
+                        Add Install (${slotsLeft} slot${slotsLeft > 1 ? 's' : ''} open)
+                    </button>`;
+                }
+                actionsHtml += `<span class="text-xs text-gray-500 font-mono">${mounts.length}/${qty} installed</span>`;
+            }
+            mountActions.innerHTML = actionsHtml;
+        }
+
+        async function openMountEditor() {
+            const editor = document.getElementById('mount-editor');
+            const select = document.getElementById('mount-select');
+            editor.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`/available-mounts/?for_scope_id=${currentScopeId}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                const firearms = data.firearms || [];
+                const barrels = data.tc_barrels || [];
+
+                let opts = '<option value="">-- Select Platform --</option>';
+                if (firearms.length) {
+                    opts += '<optgroup label="Firearms">';
+                    opts += firearms.map(f => `<option value="firearm:${f.id}">${f.label}</option>`).join('');
+                    opts += '</optgroup>';
+                }
+                if (barrels.length) {
+                    opts += '<optgroup label="TC Barrels">';
+                    opts += barrels.map(b => `<option value="barrel:${b.id}">${b.label}</option>`).join('');
+                    opts += '</optgroup>';
+                }
+                if (!firearms.length && !barrels.length) {
+                    opts = '<option value="">No available platforms</option>';
+                }
+                select.innerHTML = opts;
+
+                // Pre-select current mount if qty=1 and already mounted
+                const qty = scopeData?.quantity || 1;
+                if (qty === 1 && scopeData?.mounts?.length > 0) {
+                    const m = scopeData.mounts[0];
+                    const val = `${m.type}:${m.id}`;
+                    if (select.querySelector(`option[value="${val}"]`)) {
+                        select.value = val;
+                    }
+                }
+            } catch {
+                select.innerHTML = '<option value="">Error loading mounts</option>';
+            }
+        }
+
+        function closeMountEditor() {
+            document.getElementById('mount-editor').classList.add('hidden');
+        }
+
+        async function saveMount() {
+            const select = document.getElementById('mount-select');
+            const val = select.value;
+            const qty = scopeData?.quantity || 1;
+
+            if (qty === 1) {
+                // Use the /mount endpoint (clears all previous, sets new)
+                let mount_type = null;
+                let mount_id = null;
+                if (val) {
+                    const [type, id] = val.split(':');
+                    mount_type = type;
+                    mount_id = parseInt(id);
+                }
+                try {
+                    const res = await fetch(`/scopes/${currentScopeId}/mount`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mount_type, mount_id })
+                    });
+                    if (res.ok) {
+                        closeMountEditor();
+                        showToast(mount_id ? 'Scope mounted.' : 'Scope unmounted.');
+                        loadScopeData();
+                    } else {
+                        const body = await res.json().catch(() => ({}));
+                        showToast(body.detail || 'Failed to update mount.', 'error');
+                    }
+                } catch { showToast('Error contacting server.', 'error'); }
+            } else {
+                // Multi-qty: use /add-mount endpoint
+                if (!val) { showToast('Select a platform.', 'error'); return; }
+                const [type, id] = val.split(':');
+                try {
+                    const res = await fetch(`/scopes/${currentScopeId}/add-mount`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mount_type: type, mount_id: parseInt(id) })
+                    });
+                    if (res.ok) {
+                        closeMountEditor();
+                        showToast('Scope installed.');
+                        loadScopeData();
+                    } else {
+                        const body = await res.json().catch(() => ({}));
+                        showToast(body.detail || 'Failed to add mount.', 'error');
+                    }
+                } catch { showToast('Error contacting server.', 'error'); }
+            }
+        }
+
+        async function removeMount(mountType, mountId) {
+            if (!confirm('Unmount this scope from the platform?')) return;
+            try {
+                const res = await fetch(`/scopes/${currentScopeId}/remove-mount`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mount_type: mountType, mount_id: mountId })
+                });
+                if (res.ok) {
+                    showToast('Scope unmounted.');
+                    loadScopeData();
+                } else {
+                    showToast('Failed to unmount scope.', 'error');
+                }
+            } catch { showToast('Error contacting server.', 'error'); }
+        }
+
+        async function saveEdits(e) {
+            e.preventDefault();
+            const payload = {
+                brand: document.getElementById('ef-brand').value.trim(),
+                model: document.getElementById('ef-model').value.trim(),
+                magnification: document.getElementById('ef-magnification').value.trim() || null,
+                units: document.getElementById('ef-units').value,
+                quantity: parseInt(document.getElementById('ef-quantity').value) || 1,
+                price_paid: parseFloat(document.getElementById('ef-price').value) || 0,
+            };
+            // Strip empty strings but always keep units
+            Object.keys(payload).forEach(k => {
+                if (k === 'units') return;
+                if (payload[k] === null || payload[k] === '') delete payload[k];
+            });
+
+            try {
+                const res = await fetch(`/scopes/${currentScopeId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    scopeData = await res.json();
+                    renderScopeProfile(scopeData);
+                    document.getElementById('edit-panel').classList.add('hidden');
+                    showToast('Scope data updated.');
+                } else {
+                    showToast('Failed to save changes.', 'error');
+                }
+            } catch(err) {
+                showToast('Error contacting server.', 'error');
+            }
+        }
+
+        async function trashScope() {
+            if (!confirm('Move this scope to trash?')) return;
+            try {
+                const res = await fetch(`/scopes/${currentScopeId}/trash`, { method: 'POST' });
+                if (res.ok) {
+                    window.location.href = '/inventory?inv=optics';
+                } else {
+                    showToast('Failed to trash scope.', 'error');
+                }
+            } catch { showToast('Error contacting server.', 'error'); }
+        }
+    </script>
+</body>
+</html>
