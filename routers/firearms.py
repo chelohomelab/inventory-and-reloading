@@ -147,7 +147,9 @@ def swap_firearm_photos(firearm_id: int, db: Session = Depends(get_db)):
     gun = db.query(models.Firearm).filter(models.Firearm.id == firearm_id).first()
     if not gun:
         raise HTTPException(status_code=404, detail="Firearm not found")
-    gun.image_path_1, gun.image_path_2 = gun.image_path_2, gun.image_path_1
+    tmp = gun.image_path_1
+    gun.image_path_1 = gun.image_path_2
+    gun.image_path_2 = tmp
     db.commit()
     return {"image_path_1": gun.image_path_1, "image_path_2": gun.image_path_2}
 

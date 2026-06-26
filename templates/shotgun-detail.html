@@ -363,14 +363,7 @@
                 document.getElementById('sold-alert-banner').classList.remove('hidden');
             }
 
-            // Image gallery — server image takes priority, then local override
-            const imagePool = [];
-            const localSavedImg = localStorage.getItem(`local_img_${gun.id}`);
-            if (localSavedImg) imagePool.push(localSavedImg);
-            if (gun.image_path_1) imagePool.push(gun.image_path_1);
-            if (gun.image_path_2) imagePool.push(gun.image_path_2);
-
-            renderImageGallery([...new Set(imagePool)].filter(Boolean));
+            renderImageGallery(gun.image_path_1, gun.image_path_2);
             loadLinkedRangePerformance(gun);
 
             // Ballistics panel — only show if we have a caliber
@@ -442,7 +435,8 @@
             }
         }
 
-        function renderImageGallery(images) {
+        function renderImageGallery(img1, img2) {
+            const images = [img1, img2].filter(Boolean);
             currentPhotoCount = images.length;
             const viewport = document.getElementById('main-photo-viewport');
             const strip = document.getElementById('thumbnail-gallery-strip');
@@ -453,15 +447,20 @@
             }
             viewport.innerHTML = `<img src="${images[0]}" class="w-full h-full object-cover opacity-90">`;
             strip.innerHTML = images.map((img, idx) => {
-                const slot = idx + 1;
-                return `<div class="relative group shrink-0">
-                    <img src="${img}" onclick="document.querySelector('#main-photo-viewport img').src='${img}'" class="w-12 h-12 rounded object-cover border-2 ${idx === 0 ? 'border-amber-500' : 'border-gray-700'} hover:border-amber-500 transition cursor-pointer">
-                    <div class="absolute -top-1 -right-1 hidden group-hover:flex gap-0.5">
-                        ${idx > 0 ? `<button onclick="swapFirearmPhotos()" class="w-4 h-4 bg-amber-600 rounded-full text-[8px] text-white cursor-pointer leading-none flex items-center justify-center" title="Set as primary">★</button>` : ''}
-                        <button onclick="deleteFirearmPhoto(${slot})" class="w-4 h-4 bg-red-600 rounded-full text-[8px] text-white cursor-pointer leading-none flex items-center justify-center" title="Delete photo">✕</button>
+                const serverSlot = idx === 0 ? 1 : 2;
+                return `<div class="relative shrink-0 photo-thumb" onclick="togglePhotoActions(this)">
+                    <img src="${img}" onclick="event.stopPropagation(); document.querySelector('#main-photo-viewport img').src='${img}'" class="w-12 h-12 rounded object-cover border-2 ${idx === 0 ? 'border-amber-500' : 'border-gray-700'} hover:border-amber-500 transition cursor-pointer">
+                    <div class="photo-actions absolute -top-1 -right-1 hidden flex gap-0.5">
+                        ${idx > 0 ? `<button onclick="event.stopPropagation(); swapFirearmPhotos()" class="w-5 h-5 bg-amber-600 rounded-full text-[9px] text-white cursor-pointer leading-none flex items-center justify-center" title="Set as primary">★</button>` : ''}
+                        <button onclick="event.stopPropagation(); deleteFirearmPhoto(${serverSlot})" class="w-5 h-5 bg-red-600 rounded-full text-[9px] text-white cursor-pointer leading-none flex items-center justify-center" title="Delete photo">✕</button>
                     </div>
                 </div>`;
             }).join('');
+        }
+
+        function togglePhotoActions(el) {
+            document.querySelectorAll('.photo-actions').forEach(a => { if (a.parentElement !== el) a.classList.add('hidden'); });
+            el.querySelector('.photo-actions')?.classList.toggle('hidden');
         }
 
         async function swapFirearmPhotos() {

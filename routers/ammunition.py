@@ -180,7 +180,9 @@ async def rotate_ammo_photo(ammo_id: int, slot: int = Form(1), db: Session = Dep
 def swap_ammo_photos(ammo_id: int, db: Session = Depends(get_db)):
     a = db.query(models.Ammo).filter(models.Ammo.id == ammo_id).first()
     if not a: raise HTTPException(404, "Not found")
-    a.image_path, a.image_path_2 = a.image_path_2, a.image_path
+    tmp = a.image_path
+    a.image_path = a.image_path_2
+    a.image_path_2 = tmp
     db.commit()
     return _ammo_dict(a)
 
