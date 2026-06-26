@@ -118,6 +118,10 @@
                         <input type="number" step="0.01" min="0" id="ef-price" placeholder="e.g., 24.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
                     </div>
                     <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Rounds per Box</label>
+                        <input type="number" min="1" id="ef-rpb" placeholder="e.g., 20" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
                         <label class="block text-xs text-gray-200 font-semibold mb-1">UPC Barcode</label>
                         <input type="text" id="ef-upc" placeholder="e.g., 741569060080" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white font-mono focus:outline-none focus:border-amber-500">
                     </div>
@@ -138,6 +142,30 @@
                 <div id="ef-shell-row" class="hidden">
                     <label class="block text-xs text-gray-200 font-semibold mb-1">Shell Length (inches)</label>
                     <input type="text" id="ef-shell-size" placeholder='e.g., 2-3/4", 3", 3-1/2"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                </div>
+                <div id="ef-shot-row" class="hidden">
+                    <label class="block text-xs text-gray-200 font-semibold mb-1">Shot Size</label>
+                    <select id="ef-shot-size" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                        <option value="">Select shot size…</option>
+                        <option value="#9">#9 — Skeet / Small Birds</option>
+                        <option value="#8">#8 — Skeet / Dove</option>
+                        <option value="#7.5">#7.5 — Trap / Dove / Quail</option>
+                        <option value="#6">#6 — Pheasant / Rabbit</option>
+                        <option value="#5">#5 — Pheasant / Turkey</option>
+                        <option value="#4">#4 — Turkey / Duck</option>
+                        <option value="#3">#3 — Turkey / Waterfowl</option>
+                        <option value="#2">#2 — Waterfowl / Geese</option>
+                        <option value="#1">#1 — Geese</option>
+                        <option value="BB">BB — Geese / Coyote</option>
+                        <option value="BBB">BBB — Large Geese</option>
+                        <option value="T">T — Large Geese</option>
+                        <option value="#4 Buck">#4 Buckshot</option>
+                        <option value="#3 Buck">#3 Buckshot</option>
+                        <option value="#1 Buck">#1 Buckshot</option>
+                        <option value="0 Buck">0 Buckshot</option>
+                        <option value="00 Buck">00 Buckshot</option>
+                        <option value="000 Buck">000 Buckshot</option>
+                    </select>
                 </div>
 
                 <div id="handload-fields" class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs hidden">
@@ -210,6 +238,7 @@
                             <th class="px-4 py-2 text-right">Boxes</th>
                             <th class="px-4 py-2 text-right">Price / Box</th>
                             <th class="px-4 py-2 text-right">Subtotal</th>
+                            <th class="px-4 py-2 w-8"></th>
                         </tr>
                     </thead>
                     <tbody id="purchase-log-body" class="divide-y divide-gray-700 text-gray-300"></tbody>
@@ -293,9 +322,13 @@
             });
             const shellRow = document.getElementById('ef-shell-row');
             if (shellRow) shellRow.classList.toggle('hidden', !isShotgun);
+            const shotRow = document.getElementById('ef-shot-row');
+            if (shotRow) shotRow.classList.toggle('hidden', !isShotgun);
             if (!isShotgun) {
                 const shellInput = document.getElementById('ef-shell-size');
                 if (shellInput) shellInput.value = '';
+                const shotInput = document.getElementById('ef-shot-size');
+                if (shotInput) shotInput.value = '';
             }
             // Update bullet type placeholder to match selected category
             const btEl = document.getElementById('ef-bullet-type');
@@ -341,7 +374,8 @@
             return photoTimestamp ? src + '?t=' + photoTimestamp : src;
         }
 
-        function renderImageGallery(images) {
+        function renderImageGallery(img1, img2) {
+            const images = [img1, img2].filter(Boolean);
             currentPhotoCount = images.length;
             currentViewSlot = 1;
             const viewport = document.getElementById('main-photo-viewport');
@@ -352,12 +386,37 @@
                 return;
             }
             viewport.innerHTML = `<img src="${_cacheBust(images[0])}" class="w-full h-full object-contain">`;
-            strip.innerHTML = images.length > 1
-                ? images.map((img, idx) => {
-                    const busted = _cacheBust(img);
-                    return `<img src="${busted}" onclick="setViewSlot(${idx + 1}, '${busted}')" class="w-12 h-12 rounded object-cover border-2 border-gray-700 hover:border-amber-500 transition cursor-pointer flex-shrink-0">`;
-                }).join('')
-                : '';
+            strip.innerHTML = images.map((img, idx) => {
+                const busted = _cacheBust(img);
+                const serverSlot = idx === 0 ? 1 : 2;
+                const btnId = `photo-btns-${serverSlot}`;
+                return `<div class="shrink-0 flex flex-col items-center gap-1">
+                    <img src="${busted}" onclick="setViewSlot(${serverSlot}, '${busted}'); togglePhotoBtns('${btnId}')" class="w-14 h-14 rounded-lg object-cover border-2 ${idx === 0 ? 'border-amber-500' : 'border-gray-700'} hover:border-amber-500 transition cursor-pointer">
+                    <div id="${btnId}" class="hidden flex gap-1">
+                        ${idx > 0 ? `<button onclick="swapAmmoPhotos()" class="px-2 py-1 bg-amber-700 hover:bg-amber-600 rounded text-[10px] text-white cursor-pointer font-bold">★ Set Primary</button>` : ''}
+                        <button onclick="deleteAmmoPhoto(${serverSlot})" class="px-2 py-1 bg-red-800 hover:bg-red-700 rounded text-[10px] text-white cursor-pointer font-bold">✕ Delete</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function togglePhotoBtns(activeId) {
+            document.querySelectorAll('[id^="photo-btns-"]').forEach(el => {
+                el.classList.toggle('hidden', el.id !== activeId || !el.classList.contains('hidden'));
+            });
+        }
+
+        async function swapAmmoPhotos() {
+            const res = await fetch(`/ammo/${currentAmmoId}/swap-photos/`, { method: 'POST' });
+            if (res.ok) { showToast('Primary photo updated.'); loadAmmoData(); }
+            else showToast('Failed to swap photos.', 'error');
+        }
+
+        async function deleteAmmoPhoto(slot) {
+            if (!confirm('Delete this photo?')) return;
+            const res = await fetch(`/ammo/${currentAmmoId}/photos/${slot}`, { method: 'DELETE' });
+            if (res.ok) { showToast('Photo deleted.'); loadAmmoData(); }
+            else showToast('Failed to delete photo.', 'error');
         }
 
         async function rotateCurrentPhoto() {
@@ -472,12 +531,15 @@
             const caliber = a.caliber || 'Unknown Caliber';
 
             document.getElementById('breadcrumb-name').innerText = name;
-            const _ammoFilter = isHandload ? 'handloads' : 'factory';
+            const isMuzzleloader = a.ammo_category === 'muzzleloader';
+            const _ammoFilter = isHandload ? 'handloads' : isMuzzleloader ? 'muzzleloader' : 'factory';
+            const _ammoLabel = isHandload ? 'Handloads' : isMuzzleloader ? 'Muzzleloader' : 'Factory';
             const _ammoBackHref = `/inventory?inv=ammo&ammofilter=${_ammoFilter}`;
             const _btl = document.getElementById('breadcrumb-type-link');
-            _btl.innerText = isHandload ? 'Handloads' : 'Factory';
+            _btl.innerText = _ammoLabel;
             _btl.href = _ammoBackHref;
             document.getElementById('back-btn').href = _ammoBackHref;
+            document.getElementById('back-btn').innerText = `← ${_ammoLabel}`;
             document.getElementById('detail-name').innerText = name;
             document.getElementById('detail-line').innerText = line || (isHandload ? 'Handload Recipe' : 'Factory Load');
             document.getElementById('badge-caliber').innerText = caliber;
@@ -486,6 +548,9 @@
             if (isHandload) {
                 typeBadge.innerText = 'HANDLOAD';
                 typeBadge.className = 'px-2 py-0.5 rounded text-[11px] font-bold border bg-emerald-950 text-emerald-400 border-emerald-800';
+            } else if (isMuzzleloader) {
+                typeBadge.innerText = 'MUZZLELOADER';
+                typeBadge.className = 'px-2 py-0.5 rounded text-[11px] font-bold border bg-yellow-950 text-yellow-500 border-yellow-800';
             } else {
                 typeBadge.innerText = 'FACTORY';
                 typeBadge.className = 'px-2 py-0.5 rounded text-[11px] font-bold border bg-blue-950 text-blue-400 border-blue-800';
@@ -503,6 +568,7 @@
             cells += cell('Caliber', caliber, 'text-amber-400 font-mono');
             if (isShotgun) {
                 cells += cell('Shell Length', a.shell_size ? `${a.shell_size}"` : null, 'text-orange-400 font-mono');
+                cells += cell('Shot Size', a.shot_size, 'text-yellow-400 font-bold');
             } else {
                 cells += cell('Bullet Weight', a.bullet_weight ? `${a.bullet_weight} gr` : null, 'text-white font-mono');
                 cells += cell('G1 BC', a.bullet_bc != null ? a.bullet_bc.toFixed(3) : '—', a.bullet_bc ? 'text-emerald-400 font-mono' : 'text-gray-600');
@@ -546,7 +612,7 @@
             }
 
             // Photo gallery
-            renderImageGallery([a.image_path, a.image_path_2].filter(Boolean));
+            renderImageGallery(a.image_path, a.image_path_2);
 
             // Hydrate edit form
             document.getElementById('ef-brand').value = a.brand || '';
@@ -557,7 +623,9 @@
             document.getElementById('ef-bc').value = a.bullet_bc != null ? a.bullet_bc : '';
             document.getElementById('ef-category').value = a.ammo_category || '';
             document.getElementById('ef-shell-size').value = a.shell_size || '';
+            document.getElementById('ef-shot-size').value = a.shot_size || '';
             document.getElementById('ef-price').value = a.price_paid || '';
+            document.getElementById('ef-rpb').value = a.rounds_per_box || 20;
             document.getElementById('ef-upc').value = a.upc || '';
             _toggleEditAmmoFields(a.ammo_category || '');
             if (isHandload) {
@@ -587,7 +655,9 @@
                 bullet_bc: isNaN(bcVal) ? null : bcVal,
                 ammo_category: cat || null,
                 shell_size: isShotgun ? (document.getElementById('ef-shell-size').value.trim() || null) : null,
+                shot_size: isShotgun ? (document.getElementById('ef-shot-size').value.trim() || null) : null,
                 price_paid: parseFloat(document.getElementById('ef-price').value) || null,
+                rounds_per_box: parseInt(document.getElementById('ef-rpb').value) || 20,
                 upc: document.getElementById('ef-upc').value.trim() || null,
             };
             if (ammoData?.is_handload) {
@@ -676,6 +746,7 @@
                         onclick="editLogPrice([${e.id}], ${JSON.stringify(e.price_per_box)}, this)"
                         title="Tap to edit price">${priceDisplay}</td>
                     <td class="px-4 py-2 text-right font-mono">${subtotalVal ? '$' + subtotalVal : '<span class="text-gray-600">—</span>'}</td>
+                    <td class="px-4 py-2 text-center"><button onclick="deletePurchaseEntry(${e.id})" class="text-gray-600 hover:text-red-400 cursor-pointer transition" title="Delete entry">🗑</button></td>
                 </tr>`;
             }).join('');
 
@@ -743,6 +814,13 @@
                 loadPurchaseLog();
                 showToast('Past purchase logged.');
             } else showToast('Failed to save entry.', 'error');
+        }
+
+        async function deletePurchaseEntry(entryId) {
+            if (!confirm('Delete this purchase entry?')) return;
+            const res = await fetch(`/ammo/${currentAmmoId}/purchase-log/${entryId}`, { method: 'DELETE' });
+            if (res.ok) { loadPurchaseLog(); showDetailToast('Purchase entry deleted.'); }
+            else showDetailToast('Failed to delete entry.', 'error');
         }
 
         async function logRoundsUsed() {

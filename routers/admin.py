@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 import database as models
 from config import templates
-from dependencies import get_db, _hash_pw
+from dependencies import get_db, _hash_pw, cleanup_item_images
 from schemas import AdminUserPatch
 
 router = APIRouter()
@@ -74,6 +74,9 @@ def admin_perma_delete_firearm(firearm_id: int, request: Request, db: Session = 
     gun = db.query(models.Firearm).filter(models.Firearm.id == firearm_id, models.Firearm.is_deleted == True).first()
     if not gun:
         raise HTTPException(404, "Not found in trash")
+    for barrel in gun.barrels:
+        cleanup_item_images(barrel)
+    cleanup_item_images(gun)
     db.delete(gun)
     db.commit()
     return {"deleted": firearm_id}
@@ -85,6 +88,7 @@ def admin_perma_delete_receiver(receiver_id: int, request: Request, db: Session 
     r = db.query(models.TCReceiver).filter(models.TCReceiver.id == receiver_id, models.TCReceiver.is_deleted == True).first()
     if not r:
         raise HTTPException(404, "Not found in trash")
+    cleanup_item_images(r)
     db.delete(r)
     db.commit()
     return {"deleted": receiver_id}
@@ -96,6 +100,7 @@ def admin_perma_delete_scope(scope_id: int, request: Request, db: Session = Depe
     s = db.query(models.Scope).filter(models.Scope.id == scope_id, models.Scope.is_deleted == True).first()
     if not s:
         raise HTTPException(404, "Not found in trash")
+    cleanup_item_images(s)
     db.delete(s)
     db.commit()
     return {"deleted": scope_id}
@@ -111,6 +116,7 @@ def admin_perma_delete_tc_barrel(barrel_id: int, request: Request, db: Session =
     ).first()
     if not b:
         raise HTTPException(404, "Not found in trash")
+    cleanup_item_images(b)
     db.delete(b)
     db.commit()
     return {"deleted": barrel_id}

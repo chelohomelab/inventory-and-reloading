@@ -6,7 +6,7 @@ from fastapi import Request
 from sqlalchemy.orm import Session, joinedload
 
 import database as models
-from dependencies import get_db, save_uploaded_file
+from dependencies import get_db, save_uploaded_file, delete_uploaded_file
 from schemas import FirearmPatchPayload, SoldPayload
 
 router = APIRouter()
@@ -140,6 +140,34 @@ async def update_firearm_photo(
     db.commit()
     db.refresh(gun)
     return gun
+
+
+@router.post("/firearms/{firearm_id}/swap-photos/")
+def swap_firearm_photos(firearm_id: int, db: Session = Depends(get_db)):
+    gun = db.query(models.Firearm).filter(models.Firearm.id == firearm_id).first()
+    if not gun:
+        raise HTTPException(status_code=404, detail="Firearm not found")
+    tmp = gun.image_path_1
+    gun.image_path_1 = gun.image_path_2
+    gun.image_path_2 = tmp
+    db.commit()
+    return {"image_path_1": gun.image_path_1, "image_path_2": gun.image_path_2}
+
+
+@router.delete("/firearms/{firearm_id}/photos/{slot}")
+def delete_firearm_photo(firearm_id: int, slot: int, db: Session = Depends(get_db)):
+    gun = db.query(models.Firearm).filter(models.Firearm.id == firearm_id).first()
+    if not gun:
+        raise HTTPException(status_code=404, detail="Firearm not found")
+    if slot == 2:
+        delete_uploaded_file(gun.image_path_2)
+        gun.image_path_2 = None
+    else:
+        delete_uploaded_file(gun.image_path_1)
+        gun.image_path_1 = gun.image_path_2
+        gun.image_path_2 = None
+    db.commit()
+    return {"image_path_1": gun.image_path_1, "image_path_2": gun.image_path_2}
 
 
 @router.post("/firearms/{firearm_id}/trash")

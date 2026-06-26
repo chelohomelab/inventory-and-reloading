@@ -11,8 +11,13 @@ router = APIRouter()
 
 
 def _scope_dict(s: models.Scope) -> dict:
+    def _mount_label(f):
+        cal = f.barrels[0].caliber if f.barrels else None
+        base = f"{f.brand} {f.model}"
+        return f"{base} ({cal})" if cal else base
+
     mounts = (
-        [{"type": "firearm", "id": f.id, "label": f"{f.brand} {f.model}"} for f in s.firearms] +
+        [{"type": "firearm", "id": f.id, "label": _mount_label(f)} for f in s.firearms] +
         [{"type": "barrel",  "id": b.id, "label": f"{b.tc_platform or ''} {b.caliber}".strip()} for b in s.barrels]
     )
     first = mounts[0] if mounts else None
@@ -26,6 +31,8 @@ def _scope_dict(s: models.Scope) -> dict:
         "image_path": s.image_path,
         "image_path_2": s.image_path_2,
         "quantity": getattr(s, "quantity", 1) or 1,
+        "is_sold": getattr(s, "is_sold", False),
+        "price_sold": getattr(s, "price_sold", None),
         "mounts": mounts,
         # backward-compat fields kept for existing mount editor
         "mounted_on": first["label"] if first else None,
@@ -53,6 +60,47 @@ def list_scopes(db: Session = Depends(get_db)):
         .all()
     )
     return [_scope_dict(s) for s in scopes]
+
+
+@router.get("/scopes/{scope_id}")
+def get_scope(scope_id: int, db: Session = Depends(get_db)):
+    s = _load_scope(scope_id, db)
+    if not s:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    return _scope_dict(s)
+
+
+@router.delete("/scopes/{scope_id}/photos/{slot}")
+def delete_scope_photo(scope_id: int, slot: int, db: Session = Depends(get_db)):
+    s = db.query(models.Scope).filter(models.Scope.id == scope_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    from dependencies import delete_uploaded_file
+    if slot == 2:
+        delete_uploaded_file(s.image_path_2)
+        s.image_path_2 = None
+    else:
+        delete_uploaded_file(s.image_path)
+        s.image_path = s.image_path_2
+        s.image_path_2 = None
+    db.commit()
+    return _scope_dict(_load_scope(scope_id, db))
+
+
+@router.post("/scopes/{scope_id}/sell")
+def sell_scope(scope_id: int, payload: dict, db: Session = Depends(get_db)):
+    s = db.query(models.Scope).filter(models.Scope.id == scope_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    s.is_sold = True
+    price = payload.get("price_sold")
+    if price is not None:
+        try:
+            s.price_sold = float(price)
+        except (ValueError, TypeError):
+            pass
+    db.commit()
+    return _scope_dict(_load_scope(scope_id, db))
 
 
 @router.post("/scopes/{scope_id}/trash")
@@ -143,7 +191,9 @@ def swap_scope_photos(scope_id: int, db: Session = Depends(get_db)):
     s = db.query(models.Scope).filter(models.Scope.id == scope_id).first()
     if not s:
         raise HTTPException(status_code=404, detail="Scope not found")
-    s.image_path, s.image_path_2 = s.image_path_2, s.image_path
+    tmp = s.image_path
+    s.image_path = s.image_path_2
+    s.image_path_2 = tmp
     db.commit()
     return _scope_dict(_load_scope(scope_id, db))
 
@@ -153,6 +203,7 @@ def get_available_mounts(for_scope_id: int = None, db: Session = Depends(get_db)
     firearms = (
         db.query(models.Firearm)
         .filter(
+            models.Firearm.is_deleted == False,
             models.Firearm.is_sold == False,
             (models.Firearm.scope_id == None) | (models.Firearm.scope_id == for_scope_id),
         )
@@ -163,12 +214,18 @@ def get_available_mounts(for_scope_id: int = None, db: Session = Depends(get_db)
         db.query(models.Barrel)
         .filter(
             models.Barrel.tc_platform.isnot(None),
+            models.Barrel.is_deleted == False,
             (models.Barrel.scope_id == None) | (models.Barrel.scope_id == for_scope_id),
         )
         .all()
     )
+    def _firearm_label(f):
+        caliber = f.barrels[0].caliber if f.barrels else None
+        base = f"{f.brand} {f.model}"
+        return f"{base} ({caliber})" if caliber else base
+
     return {
-        "firearms": [{"id": f.id, "label": f"{f.brand} {f.model}", "type": "firearm"} for f in firearms],
+        "firearms": [{"id": f.id, "label": _firearm_label(f), "type": "firearm"} for f in firearms],
         "tc_barrels": [{"id": b.id, "label": f"{b.tc_platform} {b.caliber}", "type": "barrel"} for b in tc_barrels],
     }
 

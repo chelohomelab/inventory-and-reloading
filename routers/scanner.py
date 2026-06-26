@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from sqlalchemy.orm import Session
 
 import database as _models
-from dependencies import get_db, save_uploaded_file
+from dependencies import get_db, save_uploaded_file, cleanup_item_images
 
 router = APIRouter(prefix="/scanner", tags=["scanner"])
 
@@ -200,9 +200,126 @@ def delete_entry(
     entry = db.query(_models.ScannerEntry).filter(_models.ScannerEntry.id == entry_id).first()
     if not entry:
         raise HTTPException(404, "Not found")
+    cleanup_item_images(entry)
     db.delete(entry)
     db.commit()
     return {"deleted": entry_id}
+
+
+@router.post("/entries/{entry_id}/convert")
+def convert_entry_to_inventory(
+    entry_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    _require_admin(request)
+    entry = db.query(_models.ScannerEntry).filter(_models.ScannerEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(404, "Not found")
+    if not _is_complete(entry):
+        raise HTTPException(400, "Entry is incomplete — fill required fields first")
+
+    data = {}
+    if entry.data_json:
+        try:
+            data = json.loads(entry.data_json)
+        except Exception:
+            pass
+
+    result_type = None
+    result_id = None
+    cat = entry.category
+
+    if cat == "firearm":
+        frame = data.get("frame_type", "Rifle")
+        f = _models.Firearm(
+            brand=entry.brand or "Unknown",
+            model=data.get("model", "Unknown"),
+            frame_type=frame,
+            price_paid=float(data.get("price_paid", 0) or 0),
+            serial_number=data.get("serial_number"),
+            image_path_1=entry.image_path_1,
+            image_path_2=entry.image_path_2,
+        )
+        db.add(f)
+        db.flush()
+        barrel = _models.Barrel(
+            firearm_id=f.id,
+            caliber=entry.caliber or "Unknown",
+            name="Primary",
+            twist_rate=data.get("twist_rate"),
+        )
+        db.add(barrel)
+        db.commit()
+        db.refresh(f)
+        result_type = "firearm"
+        result_id = f.id
+
+    elif cat == "optic":
+        s = _models.Scope(
+            brand=entry.brand or "Unknown",
+            model=data.get("model", "Unknown"),
+            magnification=data.get("magnification"),
+            units=data.get("units", "MOA"),
+            price_paid=float(data.get("price_paid", 0) or 0),
+            image_path=entry.image_path_1,
+            image_path_2=entry.image_path_2,
+        )
+        db.add(s)
+        db.commit()
+        db.refresh(s)
+        result_type = "scope"
+        result_id = s.id
+
+    elif cat == "ammo":
+        a = _models.Ammo(
+            brand=entry.brand or "Unknown",
+            caliber=entry.caliber,
+            line_or_powder=data.get("product_line"),
+            bullet_weight=float(data.get("weight_gr", 0) or 0) or None,
+            bullet_type=data.get("bullet_type"),
+            bullet_bc=float(data.get("bc_g1", 0) or 0) or None,
+            qty_sealed=int(data.get("qty_sealed", 0) or 0),
+            qty_open=int(data.get("qty_open", 0) or 0),
+            rounds_per_box=int(data.get("rounds_per_box", 20) or 20),
+            price_paid=float(data.get("price_paid", 0) or 0),
+            upc=entry.upc,
+            image_path=entry.image_path_1,
+            image_path_2=entry.image_path_2,
+        )
+        db.add(a)
+        db.commit()
+        db.refresh(a)
+        result_type = "ammo"
+        result_id = a.id
+
+    elif cat == "tc_barrel":
+        b = _models.Barrel(
+            caliber=entry.caliber or "Unknown",
+            tc_platform=data.get("platform", "Encore"),
+            barrel_length=data.get("barrel_length"),
+            twist_rate=data.get("twist_rate"),
+            price_paid=float(data.get("price_paid", 0) or 0),
+            image_path=entry.image_path_1,
+        )
+        db.add(b)
+        db.commit()
+        db.refresh(b)
+        result_type = "tc_barrel"
+        result_id = b.id
+
+    elif cat == "component":
+        result_type = "component"
+
+    else:
+        raise HTTPException(400, f"Unknown category: {cat}")
+
+    entry.is_reviewed = True
+    db.commit()
+    db.delete(entry)
+    db.commit()
+
+    return {"type": result_type, "id": result_id}
 
 
 @router.post("/entries/{entry_id}/autofill")

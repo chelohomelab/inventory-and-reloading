@@ -63,6 +63,26 @@ let currentComponentMode = "reloading"; // "reloading" or "muzzleloader"
 let currentAmmoCategoryFilter = null; // active category for factory view
 let currentPlatformSort = "brand";
 let currentOpticSort = "brand";
+let currentSearchQuery = "";
+
+function applyInventorySearch() {
+    const el = document.getElementById('inventory-search');
+    currentSearchQuery = (el ? el.value : '').toLowerCase().trim();
+    if (currentInventoryTab === 'platforms') {
+        if (currentPlatformTab === 'tc') loadTCInventory();
+        else loadCatalog();
+    } else if (currentInventoryTab === 'optics') loadScopeInventory();
+    else if (currentInventoryTab === 'ammo') loadAmmoInventory(currentAmmoFilter);
+    else if (currentInventoryTab === 'components') loadComponentInventory(currentComponentFilter);
+}
+
+function matchesSearch(item) {
+    if (!currentSearchQuery) return true;
+    const fields = [item.brand, item.model, item.caliber, item.line_or_powder, item.bullet_type,
+                    item.serial_number, item.name, item.magnification, item.product_line].filter(Boolean);
+    const text = fields.join(' ').toLowerCase();
+    return text.includes(currentSearchQuery);
+}
 
 // ── Photo widget (multi-select + primary toggle) ──────────────────────────────
 const _pw = {}; // widget state: widgetId -> { files: File[], primary: 0 }
@@ -242,14 +262,14 @@ function toggleUserMenu() {
 }
 
 // Vault Filtering Controllers
-function setCollectionFilter() {
-    currentCollectionFilter = currentCollectionFilter === 'sold' ? 'active' : 'sold';
+function setCollectionFilter(mode) {
+    currentCollectionFilter = mode || (currentCollectionFilter === 'sold' ? 'active' : 'sold');
+    const btnActive = document.getElementById('btn-filter-active');
     const btnSold = document.getElementById('btn-filter-sold');
-    if (btnSold) {
-        btnSold.className = currentCollectionFilter === 'sold'
-            ? "px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer"
-            : "px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer";
-    }
+    const onCls = "px-3 py-1 rounded bg-gray-800 text-emerald-400 cursor-pointer";
+    const offCls = "px-3 py-1 rounded text-gray-200 hover:text-white cursor-pointer";
+    if (btnActive) btnActive.className = currentCollectionFilter === 'active' ? onCls : offCls;
+    if (btnSold) btnSold.className = currentCollectionFilter === 'sold' ? onCls : offCls;
     if (currentPlatformTab === 'tc') loadTCInventory();
     else loadCatalog();
 }
@@ -564,9 +584,10 @@ async function loadTCInventory() {
         const [recRes, barRes] = await Promise.all([fetch('/tc-receivers/'), fetch('/tc-barrels/')]);
         const allReceivers = recRes.ok ? await recRes.json() : [];
         const barrels      = barRes.ok ? await barRes.json() : [];
-        const receivers    = allReceivers.filter(r => currentCollectionFilter === 'sold' ? r.is_sold : !r.is_sold);
+        const receivers    = allReceivers.filter(r => currentCollectionFilter === 'sold' ? r.is_sold : !r.is_sold).filter(matchesSearch);
 
-        const total = receivers.length + barrels.length;
+        const filteredBarrels = barrels.filter(matchesSearch);
+        const total = receivers.length + filteredBarrels.length;
         document.getElementById('inventory-count').innerText = `${total} TC Item${total !== 1 ? 's' : ''} Registered`;
 
         if (receivers.length === 0) {
@@ -620,10 +641,10 @@ async function loadTCInventory() {
             }).join('');
         }
 
-        if (barrels.length === 0) {
+        if (filteredBarrels.length === 0) {
             barContainer.innerHTML = '<p class="text-gray-500 italic text-sm col-span-3">No barrels registered.</p>';
         } else {
-            barContainer.innerHTML = barrels.map(b => {
+            barContainer.innerHTML = filteredBarrels.map(b => {
                 const gallery = makePhotoGallery(`bar-${b.id}`, '🎯', b.image_path, b.image_path_2, 'cover');
                 const flags = [b.is_threaded && 'Threaded', b.has_muzzle_brake && 'Brake'].filter(Boolean).join(' · ');
                 const barrelLabel = `${b.tc_platform} ${b.caliber}`;
@@ -746,6 +767,7 @@ async function loadComponentInventory(type) {
         ]);
         let items = res.ok ? await res.json() : [];
         if (!isMuzzleloaderMode) items = items.filter(i => !i.is_muzzleloader);
+        items = items.filter(matchesSearch);
         const settings = settingsRes.ok ? await settingsRes.json() : {};
         const thresholds = {
             primers: parseFloat(settings.low_stock_primers ?? 200),
@@ -1445,7 +1467,7 @@ async function loadScopes() {
     try {
         const res = await fetch('/scopes/');
         const raw = res.ok ? await res.json() : [];
-        const scopes = applySortFn(raw, currentOpticSort);
+        const scopes = applySortFn(raw.filter(matchesSearch), currentOpticSort);
         document.getElementById('inventory-count').innerText = `${scopes.length} Optic${scopes.length !== 1 ? 's' : ''} Registered`;
 
         if (scopes.length === 0) {
@@ -1523,7 +1545,7 @@ function renderScopeCard(s) {
         data-mount-type="${firstMount ? firstMount.type : ''}"
         data-mount-id="${firstMount ? firstMount.id : ''}"
         class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl">
-        ${gallery}
+        <div onclick="window.location.href='scope-detail.html?id=${s.id}'" class="cursor-pointer">${gallery}</div>
         <div class="p-4 space-y-2">
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-1">
@@ -1544,10 +1566,10 @@ function renderScopeCard(s) {
                     <p class="text-sm text-amber-500">${s.model || '—'}</p>
                     ${s.magnification ? `<p class="text-xs text-blue-300 font-mono">${s.magnification}</p>` : ''}
                 </div>
-                <span class="text-xs text-gray-400 font-mono whitespace-nowrap">$${parseFloat(s.price_paid || 0).toFixed(2)}</span>
-            </div>
-            <div class="border-t border-gray-700 pt-2 space-y-1">
-                ${mountsHtml}
+                <div class="text-right shrink-0">
+                    <span class="text-xs text-gray-400 font-mono">$${parseFloat(s.price_paid || 0).toFixed(2)}</span>
+                    <p class="text-[10px] mt-0.5">${firstMount ? `📍 <a href="${firstMount.type === 'firearm' ? 'firearm-detail.html' : 'tc-barrel-detail.html'}?id=${firstMount.id}" onclick="event.stopPropagation()" class="text-emerald-400 hover:text-emerald-300 font-medium hover:underline">${firstMount.label}</a>` : `📍 <span class="text-gray-500 italic">Unmounted</span>`}</p>
+                </div>
             </div>
             <!-- Edit panel (hidden) -->
             <div id="scope-edit-panel-${s.id}" class="hidden border-t border-gray-600 pt-3 space-y-2">
@@ -1605,11 +1627,7 @@ function renderScopeCard(s) {
                     <button onclick="closeScopeMountEditor(${s.id})" class="px-3 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold py-1.5 rounded transition cursor-pointer">Cancel</button>
                 </div>
             </div>
-            <div class="flex gap-2 mt-1">
-                ${changeMountBtn}
-                ${addInstallBtn}
-                <button onclick="trashItem('scope',${s.id},'${(s.brand+' '+s.model).replace(/'/g,"\\'")}'); event.stopPropagation();" class="px-3 py-1.5 bg-gray-700 hover:bg-red-900 text-gray-400 hover:text-red-300 text-xs font-bold rounded transition cursor-pointer" title="Move to trash">🗑️</button>
-            </div>
+            ${addInstallBtn ? `<div class="flex gap-2 mt-1">${addInstallBtn}</div>` : ''}
         </div>
     </div>`;
 }
@@ -1816,6 +1834,7 @@ async function loadAmmoInventory(type) {
         } else {
             filtered = all.filter(a => !a.is_handload && a.ammo_category !== 'muzzleloader');
         }
+        filtered = filtered.filter(matchesSearch);
 
         document.getElementById('inventory-count').innerText = `${filtered.length} Load${filtered.length !== 1 ? 's' : ''} Registered`;
 
@@ -1896,12 +1915,23 @@ async function loadAmmoInventory(type) {
                     </div>`).join('');
                 container.innerHTML = calHtml || `<p class="text-gray-500 italic text-sm">No handload recipes registered.</p>`;
             } else {
-                // muzzleloader — compact tiles + components section
-                const mlTiles = filtered.length
-                    ? `<div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">${filtered.map(renderAmmoTile).join('')}</div>`
-                    : '';
+                // muzzleloader — same grouped layout as factory + components section below
+                const calGroups = {};
+                filtered.forEach(a => {
+                    const cal = a.caliber || 'Unknown Caliber';
+                    if (!calGroups[cal]) calGroups[cal] = [];
+                    calGroups[cal].push(a);
+                });
+                const calHtml = Object.entries(calGroups).sort(([a],[b]) => a.localeCompare(b)).map(([cal, loads]) => `
+                    <div class="mb-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-yellow-500/80 font-mono">${escHtml(cal)}</span>
+                            <div class="flex-1 border-t border-gray-700/40"></div>
+                        </div>
+                        <div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">${loads.map(renderAmmoTile).join('')}</div>
+                    </div>`).join('');
                 const mlSectionHtml = renderMuzzleloaderComponentsSection(mlPowders, mlBullets, mlPrimers);
-                container.innerHTML = mlTiles + mlSectionHtml;
+                container.innerHTML = (calHtml || '') + mlSectionHtml;
             }
         }
     } catch(err) {
@@ -2124,6 +2154,8 @@ function _toggleFactoryAmmoFields(cat) {
     });
     const shellRow = document.getElementById('ammo-factory-shell-row');
     if (shellRow) shellRow.classList.toggle('hidden', !isShotgun);
+    const shotRow = document.getElementById('ammo-factory-shot-row');
+    if (shotRow) shotRow.classList.toggle('hidden', !isShotgun);
     // manage required
     const wtInput = document.getElementById('ammo-factory-weight');
     const btInput = document.getElementById('ammo-factory-bullet-type');
@@ -3069,7 +3101,7 @@ async function loadCatalog(frameType = currentFrameType()) {
         container.innerHTML = '<p class="text-red-400 italic text-sm">Failed to load catalog.</p>';
         return;
     }
-    const filtered = all.filter(g => currentCollectionFilter === 'sold' ? g.is_sold : !g.is_sold);
+    const filtered = all.filter(g => currentCollectionFilter === 'sold' ? g.is_sold : !g.is_sold).filter(matchesSearch);
     const inventory = applySortFn(filtered, currentPlatformSort);
 
     document.getElementById('inventory-count').innerText = `${inventory.length} Platform${inventory.length !== 1 ? 's' : ''} Logged`;
@@ -3586,17 +3618,19 @@ async function loadLandingStats() {
             fetch('/components/bullets/').then(r => r.json()),
             fetch('/components/casings/').then(r => r.json()),
         ]);
+        const sumPrice = arr => arr.reduce((t, x) => t + (parseFloat(x.price_paid) || 0), 0);
         const stats = [
-            { icon: '🔫', value: firearms.length, label: 'Firearms' },
-            { icon: '🔭', value: scopes.length,   label: 'Optics' },
-            { icon: '🧪', value: ammo.length,      label: 'Ammo' },
-            { icon: '🔩', value: powders.length + primers.length + bullets.length + casings.length, label: 'Components' },
+            { icon: '🔫', value: firearms.length, spent: sumPrice(firearms), label: 'Firearms' },
+            { icon: '🔭', value: scopes.length,   spent: sumPrice(scopes),   label: 'Optics' },
+            { icon: '🧪', value: ammo.length,      spent: sumPrice(ammo),     label: 'Ammo' },
+            { icon: '🔩', value: powders.length + primers.length + bullets.length + casings.length, spent: sumPrice(powders) + sumPrice(primers) + sumPrice(bullets) + sumPrice(casings), label: 'Components' },
         ];
         el.innerHTML = stats.map(s => `
             <div class="bg-gray-800/50 rounded-lg py-2.5 text-center">
                 <div class="text-base">${s.icon}</div>
                 <div class="text-sm font-black text-white">${s.value}</div>
                 <div class="text-[9px] text-gray-500 uppercase tracking-wide">${s.label}</div>
+                <div class="text-[10px] font-bold text-emerald-500 mt-0.5">$${s.spent.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
             </div>`).join('');
     } catch (_) {}
 }

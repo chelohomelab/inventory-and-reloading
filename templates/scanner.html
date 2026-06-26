@@ -859,6 +859,7 @@ function makeReviewCard(e) {
       <div class="flex gap-1.5 mt-auto flex-wrap">
         <button onclick="openEditModal(${e.id})" class="flex-1 min-w-0 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs font-bold rounded transition cursor-pointer">Edit</button>
         ${e.upc ? `<button onclick="startAutofill(${e.id})" class="flex-1 min-w-0 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 text-xs font-bold rounded transition cursor-pointer">Auto-fill</button>` : ''}
+        ${!missing && !reviewed ? `<button onclick="convertEntry(${e.id}, '${(e.brand || '').replace(/'/g, "\\'")}' )" class="flex-1 min-w-0 py-1.5 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded transition cursor-pointer">Add to Inventory</button>` : ''}
         <button onclick="addPhotoToEntry(${e.id})" class="py-1.5 px-2.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">📷</button>
         <button onclick="deleteEntry(${e.id})" class="py-1.5 px-2.5 bg-red-900/50 hover:bg-red-800/60 text-red-400 text-xs font-bold rounded transition cursor-pointer">🗑</button>
       </div>
@@ -890,6 +891,22 @@ async function deleteEntry(id) {
   const res = await fetch(`/scanner/entries/${id}`, { method: 'DELETE' });
   if (res.ok) { showToast('Deleted', 'success'); loadReviewEntries(); }
   else showToast('Delete failed', 'error');
+}
+
+// Convert entry to inventory
+async function convertEntry(id, name) {
+  if (!confirm(`Add "${name}" to your inventory?\n\nThis will create an inventory item and remove the scanner entry.`)) return;
+  try {
+    const res = await fetch(`/scanner/entries/${id}/convert`, { method: 'POST' });
+    if (res.ok) {
+      const data = await res.json();
+      showToast(`Added to inventory as ${data.type}.`, 'success');
+      loadReviewEntries();
+    } else {
+      const body = await res.json();
+      showToast(body.detail || 'Conversion failed', 'error');
+    }
+  } catch { showToast('Network error', 'error'); }
 }
 
 // Bulk-clear reviewed

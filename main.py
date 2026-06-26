@@ -8,9 +8,19 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 import database as models
 from config import UPLOAD_DIR
-from routers import auth, pages, firearms, scopes, tc, ammunition, components, settings, profile, admin, performance, barcode, wishlist, scanner, backup
+from routers import auth, pages, firearms, scopes, tc, ammunition, components, settings, profile, admin, performance, barcode, wishlist, scanner, backup, export
 
 app = FastAPI(title="Homelab Modular Firearm Catalog")
+
+
+class NoCacheMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        if "text/html" in response.headers.get("content-type", ""):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -51,6 +61,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+app.add_middleware(NoCacheMiddleware)
 app.add_middleware(AuthMiddleware)
 models.init_db()
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -71,3 +82,4 @@ app.include_router(barcode.router)
 app.include_router(wishlist.router)
 app.include_router(scanner.router)
 app.include_router(backup.router)
+app.include_router(export.router)

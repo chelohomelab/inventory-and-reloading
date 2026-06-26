@@ -45,3 +45,18 @@ async def save_uploaded_file(file: UploadFile, prefix: str) -> Optional[str]:
     with open(path, "wb") as buf:
         buf.write(content)
     return f"/static/uploads/{filename}"
+
+
+def delete_uploaded_file(url_path: Optional[str]):
+    if not url_path or not url_path.startswith("/static/uploads/"):
+        return
+    fs_path = os.path.join("static", "uploads", os.path.basename(url_path))
+    try:
+        os.remove(fs_path)
+    except FileNotFoundError:
+        pass
+
+
+def cleanup_item_images(item):
+    for attr in ("image_path", "image_path_1", "image_path_2"):
+        delete_uploaded_file(getattr(item, attr, None))

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 import database as models
-from dependencies import get_db, save_uploaded_file
+from dependencies import get_db, save_uploaded_file, cleanup_item_images
 from schemas import WishlistPatchPayload
 
 router = APIRouter()
@@ -93,6 +93,7 @@ def delete_wishlist(wish_id: int, db: Session = Depends(get_db)):
     w = db.query(models.Wishlist).filter(models.Wishlist.id == wish_id).first()
     if not w:
         raise HTTPException(404, "Not found")
+    cleanup_item_images(w)
     db.delete(w)
     db.commit()
     return {"deleted": wish_id}
@@ -109,15 +110,23 @@ def convert_wishlist(wish_id: int, db: Session = Depends(get_db)):
     result_id = None
 
     if w.item_type in ("Rifle", "Handgun", "Shotgun"):
-        frame = w.item_type  # maps directly
+        frame_map = {"Rifle": "Rifle", "Handgun": "Pistol", "Shotgun": "Shotgun"}
         f = models.Firearm(
             brand=w.brand or "Unknown",
             model=w.model or "Unknown",
-            frame_type=frame,
+            frame_type=frame_map.get(w.item_type, w.item_type),
             price_paid=w.est_price or 0.0,
             image_path_1=w.image_path,
         )
         db.add(f)
+        db.flush()
+        if w.caliber:
+            barrel = models.Barrel(
+                firearm_id=f.id,
+                caliber=w.caliber,
+                name="Primary",
+            )
+            db.add(barrel)
         db.commit()
         db.refresh(f)
         result_type = "firearm"
@@ -126,7 +135,8 @@ def convert_wishlist(wish_id: int, db: Session = Depends(get_db)):
     elif w.item_type == "TC System":
         tc = models.TCReceiver(
             platform="Encore",
-            notes=f"{w.brand or ''} {w.model or ''}".strip() or None,
+            serial_number=None,
+            notes=w.notes or (f"{w.brand or ''} {w.model or ''}".strip() or None),
             price_paid=w.est_price or 0.0,
             image_path=w.image_path,
         )

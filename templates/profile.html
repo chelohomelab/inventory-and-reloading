@@ -20,15 +20,14 @@
 
 <nav class="bg-gray-800 border-b border-gray-700 p-4 sticky top-0 z-50">
     <div class="container mx-auto flex justify-between items-center">
-        <div class="flex items-center gap-4">
-            <a href="/" class="text-amber-500 font-bold text-xl tracking-wide">🎯 Guns & Reloading</a>
-            <span class="text-gray-600">›</span>
-            <span class="text-sm text-gray-300 font-semibold">Profile</span>
+        <div class="flex items-center gap-1.5 text-xs">
+            <a href="/"><img src="/static/images/logo.png" alt="Inventory" class="h-6 w-auto hover:opacity-80 transition inline-block"></a>
+            <span class="text-gray-500">/</span>
+            <span class="text-gray-400 font-mono">{{ user.username }}</span>
+            <span class="text-gray-500">/</span>
+            <span class="text-gray-400 font-mono">Profile</span>
         </div>
-        <div class="flex items-center gap-3">
-            <span class="text-xs text-gray-400 font-mono">{{ user.username }}</span>
-            <a href="/logout" class="px-2.5 py-1.5 rounded bg-gray-700 hover:bg-red-900 hover:text-red-300 font-medium text-xs text-gray-400 transition">Sign out</a>
-        </div>
+        <a href="/" class="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-white font-bold transition">← Home</a>
     </div>
 </nav>
 

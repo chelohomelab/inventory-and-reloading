@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 import database as models
 from config import UPLOAD_DIR
-from dependencies import get_db, save_uploaded_file
+from dependencies import get_db, save_uploaded_file, cleanup_item_images
 from schemas import AmmoPatchPayload, UseRoundsPayload
 from routers.barcode import upsert_upc_cache
 
@@ -52,6 +52,7 @@ def _ammo_dict(a: models.Ammo) -> dict:
         "image_path_2": getattr(a, "image_path_2", None),
         "ammo_category": getattr(a, "ammo_category", None),
         "shell_size": getattr(a, "shell_size", None),
+        "shot_size": getattr(a, "shot_size", None),
         "upc": getattr(a, "upc", None),
     }
 
@@ -77,6 +78,7 @@ async def add_ammo(
     upc: str = Form(None),
     ammo_category: str = Form(None),
     shell_size: str = Form(None),
+    shot_size: str = Form(None),
     image: UploadFile = File(None),
     image_2: UploadFile = File(None),
     db: Session = Depends(get_db),
@@ -105,6 +107,7 @@ async def add_ammo(
         image_path_2=img2,
         ammo_category=ammo_category,
         shell_size=shell_size,
+        shot_size=shot_size,
         upc=upc,
     )
     db.add(a)
@@ -177,7 +180,25 @@ async def rotate_ammo_photo(ammo_id: int, slot: int = Form(1), db: Session = Dep
 def swap_ammo_photos(ammo_id: int, db: Session = Depends(get_db)):
     a = db.query(models.Ammo).filter(models.Ammo.id == ammo_id).first()
     if not a: raise HTTPException(404, "Not found")
-    a.image_path, a.image_path_2 = a.image_path_2, a.image_path
+    tmp = a.image_path
+    a.image_path = a.image_path_2
+    a.image_path_2 = tmp
+    db.commit()
+    return _ammo_dict(a)
+
+
+@router.delete("/ammo/{ammo_id}/photos/{slot}")
+def delete_ammo_photo(ammo_id: int, slot: int, db: Session = Depends(get_db)):
+    a = db.query(models.Ammo).filter(models.Ammo.id == ammo_id).first()
+    if not a: raise HTTPException(404, "Not found")
+    from dependencies import delete_uploaded_file
+    if slot == 2:
+        delete_uploaded_file(a.image_path_2)
+        a.image_path_2 = None
+    else:
+        delete_uploaded_file(a.image_path)
+        a.image_path = a.image_path_2
+        a.image_path_2 = None
     db.commit()
     return _ammo_dict(a)
 
@@ -303,6 +324,19 @@ def patch_purchase_log_entry(ammo_id: int, entry_id: int, payload: dict, db: Ses
             "qty_open": entry.qty_open, "price_per_box": entry.price_per_box}
 
 
+@router.delete("/ammo/{ammo_id}/purchase-log/{entry_id}")
+def delete_purchase_log_entry(ammo_id: int, entry_id: int, db: Session = Depends(get_db)):
+    entry = db.query(models.AmmoPurchaseLog).filter(
+        models.AmmoPurchaseLog.id == entry_id,
+        models.AmmoPurchaseLog.ammo_id == ammo_id,
+    ).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Log entry not found")
+    db.delete(entry)
+    db.commit()
+    return {"deleted": entry_id}
+
+
 @router.post("/ammo/{ammo_id}/purchase-log")
 def add_purchase_log_entry(ammo_id: int, payload: dict, db: Session = Depends(get_db)):
     a = db.query(models.Ammo).filter(models.Ammo.id == ammo_id).first()
@@ -355,6 +389,7 @@ def delete_ammo(ammo_id: int, db: Session = Depends(get_db)):
             status_code=400,
             detail=f"Cannot delete: {usage} range session(s) reference this load. Delete those sessions first.",
         )
+    cleanup_item_images(a)
     upc = getattr(a, 'upc', None)
     db.delete(a)
     db.commit()

@@ -34,6 +34,8 @@ class Scope(Base):
     image_path = Column(String, nullable=True)
     image_path_2 = Column(String, nullable=True)
     is_deleted = Column(Boolean, default=False)
+    is_sold = Column(Boolean, default=False)
+    price_sold = Column(Float, nullable=True)
     quantity = Column(Integer, default=1)
 
     firearms = relationship("Firearm", back_populates="scope")
@@ -191,6 +193,7 @@ class Ammo(Base):
     image_path_2 = Column(String, nullable=True)
     ammo_category = Column(String, nullable=True)
     shell_size = Column(String, nullable=True)
+    shot_size = Column(String, nullable=True)
     upc = Column(String, nullable=True)
 
     shot_strings = relationship("ShotString", back_populates="ammo")
@@ -345,6 +348,7 @@ def init_db():
         _add_col('ammo', 'rounds_per_box', 'rounds_per_box INTEGER DEFAULT 20')
         _add_col('ammo', 'ammo_category', 'ammo_category VARCHAR')
         _add_col('ammo', 'shell_size', 'shell_size VARCHAR')
+        _add_col('ammo', 'shot_size', 'shot_size VARCHAR')
         _add_col('ammo', 'upc', 'upc VARCHAR')
 
     if 'upc_cache' in inspector.get_table_names():
@@ -415,6 +419,8 @@ def init_db():
 
     if 'scopes' in inspector.get_table_names():
         _add_col('scopes', 'is_deleted', 'is_deleted BOOLEAN DEFAULT FALSE')
+        _add_col('scopes', 'is_sold',    'is_sold BOOLEAN DEFAULT FALSE')
+        _add_col('scopes', 'price_sold', 'price_sold FLOAT')
 
     # Seed default threshold settings if they don't exist
     _defaults = {
