@@ -389,11 +389,11 @@
             strip.innerHTML = images.map((img, idx) => {
                 const busted = _cacheBust(img);
                 const serverSlot = idx === 0 ? 1 : 2;
-                return `<div class="shrink-0 flex flex-col items-center gap-1">
-                    <img src="${busted}" onclick="setViewSlot(${serverSlot}, '${busted}')" class="w-12 h-12 rounded object-cover border-2 ${idx === 0 ? 'border-amber-500' : 'border-gray-700'} hover:border-amber-500 transition cursor-pointer">
-                    <div class="flex gap-1">
-                        ${idx > 0 ? `<button onclick="swapAmmoPhotos()" class="px-1.5 py-0.5 bg-amber-700 hover:bg-amber-600 rounded text-[8px] text-white cursor-pointer">★ Primary</button>` : `<span class="px-1.5 py-0.5 text-[8px] text-amber-500 font-bold">Primary</span>`}
-                        <button onclick="deleteAmmoPhoto(${serverSlot})" class="px-1.5 py-0.5 bg-red-800 hover:bg-red-700 rounded text-[8px] text-white cursor-pointer">✕</button>
+                return `<div class="shrink-0 flex flex-col items-center gap-1.5">
+                    <img src="${busted}" onclick="setViewSlot(${serverSlot}, '${busted}')" class="w-16 h-16 rounded-lg object-cover border-2 ${idx === 0 ? 'border-amber-500' : 'border-gray-700'} hover:border-amber-500 transition cursor-pointer">
+                    <div class="flex gap-1.5">
+                        ${idx > 0 ? `<button onclick="swapAmmoPhotos()" class="px-2.5 py-1.5 bg-amber-700 hover:bg-amber-600 rounded text-[10px] text-white cursor-pointer font-bold">★ Primary</button>` : `<span class="px-2.5 py-1.5 text-[10px] text-amber-500 font-bold">★ Primary</span>`}
+                        <button onclick="deleteAmmoPhoto(${serverSlot})" class="px-2.5 py-1.5 bg-red-800 hover:bg-red-700 rounded text-[10px] text-white cursor-pointer font-bold">✕ Delete</button>
                     </div>
                 </div>`;
             }).join('');
@@ -401,15 +401,15 @@
 
         async function swapAmmoPhotos() {
             const res = await fetch(`/ammo/${currentAmmoId}/swap-photos/`, { method: 'POST' });
-            if (res.ok) { showDetailToast('Primary photo updated.'); loadAmmoData(); }
-            else showDetailToast('Failed to swap photos.', 'error');
+            if (res.ok) { showToast('Primary photo updated.'); loadAmmoData(); }
+            else showToast('Failed to swap photos.', 'error');
         }
 
         async function deleteAmmoPhoto(slot) {
             if (!confirm('Delete this photo?')) return;
             const res = await fetch(`/ammo/${currentAmmoId}/photos/${slot}`, { method: 'DELETE' });
-            if (res.ok) { showDetailToast('Photo deleted.'); loadAmmoData(); }
-            else showDetailToast('Failed to delete photo.', 'error');
+            if (res.ok) { showToast('Photo deleted.'); loadAmmoData(); }
+            else showToast('Failed to delete photo.', 'error');
         }
 
         async function rotateCurrentPhoto() {
