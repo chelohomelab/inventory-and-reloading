@@ -1566,9 +1566,11 @@ function renderScopeCard(s) {
                     <p class="text-sm text-amber-500">${s.model || '—'}</p>
                     ${s.magnification ? `<p class="text-xs text-blue-300 font-mono">${s.magnification}</p>` : ''}
                 </div>
-                <span class="text-xs text-gray-400 font-mono whitespace-nowrap">$${parseFloat(s.price_paid || 0).toFixed(2)}</span>
+                <div class="text-right shrink-0">
+                    <span class="text-xs text-gray-400 font-mono">$${parseFloat(s.price_paid || 0).toFixed(2)}</span>
+                    <p class="text-[10px] mt-0.5">${firstMount ? `📍 <span class="text-emerald-400 font-medium">${firstMount.label}</span>` : `📍 <span class="text-gray-500 italic">Unmounted</span>`}</p>
+                </div>
             </div>
-            <p class="text-xs text-gray-400">${firstMount ? `📍 <span class="text-emerald-400 font-medium">${firstMount.label}</span>` : `📍 <span class="text-gray-500 italic">Unmounted</span>`}</p>
             <!-- Edit panel (hidden) -->
             <div id="scope-edit-panel-${s.id}" class="hidden border-t border-gray-600 pt-3 space-y-2">
                 <input id="sedit-brand-${s.id}" value="${(s.brand||'').replace(/"/g,'&quot;')}" placeholder="Brand" class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none">
