@@ -60,6 +60,31 @@ def list_scopes(db: Session = Depends(get_db)):
     return [_scope_dict(s) for s in scopes]
 
 
+@router.get("/scopes/{scope_id}")
+def get_scope(scope_id: int, db: Session = Depends(get_db)):
+    s = _load_scope(scope_id, db)
+    if not s:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    return _scope_dict(s)
+
+
+@router.delete("/scopes/{scope_id}/photos/{slot}")
+def delete_scope_photo(scope_id: int, slot: int, db: Session = Depends(get_db)):
+    s = db.query(models.Scope).filter(models.Scope.id == scope_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    from dependencies import delete_uploaded_file
+    if slot == 2:
+        delete_uploaded_file(s.image_path_2)
+        s.image_path_2 = None
+    else:
+        delete_uploaded_file(s.image_path)
+        s.image_path = s.image_path_2
+        s.image_path_2 = None
+    db.commit()
+    return _scope_dict(_load_scope(scope_id, db))
+
+
 @router.post("/scopes/{scope_id}/trash")
 def trash_scope(scope_id: int, db: Session = Depends(get_db)):
     s = db.query(models.Scope).filter(models.Scope.id == scope_id).first()
@@ -148,7 +173,9 @@ def swap_scope_photos(scope_id: int, db: Session = Depends(get_db)):
     s = db.query(models.Scope).filter(models.Scope.id == scope_id).first()
     if not s:
         raise HTTPException(status_code=404, detail="Scope not found")
-    s.image_path, s.image_path_2 = s.image_path_2, s.image_path
+    tmp = s.image_path
+    s.image_path = s.image_path_2
+    s.image_path_2 = tmp
     db.commit()
     return _scope_dict(_load_scope(scope_id, db))
 

@@ -531,12 +531,15 @@
             const caliber = a.caliber || 'Unknown Caliber';
 
             document.getElementById('breadcrumb-name').innerText = name;
-            const _ammoFilter = isHandload ? 'handloads' : 'factory';
+            const isMuzzleloader = a.ammo_category === 'muzzleloader';
+            const _ammoFilter = isHandload ? 'handloads' : isMuzzleloader ? 'muzzleloader' : 'factory';
+            const _ammoLabel = isHandload ? 'Handloads' : isMuzzleloader ? 'Muzzleloader' : 'Factory';
             const _ammoBackHref = `/inventory?inv=ammo&ammofilter=${_ammoFilter}`;
             const _btl = document.getElementById('breadcrumb-type-link');
-            _btl.innerText = isHandload ? 'Handloads' : 'Factory';
+            _btl.innerText = _ammoLabel;
             _btl.href = _ammoBackHref;
             document.getElementById('back-btn').href = _ammoBackHref;
+            document.getElementById('back-btn').innerText = `← ${_ammoLabel}`;
             document.getElementById('detail-name').innerText = name;
             document.getElementById('detail-line').innerText = line || (isHandload ? 'Handload Recipe' : 'Factory Load');
             document.getElementById('badge-caliber').innerText = caliber;
@@ -545,6 +548,9 @@
             if (isHandload) {
                 typeBadge.innerText = 'HANDLOAD';
                 typeBadge.className = 'px-2 py-0.5 rounded text-[11px] font-bold border bg-emerald-950 text-emerald-400 border-emerald-800';
+            } else if (isMuzzleloader) {
+                typeBadge.innerText = 'MUZZLELOADER';
+                typeBadge.className = 'px-2 py-0.5 rounded text-[11px] font-bold border bg-yellow-950 text-yellow-500 border-yellow-800';
             } else {
                 typeBadge.innerText = 'FACTORY';
                 typeBadge.className = 'px-2 py-0.5 rounded text-[11px] font-bold border bg-blue-950 text-blue-400 border-blue-800';
