@@ -389,20 +389,14 @@
             strip.innerHTML = images.map((img, idx) => {
                 const busted = _cacheBust(img);
                 const serverSlot = idx === 0 ? 1 : 2;
-                return `<div class="relative shrink-0 photo-thumb" onclick="togglePhotoActions(this)">
-                    <img src="${busted}" onclick="event.stopPropagation(); setViewSlot(${serverSlot}, '${busted}')" class="w-12 h-12 rounded object-cover border-2 ${idx === 0 ? 'border-amber-500' : 'border-gray-700'} hover:border-amber-500 transition cursor-pointer">
-                    <div class="photo-actions absolute -top-1 -right-1 hidden flex gap-0.5">
-                        ${idx > 0 ? `<button onclick="event.stopPropagation(); swapAmmoPhotos()" class="w-5 h-5 bg-amber-600 rounded-full text-[9px] text-white cursor-pointer leading-none flex items-center justify-center" title="Set as primary">★</button>` : ''}
-                        <button onclick="event.stopPropagation(); deleteAmmoPhoto(${serverSlot})" class="w-5 h-5 bg-red-600 rounded-full text-[9px] text-white cursor-pointer leading-none flex items-center justify-center" title="Delete photo">✕</button>
+                return `<div class="shrink-0 flex flex-col items-center gap-1">
+                    <img src="${busted}" onclick="setViewSlot(${serverSlot}, '${busted}')" class="w-12 h-12 rounded object-cover border-2 ${idx === 0 ? 'border-amber-500' : 'border-gray-700'} hover:border-amber-500 transition cursor-pointer">
+                    <div class="flex gap-1">
+                        ${idx > 0 ? `<button onclick="swapAmmoPhotos()" class="px-1.5 py-0.5 bg-amber-700 hover:bg-amber-600 rounded text-[8px] text-white cursor-pointer">★ Primary</button>` : `<span class="px-1.5 py-0.5 text-[8px] text-amber-500 font-bold">Primary</span>`}
+                        <button onclick="deleteAmmoPhoto(${serverSlot})" class="px-1.5 py-0.5 bg-red-800 hover:bg-red-700 rounded text-[8px] text-white cursor-pointer">✕</button>
                     </div>
                 </div>`;
             }).join('');
-        }
-
-        function togglePhotoActions(el) {
-            document.querySelectorAll('.photo-actions').forEach(a => { if (a.parentElement !== el) a.classList.add('hidden'); });
-            el.querySelector('.photo-actions')?.classList.toggle('hidden');
-        }
 
         async function swapAmmoPhotos() {
             const res = await fetch(`/ammo/${currentAmmoId}/swap-photos/`, { method: 'POST' });
