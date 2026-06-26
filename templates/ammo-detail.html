@@ -406,14 +406,14 @@
 
         async function swapAmmoPhotos() {
             const res = await fetch(`/ammo/${currentAmmoId}/swap-photos/`, { method: 'POST' });
-            if (res.ok) { showDetailToast('Primary photo updated.'); loadAmmoProfile(); }
+            if (res.ok) { showDetailToast('Primary photo updated.'); loadAmmoData(); }
             else showDetailToast('Failed to swap photos.', 'error');
         }
 
         async function deleteAmmoPhoto(slot) {
             if (!confirm('Delete this photo?')) return;
             const res = await fetch(`/ammo/${currentAmmoId}/photos/${slot}`, { method: 'DELETE' });
-            if (res.ok) { showDetailToast('Photo deleted.'); loadAmmoProfile(); }
+            if (res.ok) { showDetailToast('Photo deleted.'); loadAmmoData(); }
             else showDetailToast('Failed to delete photo.', 'error');
         }
 
