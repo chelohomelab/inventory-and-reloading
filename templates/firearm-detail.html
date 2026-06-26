@@ -41,15 +41,14 @@
                 <div id="photo-panel" class="hidden bg-gray-900 border border-gray-700 rounded-lg p-3 space-y-2">
                     <p class="text-xs font-bold text-amber-400 uppercase tracking-wide">📷 Update Photos</p>
                     <div class="flex gap-2 items-center">
-                            <div class="flex gap-1.5 flex-1">
-                                <button type="button" onclick="document.getElementById('photo-slot-cam').click()" class="flex-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer transition">📷 Camera</button>
-                                <button type="button" onclick="document.getElementById('photo-slot').click()" class="flex-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer transition">🖼 Gallery</button>
-                            </div>
-                            <button onclick="uploadDetailPhoto()" class="px-2 py-1 bg-blue-800 hover:bg-blue-700 text-white text-[10px] font-bold rounded cursor-pointer transition">Upload</button>
+                        <div class="flex gap-1.5 flex-1">
+                            <button type="button" onclick="document.getElementById('photo-slot-cam').click()" class="flex-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer transition">📷 Camera</button>
+                            <button type="button" onclick="document.getElementById('photo-slot').click()" class="flex-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer transition">🖼 Gallery</button>
                         </div>
-                        <input type="file" id="photo-slot" accept="image/*" class="hidden">
-                        <input type="file" accept="image/*" capture="environment" id="photo-slot-cam" onchange="_camToInput('photo-slot-cam','photo-slot')" class="hidden">
+                        <button onclick="uploadDetailPhoto()" class="px-2 py-1 bg-blue-800 hover:bg-blue-700 text-white text-[10px] font-bold rounded cursor-pointer transition">Upload</button>
                     </div>
+                    <input type="file" id="photo-slot" accept="image/*" class="hidden">
+                    <input type="file" accept="image/*" capture="environment" id="photo-slot-cam" onchange="_camToInput('photo-slot-cam','photo-slot')" class="hidden">
                 </div>
             </div>
 
