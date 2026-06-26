@@ -451,12 +451,30 @@
                 strip.innerHTML = "";
                 return;
             }
-            viewport.innerHTML = `<img src="${images[0]}" class="w-full h-full object-cover opacity-90" onerror="this.src='https://images.unsplash.com/photo-1603511812635-43a0d5c8a41b?w=400'">`;
-            if(images.length > 1) {
-                strip.innerHTML = images.map(img => `<img src="${img}" onclick="document.querySelector('#main-photo-viewport img').src='${img}'" class="w-12 h-12 rounded object-cover border-2 border-gray-700 hover:border-amber-500 transition cursor-pointer flex-shrink-0">`).join('');
-            } else {
-                strip.innerHTML = "";
-            }
+            viewport.innerHTML = `<img src="${images[0]}" class="w-full h-full object-cover opacity-90">`;
+            strip.innerHTML = images.map((img, idx) => {
+                const slot = idx + 1;
+                return `<div class="relative group shrink-0">
+                    <img src="${img}" onclick="document.querySelector('#main-photo-viewport img').src='${img}'" class="w-12 h-12 rounded object-cover border-2 ${idx === 0 ? 'border-amber-500' : 'border-gray-700'} hover:border-amber-500 transition cursor-pointer">
+                    <div class="absolute -top-1 -right-1 hidden group-hover:flex gap-0.5">
+                        ${idx > 0 ? `<button onclick="swapFirearmPhotos()" class="w-4 h-4 bg-amber-600 rounded-full text-[8px] text-white cursor-pointer leading-none flex items-center justify-center" title="Set as primary">★</button>` : ''}
+                        <button onclick="deleteFirearmPhoto(${slot})" class="w-4 h-4 bg-red-600 rounded-full text-[8px] text-white cursor-pointer leading-none flex items-center justify-center" title="Delete photo">✕</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function swapFirearmPhotos() {
+            const res = await fetch(`/firearms/${currentFirearmId}/swap-photos/`, { method: 'POST' });
+            if (res.ok) { showDetailToast('Primary photo updated.'); loadFirearmProfile(); }
+            else showDetailToast('Failed to swap photos.', 'error');
+        }
+
+        async function deleteFirearmPhoto(slot) {
+            if (!confirm('Delete this photo?')) return;
+            const res = await fetch(`/firearms/${currentFirearmId}/photos/${slot}`, { method: 'DELETE' });
+            if (res.ok) { showDetailToast('Photo deleted.'); loadFirearmProfile(); }
+            else showDetailToast('Failed to delete photo.', 'error');
         }
 
         async function loadLinkedRangePerformance(gun) {

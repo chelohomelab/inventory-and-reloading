@@ -11,8 +11,13 @@ router = APIRouter()
 
 
 def _scope_dict(s: models.Scope) -> dict:
+    def _mount_label(f):
+        cal = f.barrels[0].caliber if f.barrels else None
+        base = f"{f.brand} {f.model}"
+        return f"{base} ({cal})" if cal else base
+
     mounts = (
-        [{"type": "firearm", "id": f.id, "label": f"{f.brand} {f.model}"} for f in s.firearms] +
+        [{"type": "firearm", "id": f.id, "label": _mount_label(f)} for f in s.firearms] +
         [{"type": "barrel",  "id": b.id, "label": f"{b.tc_platform or ''} {b.caliber}".strip()} for b in s.barrels]
     )
     first = mounts[0] if mounts else None
@@ -167,8 +172,13 @@ def get_available_mounts(for_scope_id: int = None, db: Session = Depends(get_db)
         )
         .all()
     )
+    def _firearm_label(f):
+        caliber = f.barrels[0].caliber if f.barrels else None
+        base = f"{f.brand} {f.model}"
+        return f"{base} ({caliber})" if caliber else base
+
     return {
-        "firearms": [{"id": f.id, "label": f"{f.brand} {f.model}", "type": "firearm"} for f in firearms],
+        "firearms": [{"id": f.id, "label": _firearm_label(f), "type": "firearm"} for f in firearms],
         "tc_barrels": [{"id": b.id, "label": f"{b.tc_platform} {b.caliber}", "type": "barrel"} for b in tc_barrels],
     }
 

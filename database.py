@@ -191,6 +191,7 @@ class Ammo(Base):
     image_path_2 = Column(String, nullable=True)
     ammo_category = Column(String, nullable=True)
     shell_size = Column(String, nullable=True)
+    shot_size = Column(String, nullable=True)
     upc = Column(String, nullable=True)
 
     shot_strings = relationship("ShotString", back_populates="ammo")
@@ -345,6 +346,7 @@ def init_db():
         _add_col('ammo', 'rounds_per_box', 'rounds_per_box INTEGER DEFAULT 20')
         _add_col('ammo', 'ammo_category', 'ammo_category VARCHAR')
         _add_col('ammo', 'shell_size', 'shell_size VARCHAR')
+        _add_col('ammo', 'shot_size', 'shot_size VARCHAR')
         _add_col('ammo', 'upc', 'upc VARCHAR')
 
     if 'upc_cache' in inspector.get_table_names():

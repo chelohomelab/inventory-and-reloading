@@ -2147,6 +2147,8 @@ function _toggleFactoryAmmoFields(cat) {
     });
     const shellRow = document.getElementById('ammo-factory-shell-row');
     if (shellRow) shellRow.classList.toggle('hidden', !isShotgun);
+    const shotRow = document.getElementById('ammo-factory-shot-row');
+    if (shotRow) shotRow.classList.toggle('hidden', !isShotgun);
     // manage required
     const wtInput = document.getElementById('ammo-factory-weight');
     const btInput = document.getElementById('ammo-factory-bullet-type');

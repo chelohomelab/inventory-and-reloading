@@ -118,6 +118,10 @@
                         <input type="number" step="0.01" min="0" id="ef-price" placeholder="e.g., 24.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
                     </div>
                     <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Rounds per Box</label>
+                        <input type="number" min="1" id="ef-rpb" placeholder="e.g., 20" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
                         <label class="block text-xs text-gray-200 font-semibold mb-1">UPC Barcode</label>
                         <input type="text" id="ef-upc" placeholder="e.g., 741569060080" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white font-mono focus:outline-none focus:border-amber-500">
                     </div>
@@ -138,6 +142,10 @@
                 <div id="ef-shell-row" class="hidden">
                     <label class="block text-xs text-gray-200 font-semibold mb-1">Shell Length (inches)</label>
                     <input type="text" id="ef-shell-size" placeholder='e.g., 2-3/4", 3", 3-1/2"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                </div>
+                <div id="ef-shot-row" class="hidden">
+                    <label class="block text-xs text-gray-200 font-semibold mb-1">Shot Size</label>
+                    <input type="text" id="ef-shot-size" placeholder="e.g., #4, #7.5, 00 Buck, Slug" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
                 </div>
 
                 <div id="handload-fields" class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs hidden">
@@ -210,6 +218,7 @@
                             <th class="px-4 py-2 text-right">Boxes</th>
                             <th class="px-4 py-2 text-right">Price / Box</th>
                             <th class="px-4 py-2 text-right">Subtotal</th>
+                            <th class="px-4 py-2 w-8"></th>
                         </tr>
                     </thead>
                     <tbody id="purchase-log-body" class="divide-y divide-gray-700 text-gray-300"></tbody>
@@ -293,9 +302,13 @@
             });
             const shellRow = document.getElementById('ef-shell-row');
             if (shellRow) shellRow.classList.toggle('hidden', !isShotgun);
+            const shotRow = document.getElementById('ef-shot-row');
+            if (shotRow) shotRow.classList.toggle('hidden', !isShotgun);
             if (!isShotgun) {
                 const shellInput = document.getElementById('ef-shell-size');
                 if (shellInput) shellInput.value = '';
+                const shotInput = document.getElementById('ef-shot-size');
+                if (shotInput) shotInput.value = '';
             }
             // Update bullet type placeholder to match selected category
             const btEl = document.getElementById('ef-bullet-type');
@@ -557,7 +570,9 @@
             document.getElementById('ef-bc').value = a.bullet_bc != null ? a.bullet_bc : '';
             document.getElementById('ef-category').value = a.ammo_category || '';
             document.getElementById('ef-shell-size').value = a.shell_size || '';
+            document.getElementById('ef-shot-size').value = a.shot_size || '';
             document.getElementById('ef-price').value = a.price_paid || '';
+            document.getElementById('ef-rpb').value = a.rounds_per_box || 20;
             document.getElementById('ef-upc').value = a.upc || '';
             _toggleEditAmmoFields(a.ammo_category || '');
             if (isHandload) {
@@ -587,7 +602,9 @@
                 bullet_bc: isNaN(bcVal) ? null : bcVal,
                 ammo_category: cat || null,
                 shell_size: isShotgun ? (document.getElementById('ef-shell-size').value.trim() || null) : null,
+                shot_size: isShotgun ? (document.getElementById('ef-shot-size').value.trim() || null) : null,
                 price_paid: parseFloat(document.getElementById('ef-price').value) || null,
+                rounds_per_box: parseInt(document.getElementById('ef-rpb').value) || 20,
                 upc: document.getElementById('ef-upc').value.trim() || null,
             };
             if (ammoData?.is_handload) {
@@ -676,6 +693,7 @@
                         onclick="editLogPrice([${e.id}], ${JSON.stringify(e.price_per_box)}, this)"
                         title="Tap to edit price">${priceDisplay}</td>
                     <td class="px-4 py-2 text-right font-mono">${subtotalVal ? '$' + subtotalVal : '<span class="text-gray-600">—</span>'}</td>
+                    <td class="px-4 py-2 text-center"><button onclick="deletePurchaseEntry(${e.id})" class="text-gray-600 hover:text-red-400 cursor-pointer transition" title="Delete entry">🗑</button></td>
                 </tr>`;
             }).join('');
 
@@ -743,6 +761,13 @@
                 loadPurchaseLog();
                 showToast('Past purchase logged.');
             } else showToast('Failed to save entry.', 'error');
+        }
+
+        async function deletePurchaseEntry(entryId) {
+            if (!confirm('Delete this purchase entry?')) return;
+            const res = await fetch(`/ammo/${currentAmmoId}/purchase-log/${entryId}`, { method: 'DELETE' });
+            if (res.ok) { loadPurchaseLog(); showDetailToast('Purchase entry deleted.'); }
+            else showDetailToast('Failed to delete entry.', 'error');
         }
 
         async function logRoundsUsed() {
