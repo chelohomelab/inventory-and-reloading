@@ -609,7 +609,28 @@
                         </div>
                         <div id="ammo-factory-shot-row" class="hidden">
                             <label class="block text-xs text-gray-200 font-semibold mb-1">Shot Size</label>
-                            <input type="text" name="shot_size" id="ammo-factory-shot" placeholder="e.g., #4, #7.5, 00 Buck, Slug" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                            <select name="shot_size" id="ammo-factory-shot" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                                <option value="">Select shot size…</option>
+                                <option value="#9">#9 — Skeet / Small Birds</option>
+                                <option value="#8">#8 — Skeet / Dove</option>
+                                <option value="#7.5">#7.5 — Trap / Dove / Quail</option>
+                                <option value="#6">#6 — Pheasant / Rabbit</option>
+                                <option value="#5">#5 — Pheasant / Turkey</option>
+                                <option value="#4">#4 — Turkey / Duck</option>
+                                <option value="#3">#3 — Turkey / Waterfowl</option>
+                                <option value="#2">#2 — Waterfowl / Geese</option>
+                                <option value="#1">#1 — Geese</option>
+                                <option value="BB">BB — Geese / Coyote</option>
+                                <option value="BBB">BBB — Large Geese</option>
+                                <option value="T">T — Large Geese</option>
+                                <option value="#4 Buck">#4 Buckshot</option>
+                                <option value="#3 Buck">#3 Buckshot</option>
+                                <option value="#1 Buck">#1 Buckshot</option>
+                                <option value="0 Buck">0 Buckshot</option>
+                                <option value="00 Buck">00 Buckshot</option>
+                                <option value="000 Buck">000 Buckshot</option>
+                                <option value="Slug">Slug</option>
+                            </select>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -185,6 +185,22 @@ def swap_ammo_photos(ammo_id: int, db: Session = Depends(get_db)):
     return _ammo_dict(a)
 
 
+@router.delete("/ammo/{ammo_id}/photos/{slot}")
+def delete_ammo_photo(ammo_id: int, slot: int, db: Session = Depends(get_db)):
+    a = db.query(models.Ammo).filter(models.Ammo.id == ammo_id).first()
+    if not a: raise HTTPException(404, "Not found")
+    from dependencies import delete_uploaded_file
+    if slot == 2:
+        delete_uploaded_file(a.image_path_2)
+        a.image_path_2 = None
+    else:
+        delete_uploaded_file(a.image_path)
+        a.image_path = a.image_path_2
+        a.image_path_2 = None
+    db.commit()
+    return _ammo_dict(a)
+
+
 @router.get("/ammo/by-upc")
 def get_ammo_by_upc(upc: str, db: Session = Depends(get_db)):
     a = db.query(models.Ammo).filter(

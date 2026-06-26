@@ -145,7 +145,28 @@
                 </div>
                 <div id="ef-shot-row" class="hidden">
                     <label class="block text-xs text-gray-200 font-semibold mb-1">Shot Size</label>
-                    <input type="text" id="ef-shot-size" placeholder="e.g., #4, #7.5, 00 Buck, Slug" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    <select id="ef-shot-size" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                        <option value="">Select shot size…</option>
+                        <option value="#9">#9 — Skeet / Small Birds</option>
+                        <option value="#8">#8 — Skeet / Dove</option>
+                        <option value="#7.5">#7.5 — Trap / Dove / Quail</option>
+                        <option value="#6">#6 — Pheasant / Rabbit</option>
+                        <option value="#5">#5 — Pheasant / Turkey</option>
+                        <option value="#4">#4 — Turkey / Duck</option>
+                        <option value="#3">#3 — Turkey / Waterfowl</option>
+                        <option value="#2">#2 — Waterfowl / Geese</option>
+                        <option value="#1">#1 — Geese</option>
+                        <option value="BB">BB — Geese / Coyote</option>
+                        <option value="BBB">BBB — Large Geese</option>
+                        <option value="T">T — Large Geese</option>
+                        <option value="#4 Buck">#4 Buckshot</option>
+                        <option value="#3 Buck">#3 Buckshot</option>
+                        <option value="#1 Buck">#1 Buckshot</option>
+                        <option value="0 Buck">0 Buckshot</option>
+                        <option value="00 Buck">00 Buckshot</option>
+                        <option value="000 Buck">000 Buckshot</option>
+                        <option value="Slug">Slug</option>
+                    </select>
                 </div>
 
                 <div id="handload-fields" class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs hidden">
@@ -365,12 +386,30 @@
                 return;
             }
             viewport.innerHTML = `<img src="${_cacheBust(images[0])}" class="w-full h-full object-contain">`;
-            strip.innerHTML = images.length > 1
-                ? images.map((img, idx) => {
-                    const busted = _cacheBust(img);
-                    return `<img src="${busted}" onclick="setViewSlot(${idx + 1}, '${busted}')" class="w-12 h-12 rounded object-cover border-2 border-gray-700 hover:border-amber-500 transition cursor-pointer flex-shrink-0">`;
-                }).join('')
-                : '';
+            strip.innerHTML = images.map((img, idx) => {
+                const busted = _cacheBust(img);
+                const slot = idx + 1;
+                return `<div class="relative group shrink-0">
+                    <img src="${busted}" onclick="setViewSlot(${slot}, '${busted}')" class="w-12 h-12 rounded object-cover border-2 ${idx === 0 ? 'border-amber-500' : 'border-gray-700'} hover:border-amber-500 transition cursor-pointer">
+                    <div class="absolute -top-1 -right-1 hidden group-hover:flex gap-0.5">
+                        ${idx > 0 ? `<button onclick="swapAmmoPhotos()" class="w-4 h-4 bg-amber-600 rounded-full text-[8px] text-white cursor-pointer leading-none flex items-center justify-center" title="Set as primary">★</button>` : ''}
+                        <button onclick="deleteAmmoPhoto(${slot})" class="w-4 h-4 bg-red-600 rounded-full text-[8px] text-white cursor-pointer leading-none flex items-center justify-center" title="Delete photo">✕</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function swapAmmoPhotos() {
+            const res = await fetch(`/ammo/${currentAmmoId}/swap-photos/`, { method: 'POST' });
+            if (res.ok) { showDetailToast('Primary photo updated.'); loadAmmoProfile(); }
+            else showDetailToast('Failed to swap photos.', 'error');
+        }
+
+        async function deleteAmmoPhoto(slot) {
+            if (!confirm('Delete this photo?')) return;
+            const res = await fetch(`/ammo/${currentAmmoId}/photos/${slot}`, { method: 'DELETE' });
+            if (res.ok) { showDetailToast('Photo deleted.'); loadAmmoProfile(); }
+            else showDetailToast('Failed to delete photo.', 'error');
         }
 
         async function rotateCurrentPhoto() {

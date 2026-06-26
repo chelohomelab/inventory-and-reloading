@@ -158,6 +158,7 @@ def get_available_mounts(for_scope_id: int = None, db: Session = Depends(get_db)
     firearms = (
         db.query(models.Firearm)
         .filter(
+            models.Firearm.is_deleted == False,
             models.Firearm.is_sold == False,
             (models.Firearm.scope_id == None) | (models.Firearm.scope_id == for_scope_id),
         )
@@ -168,6 +169,7 @@ def get_available_mounts(for_scope_id: int = None, db: Session = Depends(get_db)
         db.query(models.Barrel)
         .filter(
             models.Barrel.tc_platform.isnot(None),
+            models.Barrel.is_deleted == False,
             (models.Barrel.scope_id == None) | (models.Barrel.scope_id == for_scope_id),
         )
         .all()
