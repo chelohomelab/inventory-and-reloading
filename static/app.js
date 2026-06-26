@@ -1568,9 +1568,7 @@ function renderScopeCard(s) {
                 </div>
                 <span class="text-xs text-gray-400 font-mono whitespace-nowrap">$${parseFloat(s.price_paid || 0).toFixed(2)}</span>
             </div>
-            <div class="border-t border-gray-700 pt-2 space-y-1">
-                ${mountsHtml}
-            </div>
+            <p class="text-xs text-gray-400">${firstMount ? `📍 <span class="text-emerald-400 font-medium">${firstMount.label}</span>` : `📍 <span class="text-gray-500 italic">Unmounted</span>`}</p>
             <!-- Edit panel (hidden) -->
             <div id="scope-edit-panel-${s.id}" class="hidden border-t border-gray-600 pt-3 space-y-2">
                 <input id="sedit-brand-${s.id}" value="${(s.brand||'').replace(/"/g,'&quot;')}" placeholder="Brand" class="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none">
@@ -1627,11 +1625,7 @@ function renderScopeCard(s) {
                     <button onclick="closeScopeMountEditor(${s.id})" class="px-3 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold py-1.5 rounded transition cursor-pointer">Cancel</button>
                 </div>
             </div>
-            <div class="flex gap-2 mt-1">
-                ${changeMountBtn}
-                ${addInstallBtn}
-                <button onclick="trashItem('scope',${s.id},'${(s.brand+' '+s.model).replace(/'/g,"\\'")}'); event.stopPropagation();" class="px-3 py-1.5 bg-gray-700 hover:bg-red-900 text-gray-400 hover:text-red-300 text-xs font-bold rounded transition cursor-pointer" title="Move to trash">🗑️</button>
-            </div>
+            ${addInstallBtn ? `<div class="flex gap-2 mt-1">${addInstallBtn}</div>` : ''}
         </div>
     </div>`;
 }

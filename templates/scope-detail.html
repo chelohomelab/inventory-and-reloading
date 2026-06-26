@@ -368,8 +368,9 @@
             cells += cell('Magnification', s.magnification || null, 'text-blue-300 font-mono');
             cells += cell('Units', s.units || 'MOA', 'text-gray-300 font-mono');
             cells += cell('Price Paid', s.price_paid ? `$${parseFloat(s.price_paid).toFixed(2)}` : null, 'text-green-400 font-mono');
+            cells += cell('Quantity', qty, 'text-white font-mono');
 
-            // Mounted On — right after price
+            // Mounted On
             if (mounts.length > 0) {
                 const mountLabels = mounts.map(m => {
                     const page = m.type === 'firearm' ? 'firearm-detail.html' : 'tc-barrel-detail.html';
@@ -382,8 +383,6 @@
             } else {
                 cells += cell('Mounted On', 'Unmounted', 'text-gray-500 italic');
             }
-
-            cells += cell('Quantity', qty, 'text-white font-mono');
 
             grid.innerHTML = cells;
 
