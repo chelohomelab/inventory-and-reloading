@@ -1545,7 +1545,7 @@ function renderScopeCard(s) {
         data-mount-type="${firstMount ? firstMount.type : ''}"
         data-mount-id="${firstMount ? firstMount.id : ''}"
         class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl">
-        ${gallery}
+        <div onclick="window.location.href='scope-detail.html?id=${s.id}'" class="cursor-pointer">${gallery}</div>
         <div class="p-4 space-y-2">
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-1">
@@ -1919,12 +1919,23 @@ async function loadAmmoInventory(type) {
                     </div>`).join('');
                 container.innerHTML = calHtml || `<p class="text-gray-500 italic text-sm">No handload recipes registered.</p>`;
             } else {
-                // muzzleloader — compact tiles + components section
-                const mlTiles = filtered.length
-                    ? `<div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">${filtered.map(renderAmmoTile).join('')}</div>`
-                    : '';
+                // muzzleloader — same grouped layout as factory + components section below
+                const calGroups = {};
+                filtered.forEach(a => {
+                    const cal = a.caliber || 'Unknown Caliber';
+                    if (!calGroups[cal]) calGroups[cal] = [];
+                    calGroups[cal].push(a);
+                });
+                const calHtml = Object.entries(calGroups).sort(([a],[b]) => a.localeCompare(b)).map(([cal, loads]) => `
+                    <div class="mb-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-yellow-500/80 font-mono">${escHtml(cal)}</span>
+                            <div class="flex-1 border-t border-gray-700/40"></div>
+                        </div>
+                        <div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">${loads.map(renderAmmoTile).join('')}</div>
+                    </div>`).join('');
                 const mlSectionHtml = renderMuzzleloaderComponentsSection(mlPowders, mlBullets, mlPrimers);
-                container.innerHTML = mlTiles + mlSectionHtml;
+                container.innerHTML = (calHtml || '') + mlSectionHtml;
             }
         }
     } catch(err) {
