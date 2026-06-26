@@ -448,14 +448,21 @@
             viewport.innerHTML = `<img src="${images[0]}" class="w-full h-full object-cover opacity-90">`;
             strip.innerHTML = images.map((img, idx) => {
                 const serverSlot = idx === 0 ? 1 : 2;
-                return `<div class="shrink-0 flex flex-col items-center gap-1.5">
-                    <img src="${img}" onclick="document.querySelector('#main-photo-viewport img').src='${img}'" class="w-16 h-16 rounded-lg object-cover border-2 ${idx === 0 ? 'border-amber-500' : 'border-gray-700'} hover:border-amber-500 transition cursor-pointer">
-                    <div class="flex gap-1.5">
-                        ${idx > 0 ? `<button onclick="swapFirearmPhotos()" class="px-2.5 py-1.5 bg-amber-700 hover:bg-amber-600 rounded text-[10px] text-white cursor-pointer font-bold">★ Primary</button>` : `<span class="px-2.5 py-1.5 text-[10px] text-amber-500 font-bold">★ Primary</span>`}
-                        <button onclick="deleteFirearmPhoto(${serverSlot})" class="px-2.5 py-1.5 bg-red-800 hover:bg-red-700 rounded text-[10px] text-white cursor-pointer font-bold">✕ Delete</button>
+                const btnId = `photo-btns-${serverSlot}`;
+                return `<div class="shrink-0 flex flex-col items-center gap-1">
+                    <img src="${img}" onclick="document.querySelector('#main-photo-viewport img').src='${img}'; togglePhotoBtns('${btnId}')" class="w-14 h-14 rounded-lg object-cover border-2 ${idx === 0 ? 'border-amber-500' : 'border-gray-700'} hover:border-amber-500 transition cursor-pointer">
+                    <div id="${btnId}" class="hidden flex gap-1">
+                        ${idx > 0 ? `<button onclick="swapFirearmPhotos()" class="px-2 py-1 bg-amber-700 hover:bg-amber-600 rounded text-[10px] text-white cursor-pointer font-bold">★ Set Primary</button>` : ''}
+                        <button onclick="deleteFirearmPhoto(${serverSlot})" class="px-2 py-1 bg-red-800 hover:bg-red-700 rounded text-[10px] text-white cursor-pointer font-bold">✕ Delete</button>
                     </div>
                 </div>`;
             }).join('');
+        }
+
+        function togglePhotoBtns(activeId) {
+            document.querySelectorAll('[id^="photo-btns-"]').forEach(el => {
+                el.classList.toggle('hidden', el.id !== activeId || !el.classList.contains('hidden'));
+            });
         }
 
         async function swapFirearmPhotos() {
