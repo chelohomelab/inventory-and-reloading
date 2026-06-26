@@ -456,6 +456,7 @@
                     </div>
                 </div>`;
             }).join('');
+        }
 
         async function swapFirearmPhotos() {
             const res = await fetch(`/firearms/${currentFirearmId}/swap-photos/`, { method: 'POST' });
