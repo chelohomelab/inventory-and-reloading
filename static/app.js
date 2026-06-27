@@ -1049,121 +1049,24 @@ function renderBulletCard(b, lowThreshold = 100) {
     return `
     <div class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-lg hover:border-blue-500/50 transition cursor-pointer" onclick="window.location.href='bullet-detail.html?id=${b.id}'">
         ${gallery}
-        <div class="p-4 space-y-3">
+        <div class="p-3 space-y-2">
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-1">
                     <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-400 border border-blue-800">BULLET</span>
                     ${b.load_data_count ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">LOAD DATA</span>` : ''}
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800">${b.weight_gr}gr</span>
-                    <button onclick="event.stopPropagation(); document.getElementById('cedit-bul-${b.id}').classList.toggle('hidden')" class="text-gray-500 hover:text-blue-400 text-xs cursor-pointer" title="Edit">✏️</button>
-                    <button onclick="event.stopPropagation(); deleteComponent('bullets',${b.id})" class="text-gray-600 hover:text-red-400 text-xs cursor-pointer">✕</button>
-                </div>
-            </div>
-            <!-- inline edit panel -->
-            <div id="cedit-bul-${b.id}" onclick="event.stopPropagation()" class="hidden bg-gray-900/80 rounded-lg p-3 space-y-2 border border-blue-800/40">
-                <p class="text-[10px] font-bold uppercase tracking-wider text-blue-400 mb-1">Edit Bullet</p>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="text-xs text-gray-200 font-semibold">Brand</label>
-                        <input id="cef-bul-${b.id}-brand" type="text" value="${escHtml(b.brand||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-gray-200 font-semibold">Product Line</label>
-                        <input id="cef-bul-${b.id}-product_line" type="text" value="${escHtml(b.product_line||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-gray-200 font-semibold">Caliber</label>
-                        <input id="cef-bul-${b.id}-caliber" type="text" value="${escHtml(b.caliber||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-gray-200 font-semibold">Weight (gr)</label>
-                        <input id="cef-bul-${b.id}-weight_gr" type="number" step="0.1" min="0" value="${b.weight_gr||''}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-gray-200 font-semibold">Bullet Type</label>
-                        <input id="cef-bul-${b.id}-bullet_type" type="text" value="${escHtml(b.bullet_type||'')}" placeholder="e.g. HPBT, FMJ..." class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-gray-200 font-semibold">Price Paid ($)</label>
-                        <input id="cef-bul-${b.id}-price_paid" type="number" step="0.01" min="0" value="${b.price_paid||0}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-gray-200 font-semibold">BC G1</label>
-                        <input id="cef-bul-${b.id}-bc_g1" type="number" step="0.001" min="0" value="${b.bc_g1||''}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-gray-200 font-semibold">BC G7</label>
-                        <input id="cef-bul-${b.id}-bc_g7" type="number" step="0.001" min="0" value="${b.bc_g7||''}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div class="col-span-2">
-                        <label class="text-xs text-gray-200 font-semibold">Notes</label>
-                        <input id="cef-bul-${b.id}-notes" type="text" value="${escHtml(b.notes||'')}" class="w-full bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div class="col-span-2 flex items-center gap-2 pt-1">
-                        <input id="cef-bul-${b.id}-is_muzzleloader" type="checkbox" ${b.is_muzzleloader ? 'checked' : ''} class="accent-amber-400 cursor-pointer">
-                        <label for="cef-bul-${b.id}-is_muzzleloader" class="text-[10px] text-gray-300 cursor-pointer">🏹 Muzzleloader bullet</label>
-                    </div>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="document.getElementById('cedit-bul-${b.id}').classList.add('hidden')" class="flex-1 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded cursor-pointer">Cancel</button>
-                    <button onclick="saveCompEdit('bullets','bul',${b.id},['brand','product_line','caliber','weight_gr','bullet_type','price_paid','bc_g1','bc_g7','notes','is_muzzleloader'])" class="flex-1 py-1.5 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded cursor-pointer">Save Changes</button>
-                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800">${b.weight_gr}gr</span>
             </div>
             <div class="flex justify-between items-start gap-2">
                 <div>
                     <p class="text-sm font-bold text-white">${b.brand}${b.product_line ? ' · '+b.product_line : ''}</p>
-                    ${b.bullet_type ? `<p class="text-xs text-gray-400">${b.bullet_type}</p>` : ''}
-                    ${bcInfo ? `<p class="text-xs text-gray-500 font-mono">BC ${bcInfo}</p>` : ''}
+                    ${b.bullet_type ? `<p class="text-[11px] text-gray-400">${b.bullet_type}</p>` : ''}
                 </div>
                 <span class="text-xs text-gray-400 font-mono whitespace-nowrap">$${parseFloat(b.price_paid||0).toFixed(2)}</span>
             </div>
-            <div class="bg-gray-900/60 rounded-lg p-3 text-center">
-                <p class="text-2xl font-bold font-mono ${qtyColor}">${(b.quantity??0).toLocaleString()} <span class="text-sm text-gray-400">count</span></p>
-                ${(b.qty_sealed || b.qty_open) ? `<p class="text-xs text-gray-200 font-semibold mt-0.5">${[b.qty_sealed ? `${b.qty_sealed} sealed box${b.qty_sealed!==1?'es':''}` : '', b.qty_open ? `${b.qty_open} open` : ''].filter(Boolean).join(' + ')}</p>` : ''}
-                <p class="text-xs text-gray-200 font-semibold uppercase tracking-wider mt-0.5">${low ? '⚠️ Low Stock' : 'On Hand'}</p>
-            </div>
-            <div class="border-t border-gray-700 pt-2">
-                ${b.notes ? `<p class="text-xs text-gray-500 italic">${b.notes}</p>` : ''}
-            </div>
-            <div class="flex gap-2" onclick="event.stopPropagation()">
-                <input type="number" placeholder="Update count" id="qty-bullet-${b.id}"
-                    class="flex-1 bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
-                <button onclick="updateComponentQty('bullets',${b.id},'quantity')" class="px-3 py-1.5 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded cursor-pointer">Save</button>
-            </div>
-            <div class="border-t border-gray-700 pt-2" onclick="event.stopPropagation()">
-                <div class="flex items-center justify-between">
-                    <button onclick="toggleCompMuzzleloader('bullets',${b.id},${!!b.is_muzzleloader})"
-                        class="text-[10px] font-bold px-2 py-0.5 rounded border cursor-pointer transition ${b.is_muzzleloader ? 'bg-amber-900/60 text-amber-400 border-amber-700 hover:bg-amber-900/40' : 'bg-gray-700/40 text-gray-500 border-gray-700 hover:text-amber-400'}">
-                        🏹 ${b.is_muzzleloader ? 'Muzzleloader ✓' : 'Muzzleloader'}
-                    </button>
-                    <button onclick="document.getElementById('comp-photos-bul-${b.id}').classList.toggle('hidden')" class="text-xs text-gray-200 font-semibold hover:text-gray-300 cursor-pointer">📷 Photos</button>
-                </div>
-                <div id="comp-photos-bul-${b.id}" class="hidden mt-2 space-y-2">
-                    ${b.image_path && b.image_path_2 ? `<button onclick="swapCompPhotos('bullets',${b.id})" class="text-[10px] text-amber-500 hover:text-amber-400 cursor-pointer">⭐ Make Photo 2 the Primary</button>` : ''}
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-xs text-gray-200 font-semibold">Replace Photo 1</label>
-                            <div class="flex gap-1 mt-0.5">
-                                <button type="button" onclick="document.getElementById('cbul1-cam-${b.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
-                                <button type="button" onclick="document.getElementById('cbul1-${b.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
-                            </div>
-                            <input type="file" id="cbul1-${b.id}" accept="image/*" class="hidden">
-                            <input type="file" capture="environment" accept="image/*" id="cbul1-cam-${b.id}" onchange="_camToInput('cbul1-cam-${b.id}','cbul1-${b.id}')" class="hidden">
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-200 font-semibold">Replace Photo 2</label>
-                            <div class="flex gap-1 mt-0.5">
-                                <button type="button" onclick="document.getElementById('cbul2-cam-${b.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">📷</button>
-                                <button type="button" onclick="document.getElementById('cbul2-${b.id}').click()" class="flex-1 text-[9px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-0.5 rounded cursor-pointer">🖼</button>
-                            </div>
-                            <input type="file" id="cbul2-${b.id}" accept="image/*" class="hidden">
-                            <input type="file" capture="environment" accept="image/*" id="cbul2-cam-${b.id}" onchange="_camToInput('cbul2-cam-${b.id}','cbul2-${b.id}')" class="hidden">
-                        </div>
-                    </div>
-                    <button onclick="uploadCompPhotos('bullets','bul',${b.id})" class="w-full text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 py-1 rounded cursor-pointer">Save Photos</button>
-                </div>
+            <div class="flex justify-between items-center">
+                <span class="text-sm font-bold font-mono ${qtyColor}">${(b.quantity??0).toLocaleString()} <span class="text-[10px] text-gray-500">ct</span></span>
+                ${low ? '<span class="text-[10px] text-red-400 font-bold">LOW STOCK</span>' : ''}
             </div>
         </div>
     </div>`;
