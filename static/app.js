@@ -3058,9 +3058,10 @@ async function loadCatalog(frameType = currentFrameType()) {
         const soldBtnMarkup = gun.is_sold
             ? `<span class="text-xs text-red-400 font-mono">Sold $${parseFloat(gun.price_sold || 0).toFixed(2)}</span>`
             : `<button onclick="openSellModal(${gun.id},'${gunLabel.replace(/'/g,"\\'")}','firearm')" class="px-2 py-1 bg-gray-700 hover:bg-emerald-800 text-gray-300 hover:text-white text-xs font-bold rounded transition cursor-pointer">$ Sell</button>`;
+        const gunGallery = makePhotoGallery(`gun-${gun.id}`, '🔫', gun.image_path_1, gun.image_path_2);
         content.innerHTML = `
-            <div class="w-full h-44 bg-gray-950 relative overflow-hidden cursor-pointer" onclick="window.location.href='${detailPage}?id=${gun.id}'">
-                <img src="${targetSrc}" class="w-full h-full object-cover">
+            <div onclick="window.location.href='${detailPage}?id=${gun.id}'" class="cursor-pointer">
+                ${gunGallery}
             </div>
             <div class="p-4 space-y-3">
                 <div class="flex justify-between items-center">
