@@ -47,6 +47,21 @@ async def save_uploaded_file(file: UploadFile, prefix: str) -> Optional[str]:
     return f"/static/uploads/{filename}"
 
 
+async def save_uploaded_document(file: UploadFile, prefix: str) -> Optional[str]:
+    if not file or not file.filename:
+        return None
+    content = await file.read()
+    ext = os.path.splitext(file.filename)[1] or ".pdf"
+    allowed = {".pdf", ".jpg", ".jpeg", ".png", ".gif", ".webp"}
+    if ext.lower() not in allowed:
+        ext = ".pdf"
+    filename = f"{prefix}_{uuid.uuid4()}{ext.lower()}"
+    path = os.path.join(UPLOAD_DIR, filename)
+    with open(path, "wb") as buf:
+        buf.write(content)
+    return f"/static/uploads/{filename}"
+
+
 def delete_uploaded_file(url_path: Optional[str]):
     if not url_path or not url_path.startswith("/static/uploads/"):
         return

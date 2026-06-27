@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bullet Detail — Vault</title>
+    <link rel="icon" type="image/png" href="/static/images/app-icon.png">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0f0f0f">
+    <meta name="mobile-web-app-capable" content="yes">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      body { background-image: url('/static/images/phone-background.png'); background-size: cover; background-position: center; background-color: #0f0f0f; }
+      @media (min-width: 1024px) { body { background-image: url('/static/images/background.png'); } }
+    </style>
+</head>
+<body class="text-gray-100 font-sans antialiased">
+
+    <nav class="bg-gray-800 border-b border-gray-700 p-4 sticky top-0 z-50 shadow-md">
+        <div class="container mx-auto flex justify-between items-center max-w-5xl">
+            <div class="flex items-center space-x-2 text-sm">
+                <a href="/"><img src="/static/images/logo.png" alt="Inventory" class="h-6 w-auto hover:opacity-80 transition inline-block"></a>
+                <span class="text-gray-500">/</span>
+                <a href="/inventory?inv=components&comp=bullets" class="text-gray-400 hover:text-amber-400 transition text-xs">Components</a>
+                <span class="text-gray-500">/</span>
+                <span id="breadcrumb-name" class="text-gray-400 font-mono truncate max-w-xs">Loading...</span>
+            </div>
+            <a href="/inventory?inv=components&comp=bullets" class="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-white font-bold transition">&larr; Components</a>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 max-w-5xl space-y-6">
+
+        <!-- Header card -->
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Photo column -->
+                <div class="space-y-2">
+                    <div id="main-photo-viewport" onclick="togglePhotoPanel()" title="Click to update photos"
+                        class="w-full h-48 bg-gray-950 border border-gray-700 rounded-lg overflow-hidden flex items-center justify-center relative cursor-pointer">
+                        <span class="text-4xl">&#127919;</span>
+                    </div>
+                    <div id="thumbnail-gallery-strip" class="flex gap-2 overflow-x-auto pb-1"></div>
+                    <div id="photo-panel" class="hidden bg-gray-900 border border-gray-700 rounded-lg p-3 space-y-2">
+                        <p class="text-xs font-bold text-amber-400 uppercase tracking-wide">Update Photos</p>
+                        <div class="flex gap-1.5">
+                            <button type="button" onclick="document.getElementById('photo-slot-cam').click()" class="flex-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer transition">Camera</button>
+                            <button type="button" onclick="document.getElementById('photo-slot').click()" class="flex-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 py-1 rounded cursor-pointer transition">Gallery (multi)</button>
+                        </div>
+                        <div id="detail-photo-preview" class="hidden flex gap-2 flex-wrap"></div>
+                        <button id="detail-upload-btn" onclick="uploadSelectedPhotos()" class="hidden w-full py-1.5 bg-blue-700 hover:bg-blue-600 text-white text-[10px] font-bold rounded cursor-pointer transition">Upload Selected Photos</button>
+                        <input type="file" multiple accept="image/*" id="photo-slot" onchange="previewDetailPhotos()" class="hidden">
+                        <input type="file" accept="image/*" capture="environment" id="photo-slot-cam" onchange="addDetailPhotoFromCamera()" class="hidden">
+                    </div>
+                </div>
+                <!-- Info column -->
+                <div class="md:col-span-2">
+                    <div class="flex justify-between items-start flex-wrap gap-4">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="px-2 py-0.5 rounded text-[11px] font-bold border bg-blue-950 text-blue-400 border-blue-800">BULLET</span>
+                                <span id="badge-caliber" class="px-3 py-1 bg-amber-950/60 text-amber-400 border border-amber-800/60 font-mono font-bold rounded-md text-sm">.277</span>
+                                <span id="badge-weight" class="px-3 py-1 bg-gray-900 text-gray-300 border border-gray-700 font-mono font-bold rounded-md text-sm">140gr</span>
+                            </div>
+                            <h1 id="detail-brand" class="text-3xl font-extrabold text-white tracking-tight mt-2">&mdash;</h1>
+                            <p id="detail-product-line" class="text-amber-500 text-sm font-medium">&mdash;</p>
+                        </div>
+                        <button onclick="toggleEditPanel()" id="edit-pencil-btn" title="Edit bullet data"
+                            class="p-2 rounded-md bg-gray-700 hover:bg-amber-600 text-gray-400 hover:text-white border border-gray-600 hover:border-amber-500 transition cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <!-- Data grid -->
+                    <div id="data-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 text-xs"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit panel (hidden by default) -->
+        <div id="edit-panel" class="bg-gray-800 border border-gray-700 rounded-xl p-5 shadow-xl hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-amber-500">Edit Bullet Data</h3>
+                <button onclick="toggleEditPanel()" class="text-gray-500 hover:text-gray-300 text-xs font-bold px-2 py-1 rounded hover:bg-gray-700 cursor-pointer">&#10005; Close</button>
+            </div>
+            <form id="edit-form" onsubmit="saveEdits(event)" class="space-y-4">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Brand</label>
+                        <input type="text" id="ef-brand" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Product Line</label>
+                        <input type="text" id="ef-product-line" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Caliber</label>
+                        <input type="text" id="ef-caliber" placeholder="e.g. .277" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Weight (gr)</label>
+                        <input type="number" step="0.1" min="0" id="ef-weight" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Bullet Type</label>
+                        <input type="text" id="ef-bullet-type" placeholder="e.g. Spitzer" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">BC G1</label>
+                        <input type="number" step="0.001" min="0" id="ef-bc-g1" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">BC G7</label>
+                        <input type="number" step="0.001" min="0" id="ef-bc-g7" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Price Paid ($)</label>
+                        <input type="number" step="0.01" min="0" id="ef-price" placeholder="e.g. 35.99" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div class="col-span-2 md:col-span-1">
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Notes</label>
+                        <input type="text" id="ef-notes" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 text-xs">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="ef-muzzleloader" class="w-4 h-4 rounded bg-gray-700 border-gray-600 text-amber-500 focus:ring-amber-500">
+                        <span class="text-gray-200 font-semibold">Muzzleloader Bullet</span>
+                    </label>
+                </div>
+                <div class="flex justify-end pt-2">
+                    <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded transition cursor-pointer">
+                        Update Bullet Data
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Datasheet section -->
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-5 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-blue-400">Load Data Sheet</h3>
+                <button onclick="document.getElementById('datasheet-file').click()" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">Upload</button>
+                <input type="file" id="datasheet-file" accept=".pdf,image/*" onchange="uploadDatasheet()" class="hidden">
+            </div>
+            <div id="datasheet-content">
+                <p class="text-sm text-gray-500 italic">No datasheet attached. Use the upload button to add a PDF or image.</p>
+            </div>
+        </div>
+
+        <!-- Load Data section -->
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-5 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-blue-400">Reloading Load Data</h3>
+                <button onclick="showAddLoadDataForm()" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded transition cursor-pointer">+ Add Load Data</button>
+            </div>
+
+            <!-- Add load data form (hidden) -->
+            <div id="add-load-data-form" class="hidden border border-gray-700 rounded-lg p-4 mb-4 bg-gray-900/60 space-y-3">
+                <p class="text-xs font-bold text-amber-400 uppercase tracking-wide">New Load Data Set</p>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Source</label>
+                        <input type="text" id="nld-source" placeholder="e.g. Nosler Manual v9" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Caliber</label>
+                        <input type="text" id="nld-caliber" placeholder="e.g. 270 Win" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">COAL</label>
+                        <input type="number" step="0.001" id="nld-coal" placeholder="e.g. 3.320" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Primer</label>
+                        <input type="text" id="nld-primer" placeholder="e.g. Fed 210" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Case Type</label>
+                        <input type="text" id="nld-case-type" placeholder="e.g. Nosler" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Case Capacity (gr)</label>
+                        <input type="number" step="0.1" id="nld-case-capacity" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Barrel Length</label>
+                        <input type="text" id="nld-barrel-length" placeholder='e.g. 24"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Barrel Twist</label>
+                        <input type="text" id="nld-barrel-twist" placeholder='e.g. 1-10"' class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Barrel Desc</label>
+                        <input type="text" id="nld-barrel-desc" placeholder="e.g. Shilen" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div class="col-span-2 md:col-span-3">
+                        <label class="block text-xs text-gray-200 font-semibold mb-1">Notes</label>
+                        <input type="text" id="nld-notes" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-1">
+                    <button onclick="hideAddLoadDataForm()" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">Cancel</button>
+                    <button onclick="saveNewLoadData()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded transition cursor-pointer">Save Load Data</button>
+                </div>
+            </div>
+
+            <div id="load-data-container" class="space-y-4">
+                <p class="text-sm text-gray-500 italic">No load data sets yet.</p>
+            </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex justify-end gap-2">
+            <button onclick="deleteBullet()" class="px-4 py-2 bg-red-900/60 hover:bg-red-800 text-red-400 hover:text-red-200 text-xs font-bold rounded transition cursor-pointer border border-red-800/60">
+                Delete Bullet
+            </button>
+        </div>
+
+    </main>
+
+    <script>
+        let currentBulletId = null;
+        let currentPhotoCount = 0;
+        let currentViewSlot = 1;
+        let photoTimestamp = 0;
+        let bulletData = null;
+
+        function showToast(message, type = 'success') {
+            const existing = document.getElementById('bullet-toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.id = 'bullet-toast';
+            const color = type === 'error'
+                ? 'bg-red-950/90 text-red-400 border-red-800'
+                : 'bg-gray-900/95 text-emerald-400 border-emerald-800';
+            toast.className = `fixed bottom-5 right-5 z-[100] p-4 rounded-lg shadow-xl text-xs font-bold tracking-wide border ${color} transition-all duration-300`;
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3500);
+        }
+
+        function toggleEditPanel() {
+            const panel = document.getElementById('edit-panel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        function togglePhotoPanel() {
+            document.getElementById('photo-panel').classList.toggle('hidden');
+        }
+
+        function setViewSlot(slot, src) {
+            currentViewSlot = slot;
+            const vp = document.querySelector('#main-photo-viewport img');
+            if (vp) vp.src = src;
+        }
+
+        function _cacheBust(src) {
+            return photoTimestamp ? src + '?t=' + photoTimestamp : src;
+        }
+
+        let _detailPhotos = [];
+        let _detailPhotoIdx = 0;
+        let _detailTouchX = 0;
+
+        function _detailSwipeStart(e) { _detailTouchX = e.touches[0].clientX; }
+        function _detailSwipeEnd(e) {
+            const dx = e.changedTouches[0].clientX - _detailTouchX;
+            if (Math.abs(dx) > 40) detailPhotoNav(dx < 0 ? 1 : -1);
+        }
+        function detailPhotoNav(dir) {
+            if (_detailPhotos.length < 2) return;
+            _detailPhotoIdx = (_detailPhotoIdx + dir + _detailPhotos.length) % _detailPhotos.length;
+            const vp = document.querySelector('#main-photo-viewport img');
+            if (vp) vp.src = _cacheBust(_detailPhotos[_detailPhotoIdx]);
+        }
+
+        function renderImageGallery(img1, img2) {
+            const images = [img1, img2].filter(Boolean);
+            _detailPhotos = images;
+            _detailPhotoIdx = 0;
+            currentPhotoCount = images.length;
+            currentViewSlot = 1;
+            const viewport = document.getElementById('main-photo-viewport');
+            const strip = document.getElementById('thumbnail-gallery-strip');
+            if (images.length === 0) {
+                viewport.innerHTML = `<span class="text-4xl">&#127919;</span>`;
+                strip.innerHTML = '';
+                return;
+            }
+            viewport.innerHTML = `<img src="${_cacheBust(images[0])}" class="w-full h-full object-contain">`;
+            if (images.length > 1) {
+                viewport.setAttribute('ontouchstart', '_detailSwipeStart(event)');
+                viewport.setAttribute('ontouchend', '_detailSwipeEnd(event)');
+                const arrowCls = 'absolute top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 hover:bg-black/80 rounded-full text-white text-lg flex items-center justify-center cursor-pointer z-10';
+                viewport.insertAdjacentHTML('beforeend', `<button onclick="event.stopPropagation(); detailPhotoNav(-1)" class="${arrowCls} left-2">&lsaquo;</button><button onclick="event.stopPropagation(); detailPhotoNav(1)" class="${arrowCls} right-2">&rsaquo;</button>`);
+            }
+            strip.innerHTML = images.map((img, idx) => {
+                const busted = _cacheBust(img);
+                const serverSlot = idx === 0 ? 1 : 2;
+                const btnId = `photo-btns-${serverSlot}`;
+                return `<div class="shrink-0 flex flex-col items-center gap-1">
+                    <img src="${busted}" onclick="setViewSlot(${serverSlot}, '${busted}'); togglePhotoBtns('${btnId}')" class="w-14 h-14 rounded-lg object-cover border-2 ${idx === 0 ? 'border-amber-500' : 'border-gray-700'} hover:border-amber-500 transition cursor-pointer">
+                    <div id="${btnId}" class="hidden flex gap-1">
+                        ${idx > 0 ? `<button onclick="swapBulletPhotos()" class="px-2 py-1 bg-amber-700 hover:bg-amber-600 rounded text-[10px] text-white cursor-pointer font-bold">Set Primary</button>` : ''}
+                        <button onclick="deleteBulletPhoto(${serverSlot})" class="px-2 py-1 bg-red-800 hover:bg-red-700 rounded text-[10px] text-white cursor-pointer font-bold">Delete</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function togglePhotoBtns(activeId) {
+            document.querySelectorAll('[id^="photo-btns-"]').forEach(el => {
+                el.classList.toggle('hidden', el.id !== activeId || !el.classList.contains('hidden'));
+            });
+        }
+
+        async function swapBulletPhotos() {
+            const res = await fetch(`/components/bullets/${currentBulletId}/swap-photos/`, { method: 'POST' });
+            if (res.ok) { showToast('Primary photo updated.'); loadBulletData(); }
+            else showToast('Failed to swap photos.', 'error');
+        }
+
+        async function deleteBulletPhoto(slot) {
+            if (!confirm('Delete this photo?')) return;
+            const res = await fetch(`/components/bullets/${currentBulletId}/photos/${slot}`, { method: 'DELETE' });
+            if (res.ok) { showToast('Photo deleted.'); loadBulletData(); }
+            else showToast('Failed to delete photo.', 'error');
+        }
+
+        let _detailPendingFiles = [];
+
+        function previewDetailPhotos() {
+            const input = document.getElementById('photo-slot');
+            const newFiles = Array.from(input.files || []);
+            _detailPendingFiles = [..._detailPendingFiles, ...newFiles].slice(0, 2);
+            _renderDetailPreview();
+            input.value = '';
+        }
+
+        function addDetailPhotoFromCamera() {
+            const cam = document.getElementById('photo-slot-cam');
+            const file = cam?.files[0];
+            if (!file) return;
+            _detailPendingFiles = [..._detailPendingFiles, file].slice(0, 2);
+            _renderDetailPreview();
+            cam.value = '';
+        }
+
+        function _renderDetailPreview() {
+            const container = document.getElementById('detail-photo-preview');
+            const btn = document.getElementById('detail-upload-btn');
+            if (!container) return;
+            if (!_detailPendingFiles.length) {
+                container.classList.add('hidden');
+                if (btn) btn.classList.add('hidden');
+                return;
+            }
+            container.classList.remove('hidden');
+            if (btn) btn.classList.remove('hidden');
+            container.innerHTML = _detailPendingFiles.map((f, i) => `
+                <div class="relative">
+                    <img src="${URL.createObjectURL(f)}" class="h-20 w-28 object-contain rounded bg-gray-950 border border-gray-700">
+                    <button onclick="_removeDetailPhoto(${i})" class="absolute top-0.5 right-0.5 bg-gray-900/80 text-red-400 text-[10px] rounded-full w-4 h-4 flex items-center justify-center cursor-pointer leading-none">&#10005;</button>
+                </div>`).join('');
+        }
+
+        function _removeDetailPhoto(idx) {
+            _detailPendingFiles.splice(idx, 1);
+            _renderDetailPreview();
+        }
+
+        async function uploadSelectedPhotos() {
+            if (!_detailPendingFiles.length) return;
+            const btn = document.getElementById('detail-upload-btn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Uploading...'; }
+            let uploaded = 0;
+            for (const file of _detailPendingFiles) {
+                const slot = currentPhotoCount < 2 ? currentPhotoCount + 1 : 1;
+                const fd = new FormData();
+                fd.append('image', file);
+                fd.append('slot', String(slot));
+                try {
+                    const res = await fetch(`/components/bullets/${currentBulletId}/update-photo/`, { method: 'POST', body: fd });
+                    if (res.ok) { currentPhotoCount = Math.min(currentPhotoCount + 1, 2); uploaded++; }
+                } catch {}
+            }
+            _detailPendingFiles = [];
+            _renderDetailPreview();
+            if (btn) { btn.disabled = false; btn.textContent = 'Upload Selected Photos'; }
+            if (uploaded > 0) { showToast(`${uploaded} photo${uploaded !== 1 ? 's' : ''} uploaded.`); loadBulletData(); }
+            else showToast('Upload failed.', 'error');
+        }
+
+        window.onload = function() {
+            const params = new URLSearchParams(window.location.search);
+            currentBulletId = params.get('id');
+            if (!currentBulletId) { window.location.href = '/inventory?inv=components&comp=bullets'; return; }
+            loadBulletData();
+        };
+
+        async function loadBulletData() {
+            try {
+                const res = await fetch(`/components/bullets/${currentBulletId}`, { cache: 'no-store' });
+                if (!res.ok) throw new Error('Not found');
+                bulletData = await res.json();
+            } catch(err) {
+                document.body.innerHTML = `<div class="p-12 text-center text-red-400 font-mono text-sm">Error: Bullet #${currentBulletId} not found.</div>`;
+                return;
+            }
+            renderBulletProfile(bulletData);
+        }
+
+        function renderBulletProfile(b) {
+            const brand = b.brand || '—';
+            const productLine = b.product_line || '';
+            const weight = b.weight_gr || 0;
+            const caliber = b.caliber || '';
+
+            document.getElementById('breadcrumb-name').innerText = brand + (productLine ? ' ' + productLine : '') + (weight ? ' ' + weight + 'gr' : '');
+            document.getElementById('detail-brand').innerText = brand;
+            document.getElementById('detail-product-line').innerText = productLine || '—';
+            document.getElementById('badge-caliber').innerText = caliber || '—';
+            document.getElementById('badge-weight').innerText = weight ? weight + 'gr' : '—';
+
+            // Data grid
+            const grid = document.getElementById('data-grid');
+            const cell = (label, value, accent) =>
+                `<div class="bg-gray-900/60 p-3 rounded-lg border border-gray-700">
+                    <span class="text-xs text-gray-200 font-semibold block mb-1">${label}</span>
+                    <span class="${accent || 'text-gray-200'} font-bold">${value || '—'}</span>
+                </div>`;
+
+            let cells = '';
+            cells += cell('Caliber', caliber, 'text-amber-400 font-mono');
+            cells += cell('Weight', weight ? weight + ' gr' : null, 'text-white font-mono');
+            cells += cell('Bullet Type', b.bullet_type || null, 'text-gray-300 font-mono');
+            cells += cell('BC G1', b.bc_g1 != null ? b.bc_g1 : null, 'text-blue-300 font-mono');
+            cells += cell('BC G7', b.bc_g7 != null ? b.bc_g7 : null, 'text-blue-300 font-mono');
+            cells += cell('Price Paid', b.price_paid ? `$${parseFloat(b.price_paid).toFixed(2)}` : null, 'text-green-400 font-mono');
+            cells += cell('Quantity', b.quantity || 0, 'text-white font-mono');
+
+            grid.innerHTML = cells;
+
+            // Photo gallery
+            renderImageGallery(b.image_path, b.image_path_2);
+
+            // Hydrate edit form
+            document.getElementById('ef-brand').value = b.brand || '';
+            document.getElementById('ef-product-line').value = b.product_line || '';
+            document.getElementById('ef-caliber').value = b.caliber || '';
+            document.getElementById('ef-weight').value = b.weight_gr || '';
+            document.getElementById('ef-bullet-type').value = b.bullet_type || '';
+            document.getElementById('ef-bc-g1').value = b.bc_g1 != null ? b.bc_g1 : '';
+            document.getElementById('ef-bc-g7').value = b.bc_g7 != null ? b.bc_g7 : '';
+            document.getElementById('ef-price').value = b.price_paid || '';
+            document.getElementById('ef-notes').value = b.notes || '';
+            document.getElementById('ef-muzzleloader').checked = !!b.is_muzzleloader;
+
+            // Datasheet
+            renderDatasheet(b.datasheet_path);
+
+            // Load data
+            renderLoadData(b.load_data || []);
+        }
+
+        function renderDatasheet(path) {
+            const container = document.getElementById('datasheet-content');
+            if (!path) {
+                container.innerHTML = `<p class="text-sm text-gray-500 italic">No datasheet attached. Use the upload button to add a PDF or image.</p>`;
+                return;
+            }
+            const isPdf = path.toLowerCase().endsWith('.pdf');
+            const filename = path.split('/').pop();
+            if (isPdf) {
+                container.innerHTML = `
+                    <div class="flex items-center justify-between bg-gray-900/60 p-3 rounded-lg border border-gray-700">
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                            </svg>
+                            <a href="${path}" target="_blank" class="text-blue-400 hover:text-blue-300 text-sm font-medium underline">${filename}</a>
+                        </div>
+                        <button onclick="deleteDatasheet()" class="px-2 py-1 bg-red-900/60 hover:bg-red-800 text-red-400 text-[10px] font-bold rounded cursor-pointer transition border border-red-800/60">Delete</button>
+                    </div>`;
+            } else {
+                container.innerHTML = `
+                    <div class="space-y-2">
+                        <img src="${path}" class="max-w-full max-h-96 rounded-lg border border-gray-700 object-contain">
+                        <div class="flex justify-end">
+                            <button onclick="deleteDatasheet()" class="px-2 py-1 bg-red-900/60 hover:bg-red-800 text-red-400 text-[10px] font-bold rounded cursor-pointer transition border border-red-800/60">Delete</button>
+                        </div>
+                    </div>`;
+            }
+        }
+
+        async function uploadDatasheet() {
+            const input = document.getElementById('datasheet-file');
+            const file = input.files[0];
+            if (!file) return;
+            const fd = new FormData();
+            fd.append('file', file);
+            try {
+                const res = await fetch(`/components/bullets/${currentBulletId}/upload-datasheet/`, { method: 'POST', body: fd });
+                if (res.ok) { showToast('Datasheet uploaded.'); loadBulletData(); }
+                else showToast('Failed to upload datasheet.', 'error');
+            } catch { showToast('Error contacting server.', 'error'); }
+            input.value = '';
+        }
+
+        async function deleteDatasheet() {
+            if (!confirm('Delete this datasheet?')) return;
+            try {
+                const res = await fetch(`/components/bullets/${currentBulletId}/datasheet/`, { method: 'DELETE' });
+                if (res.ok) { showToast('Datasheet deleted.'); loadBulletData(); }
+                else showToast('Failed to delete datasheet.', 'error');
+            } catch { showToast('Error contacting server.', 'error'); }
+        }
+
+        async function saveEdits(e) {
+            e.preventDefault();
+            const payload = {
+                brand: document.getElementById('ef-brand').value.trim(),
+                product_line: document.getElementById('ef-product-line').value.trim(),
+                caliber: document.getElementById('ef-caliber').value.trim(),
+                weight_gr: parseFloat(document.getElementById('ef-weight').value) || null,
+                bullet_type: document.getElementById('ef-bullet-type').value.trim() || null,
+                bc_g1: parseFloat(document.getElementById('ef-bc-g1').value) || null,
+                bc_g7: parseFloat(document.getElementById('ef-bc-g7').value) || null,
+                price_paid: parseFloat(document.getElementById('ef-price').value) || null,
+                notes: document.getElementById('ef-notes').value.trim() || null,
+                is_muzzleloader: document.getElementById('ef-muzzleloader').checked,
+            };
+
+            try {
+                const res = await fetch(`/components/bullets/${currentBulletId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    showToast('Bullet data updated.');
+                    document.getElementById('edit-panel').classList.add('hidden');
+                    loadBulletData();
+                } else {
+                    showToast('Failed to save changes.', 'error');
+                }
+            } catch(err) {
+                showToast('Error contacting server.', 'error');
+            }
+        }
+
+        /* ── Load Data Management ── */
+
+        function renderLoadData(loadDataArray) {
+            const container = document.getElementById('load-data-container');
+            if (!loadDataArray || loadDataArray.length === 0) {
+                container.innerHTML = `<p class="text-sm text-gray-500 italic">No load data sets yet.</p>`;
+                return;
+            }
+
+            container.innerHTML = loadDataArray.map(ld => {
+                const entries = ld.entries || [];
+                const infoItems = [
+                    ld.source ? `<span class="font-semibold text-white">${ld.source}</span>` : null,
+                    ld.caliber ? `<span class="text-amber-400">${ld.caliber}</span>` : null,
+                    ld.coal != null ? `<span>COAL: ${ld.coal}"</span>` : null,
+                    ld.primer ? `<span>Primer: ${ld.primer}</span>` : null,
+                    ld.case_type ? `<span>Case: ${ld.case_type}</span>` : null,
+                    ld.case_capacity_gr != null ? `<span>${ld.case_capacity_gr}gr cap</span>` : null,
+                    ld.barrel_length ? `<span>Bbl: ${ld.barrel_length}</span>` : null,
+                    ld.barrel_twist ? `<span>Twist: ${ld.barrel_twist}</span>` : null,
+                    ld.barrel_desc ? `<span>${ld.barrel_desc}</span>` : null,
+                ].filter(Boolean).join('<span class="text-gray-600 mx-1">|</span>');
+
+                const entryRows = entries.map(en => `
+                    <tr class="border-b border-gray-700/50 hover:bg-gray-800/50">
+                        <td class="px-3 py-2 font-medium text-white whitespace-nowrap">${en.powder_name || '—'}</td>
+                        <td class="px-3 py-2 text-gray-300 font-mono whitespace-nowrap">${en.charge_min}–${en.charge_max}</td>
+                        <td class="px-3 py-2 text-gray-300 font-mono whitespace-nowrap">${en.velocity_min}–${en.velocity_max}</td>
+                        <td class="px-3 py-2 text-gray-300 font-mono whitespace-nowrap">${en.load_density_min != null ? en.load_density_min + '–' + en.load_density_max + '%' : '—'}</td>
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            ${en.is_max_load ? '<span class="px-1.5 py-0.5 bg-red-950/60 text-red-400 border border-red-800/60 rounded text-[10px] font-bold mr-1">MAX</span>' : ''}
+                            ${en.is_most_accurate ? '<span class="px-1.5 py-0.5 bg-amber-950/60 text-amber-400 border border-amber-800/60 rounded text-[10px] font-bold">★</span>' : ''}
+                        </td>
+                        <td class="px-3 py-2">
+                            <button onclick="deleteEntry(${ld.id}, ${en.id})" class="text-red-500 hover:text-red-300 text-[10px] font-bold cursor-pointer">✕</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                return `
+                <div class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900/40">
+                    <!-- Header info bar -->
+                    <div class="p-3 border-b border-gray-700 flex flex-wrap items-center justify-between gap-2">
+                        <div class="text-xs text-gray-400 flex flex-wrap items-center gap-1">${infoItems}</div>
+                        <div class="flex gap-1.5">
+                            <button onclick="toggleEditLoadData(${ld.id})" class="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-[10px] font-bold rounded cursor-pointer transition">Edit</button>
+                            <button onclick="deleteLoadDataSet(${ld.id})" class="px-2 py-1 bg-red-900/60 hover:bg-red-800 text-red-400 text-[10px] font-bold rounded cursor-pointer transition border border-red-800/60">Delete</button>
+                        </div>
+                    </div>
+
+                    <!-- Edit load data header form (hidden) -->
+                    <div id="edit-ld-${ld.id}" class="hidden border-b border-gray-700 p-3 bg-gray-900/60 space-y-3">
+                        <p class="text-xs font-bold text-amber-400 uppercase tracking-wide">Edit Load Data Header</p>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                            <div>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Source</label>
+                                <input type="text" id="eld-source-${ld.id}" value="${ld.source || ''}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Caliber</label>
+                                <input type="text" id="eld-caliber-${ld.id}" value="${ld.caliber || ''}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">COAL</label>
+                                <input type="number" step="0.001" id="eld-coal-${ld.id}" value="${ld.coal != null ? ld.coal : ''}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Primer</label>
+                                <input type="text" id="eld-primer-${ld.id}" value="${ld.primer || ''}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Case Type</label>
+                                <input type="text" id="eld-case-type-${ld.id}" value="${ld.case_type || ''}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Case Capacity (gr)</label>
+                                <input type="number" step="0.1" id="eld-case-capacity-${ld.id}" value="${ld.case_capacity_gr != null ? ld.case_capacity_gr : ''}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Barrel Length</label>
+                                <input type="text" id="eld-barrel-length-${ld.id}" value="${ld.barrel_length || ''}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Barrel Twist</label>
+                                <input type="text" id="eld-barrel-twist-${ld.id}" value="${ld.barrel_twist || ''}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Barrel Desc</label>
+                                <input type="text" id="eld-barrel-desc-${ld.id}" value="${ld.barrel_desc || ''}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div class="col-span-2 md:col-span-3">
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Notes</label>
+                                <input type="text" id="eld-notes-${ld.id}" value="${ld.notes || ''}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2 pt-1">
+                            <button onclick="toggleEditLoadData(${ld.id})" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">Cancel</button>
+                            <button onclick="saveEditLoadData(${ld.id})" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded transition cursor-pointer">Save Changes</button>
+                        </div>
+                    </div>
+
+                    <!-- Entries table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs">
+                            <thead>
+                                <tr class="bg-gray-800/80 text-gray-400 uppercase tracking-wider">
+                                    <th class="px-3 py-2 text-left font-semibold">Powder</th>
+                                    <th class="px-3 py-2 text-left font-semibold">Charge (gr)</th>
+                                    <th class="px-3 py-2 text-left font-semibold">Velocity (fps)</th>
+                                    <th class="px-3 py-2 text-left font-semibold">Density %</th>
+                                    <th class="px-3 py-2 text-left font-semibold">Flags</th>
+                                    <th class="px-3 py-2 text-left font-semibold w-8"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${entryRows || '<tr><td colspan="6" class="px-3 py-4 text-center text-gray-500 italic">No entries yet</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Add entry form (hidden) -->
+                    <div id="add-entry-${ld.id}" class="hidden border-t border-gray-700 p-3 bg-gray-900/60 space-y-3">
+                        <p class="text-xs font-bold text-amber-400 uppercase tracking-wide">Add Entry</p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                            <div>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Powder Name</label>
+                                <input type="text" id="ne-powder-${ld.id}" placeholder="e.g. IMR 4831" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Charge Min</label>
+                                <input type="number" step="0.1" id="ne-charge-min-${ld.id}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Charge Max</label>
+                                <input type="number" step="0.1" id="ne-charge-max-${ld.id}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Velocity Min</label>
+                                <input type="number" id="ne-vel-min-${ld.id}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Velocity Max</label>
+                                <input type="number" id="ne-vel-max-${ld.id}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Density Min %</label>
+                                <input type="number" step="0.1" id="ne-density-min-${ld.id}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-200 font-semibold mb-1">Density Max %</label>
+                                <input type="number" step="0.1" id="ne-density-max-${ld.id}" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div class="flex items-end gap-3">
+                                <label class="flex items-center gap-1.5 cursor-pointer">
+                                    <input type="checkbox" id="ne-max-load-${ld.id}" class="w-4 h-4 rounded bg-gray-700 border-gray-600 text-red-500 focus:ring-red-500">
+                                    <span class="text-gray-200 font-semibold text-[10px]">MAX</span>
+                                </label>
+                                <label class="flex items-center gap-1.5 cursor-pointer">
+                                    <input type="checkbox" id="ne-accurate-${ld.id}" class="w-4 h-4 rounded bg-gray-700 border-gray-600 text-amber-500 focus:ring-amber-500">
+                                    <span class="text-gray-200 font-semibold text-[10px]">★ Accurate</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2 pt-1">
+                            <button onclick="hideAddEntryForm(${ld.id})" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-bold rounded transition cursor-pointer">Cancel</button>
+                            <button onclick="saveNewEntry(${ld.id})" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded transition cursor-pointer">Save Entry</button>
+                        </div>
+                    </div>
+
+                    <!-- Add entry button -->
+                    <div class="border-t border-gray-700 p-2 flex justify-center">
+                        <button onclick="showAddEntryForm(${ld.id})" class="text-[10px] text-gray-500 hover:text-emerald-400 font-bold uppercase tracking-wider cursor-pointer transition">+ Add Entry</button>
+                    </div>
+
+                    ${ld.notes ? `<div class="border-t border-gray-700 px-3 py-2 text-xs text-gray-500 italic">${ld.notes}</div>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        function showAddLoadDataForm() {
+            document.getElementById('add-load-data-form').classList.remove('hidden');
+            document.getElementById('add-load-data-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function hideAddLoadDataForm() {
+            document.getElementById('add-load-data-form').classList.add('hidden');
+            // Clear form fields
+            ['nld-source','nld-caliber','nld-coal','nld-primer','nld-case-type','nld-case-capacity','nld-barrel-length','nld-barrel-twist','nld-barrel-desc','nld-notes'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+        }
+
+        async function saveNewLoadData() {
+            const payload = {
+                source: document.getElementById('nld-source').value.trim() || null,
+                caliber: document.getElementById('nld-caliber').value.trim() || null,
+                coal: parseFloat(document.getElementById('nld-coal').value) || null,
+                primer: document.getElementById('nld-primer').value.trim() || null,
+                case_type: document.getElementById('nld-case-type').value.trim() || null,
+                case_capacity_gr: parseFloat(document.getElementById('nld-case-capacity').value) || null,
+                barrel_length: document.getElementById('nld-barrel-length').value.trim() || null,
+                barrel_twist: document.getElementById('nld-barrel-twist').value.trim() || null,
+                barrel_desc: document.getElementById('nld-barrel-desc').value.trim() || null,
+                notes: document.getElementById('nld-notes').value.trim() || null,
+            };
+
+            try {
+                const res = await fetch(`/components/bullets/${currentBulletId}/load-data/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    hideAddLoadDataForm();
+                    showToast('Load data set created.');
+                    loadBulletData();
+                } else {
+                    showToast('Failed to create load data.', 'error');
+                }
+            } catch { showToast('Error contacting server.', 'error'); }
+        }
+
+        function toggleEditLoadData(ldId) {
+            const panel = document.getElementById(`edit-ld-${ldId}`);
+            if (panel) panel.classList.toggle('hidden');
+        }
+
+        async function saveEditLoadData(ldId) {
+            const payload = {
+                source: document.getElementById(`eld-source-${ldId}`).value.trim() || null,
+                caliber: document.getElementById(`eld-caliber-${ldId}`).value.trim() || null,
+                coal: parseFloat(document.getElementById(`eld-coal-${ldId}`).value) || null,
+                primer: document.getElementById(`eld-primer-${ldId}`).value.trim() || null,
+                case_type: document.getElementById(`eld-case-type-${ldId}`).value.trim() || null,
+                case_capacity_gr: parseFloat(document.getElementById(`eld-case-capacity-${ldId}`).value) || null,
+                barrel_length: document.getElementById(`eld-barrel-length-${ldId}`).value.trim() || null,
+                barrel_twist: document.getElementById(`eld-barrel-twist-${ldId}`).value.trim() || null,
+                barrel_desc: document.getElementById(`eld-barrel-desc-${ldId}`).value.trim() || null,
+                notes: document.getElementById(`eld-notes-${ldId}`).value.trim() || null,
+            };
+
+            try {
+                const res = await fetch(`/components/bullets/${currentBulletId}/load-data/${ldId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    showToast('Load data updated.');
+                    loadBulletData();
+                } else {
+                    showToast('Failed to update load data.', 'error');
+                }
+            } catch { showToast('Error contacting server.', 'error'); }
+        }
+
+        async function deleteLoadDataSet(ldId) {
+            if (!confirm('Delete this entire load data set and all its entries?')) return;
+            try {
+                const res = await fetch(`/components/bullets/${currentBulletId}/load-data/${ldId}`, { method: 'DELETE' });
+                if (res.ok) { showToast('Load data set deleted.'); loadBulletData(); }
+                else showToast('Failed to delete load data.', 'error');
+            } catch { showToast('Error contacting server.', 'error'); }
+        }
+
+        function showAddEntryForm(ldId) {
+            const form = document.getElementById(`add-entry-${ldId}`);
+            if (form) {
+                form.classList.remove('hidden');
+                form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        function hideAddEntryForm(ldId) {
+            const form = document.getElementById(`add-entry-${ldId}`);
+            if (form) form.classList.add('hidden');
+            // Clear entry fields
+            [`ne-powder-${ldId}`,`ne-charge-min-${ldId}`,`ne-charge-max-${ldId}`,`ne-vel-min-${ldId}`,`ne-vel-max-${ldId}`,`ne-density-min-${ldId}`,`ne-density-max-${ldId}`].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            const maxEl = document.getElementById(`ne-max-load-${ldId}`);
+            const accEl = document.getElementById(`ne-accurate-${ldId}`);
+            if (maxEl) maxEl.checked = false;
+            if (accEl) accEl.checked = false;
+        }
+
+        async function saveNewEntry(ldId) {
+            const payload = {
+                powder_name: document.getElementById(`ne-powder-${ldId}`).value.trim(),
+                charge_min: parseFloat(document.getElementById(`ne-charge-min-${ldId}`).value) || null,
+                charge_max: parseFloat(document.getElementById(`ne-charge-max-${ldId}`).value) || null,
+                velocity_min: parseInt(document.getElementById(`ne-vel-min-${ldId}`).value) || null,
+                velocity_max: parseInt(document.getElementById(`ne-vel-max-${ldId}`).value) || null,
+                load_density_min: parseFloat(document.getElementById(`ne-density-min-${ldId}`).value) || null,
+                load_density_max: parseFloat(document.getElementById(`ne-density-max-${ldId}`).value) || null,
+                is_max_load: document.getElementById(`ne-max-load-${ldId}`).checked,
+                is_most_accurate: document.getElementById(`ne-accurate-${ldId}`).checked,
+            };
+
+            if (!payload.powder_name) { showToast('Powder name is required.', 'error'); return; }
+
+            try {
+                const res = await fetch(`/components/bullets/${currentBulletId}/load-data/${ldId}/entries/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    hideAddEntryForm(ldId);
+                    showToast('Entry added.');
+                    loadBulletData();
+                } else {
+                    showToast('Failed to add entry.', 'error');
+                }
+            } catch { showToast('Error contacting server.', 'error'); }
+        }
+
+        async function deleteEntry(ldId, entryId) {
+            if (!confirm('Delete this entry?')) return;
+            try {
+                const res = await fetch(`/components/bullets/${currentBulletId}/load-data/${ldId}/entries/${entryId}`, { method: 'DELETE' });
+                if (res.ok) { showToast('Entry deleted.'); loadBulletData(); }
+                else showToast('Failed to delete entry.', 'error');
+            } catch { showToast('Error contacting server.', 'error'); }
+        }
+
+        async function deleteBullet() {
+            if (!confirm('Delete this bullet? This action cannot be undone.')) return;
+            try {
+                const res = await fetch(`/components/bullets/${currentBulletId}`, { method: 'DELETE' });
+                if (res.ok) {
+                    window.location.href = '/inventory?inv=components&comp=bullets';
+                } else {
+                    showToast('Failed to delete bullet.', 'error');
+                }
+            } catch { showToast('Error contacting server.', 'error'); }
+        }
+    </script>
+</body>
+</html>

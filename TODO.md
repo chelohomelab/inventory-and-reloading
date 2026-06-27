@@ -13,6 +13,14 @@
 
 ## Future
 
+### Unlimited Photos per Item
+- [ ] Create `ItemPhoto` table (id, item_type, item_id, image_path, sort_order, created_at)
+- [ ] Add generic photo management endpoints (add, delete, reorder, set primary)
+- [ ] Migrate existing `image_path` / `image_path_2` columns to new table
+- [ ] Update all serializers to return photos array
+- [ ] Update all detail page galleries to handle N photos
+- [ ] Remove hardcoded 2-photo limit from upload logic
+
 ### Public Community UPC API
 - [ ] Expose `upc_cache` as a public read API endpoint
 - [ ] Add a write/correction endpoint for community contributions

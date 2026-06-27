@@ -171,6 +171,46 @@ class BulletInventory(Base):
     image_path_2 = Column(String, nullable=True)
     upc = Column(String, nullable=True)
     is_muzzleloader = Column(Boolean, default=False)
+    datasheet_path = Column(String, nullable=True)
+
+    load_data_sets = relationship("LoadData", back_populates="bullet", cascade="all, delete-orphan")
+
+
+class LoadData(Base):
+    __tablename__ = "load_data"
+    id = Column(Integer, primary_key=True, index=True)
+    bullet_id = Column(Integer, ForeignKey("bullet_inventory.id"), nullable=False)
+    source = Column(String, nullable=True)
+    caliber = Column(String, nullable=True)
+    coal = Column(Float, nullable=True)
+    primer = Column(String, nullable=True)
+    case_type = Column(String, nullable=True)
+    case_capacity_gr = Column(Float, nullable=True)
+    barrel_length = Column(String, nullable=True)
+    barrel_twist = Column(String, nullable=True)
+    barrel_desc = Column(String, nullable=True)
+    notes = Column(String, nullable=True)
+
+    bullet = relationship("BulletInventory", back_populates="load_data_sets")
+    entries = relationship("LoadDataEntry", back_populates="load_data", cascade="all, delete-orphan")
+
+
+class LoadDataEntry(Base):
+    __tablename__ = "load_data_entries"
+    id = Column(Integer, primary_key=True, index=True)
+    load_data_id = Column(Integer, ForeignKey("load_data.id"), nullable=False)
+    powder_name = Column(String, nullable=False)
+    charge_min = Column(Float, nullable=True)
+    charge_max = Column(Float, nullable=True)
+    velocity_min = Column(Integer, nullable=True)
+    velocity_max = Column(Integer, nullable=True)
+    load_density_min = Column(Float, nullable=True)
+    load_density_max = Column(Float, nullable=True)
+    is_max_load = Column(Boolean, default=False)
+    is_most_accurate = Column(Boolean, default=False)
+
+    load_data = relationship("LoadData", back_populates="entries")
+
 
 # --- AMMUNITION & PERFORMANCE LOGS ---
 class Ammo(Base):
@@ -389,6 +429,7 @@ def init_db():
         _add_col('bullet_inventory', 'qty_open', 'qty_open INTEGER DEFAULT 0')
         _add_col('bullet_inventory', 'upc', 'upc VARCHAR')
         _add_col('bullet_inventory', 'is_muzzleloader', 'is_muzzleloader BOOLEAN DEFAULT FALSE')
+        _add_col('bullet_inventory', 'datasheet_path', 'datasheet_path VARCHAR')
 
     for tbl in ('casing_inventory', 'powder_inventory', 'primer_inventory'):
         if tbl in inspector.get_table_names():
