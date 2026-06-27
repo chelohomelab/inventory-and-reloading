@@ -1047,19 +1047,22 @@ function renderBulletCard(b, lowThreshold = 100) {
     const bcInfo = b.bc_g1 ? `G1: ${b.bc_g1}` : (b.bc_g7 ? `G7: ${b.bc_g7}` : '');
     const gallery = makePhotoGallery(`bul-${b.id}`, '🎯', b.image_path, b.image_path_2);
     return `
-    <div class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-lg hover:border-blue-500/50 transition">
+    <div class="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-lg hover:border-blue-500/50 transition cursor-pointer" onclick="window.location.href='bullet-detail.html?id=${b.id}'">
         ${gallery}
         <div class="p-4 space-y-3">
             <div class="flex justify-between items-center">
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-400 border border-blue-800">BULLET</span>
+                <div class="flex items-center gap-1">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-400 border border-blue-800">BULLET</span>
+                    ${b.load_data_count ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">LOAD DATA</span>` : ''}
+                </div>
                 <div class="flex items-center gap-2">
                     <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800">${b.weight_gr}gr</span>
-                    <button onclick="document.getElementById('cedit-bul-${b.id}').classList.toggle('hidden')" class="text-gray-500 hover:text-blue-400 text-xs cursor-pointer" title="Edit">✏️</button>
-                    <button onclick="deleteComponent('bullets',${b.id})" class="text-gray-600 hover:text-red-400 text-xs cursor-pointer">✕</button>
+                    <button onclick="event.stopPropagation(); document.getElementById('cedit-bul-${b.id}').classList.toggle('hidden')" class="text-gray-500 hover:text-blue-400 text-xs cursor-pointer" title="Edit">✏️</button>
+                    <button onclick="event.stopPropagation(); deleteComponent('bullets',${b.id})" class="text-gray-600 hover:text-red-400 text-xs cursor-pointer">✕</button>
                 </div>
             </div>
             <!-- inline edit panel -->
-            <div id="cedit-bul-${b.id}" class="hidden bg-gray-900/80 rounded-lg p-3 space-y-2 border border-blue-800/40">
+            <div id="cedit-bul-${b.id}" onclick="event.stopPropagation()" class="hidden bg-gray-900/80 rounded-lg p-3 space-y-2 border border-blue-800/40">
                 <p class="text-[10px] font-bold uppercase tracking-wider text-blue-400 mb-1">Edit Bullet</p>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
@@ -1124,12 +1127,12 @@ function renderBulletCard(b, lowThreshold = 100) {
             <div class="border-t border-gray-700 pt-2">
                 ${b.notes ? `<p class="text-xs text-gray-500 italic">${b.notes}</p>` : ''}
             </div>
-            <div class="flex gap-2">
+            <div class="flex gap-2" onclick="event.stopPropagation()">
                 <input type="number" placeholder="Update count" id="qty-bullet-${b.id}"
                     class="flex-1 bg-gray-700 border border-gray-600 rounded p-1.5 text-xs text-white focus:outline-none">
                 <button onclick="updateComponentQty('bullets',${b.id},'quantity')" class="px-3 py-1.5 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded cursor-pointer">Save</button>
             </div>
-            <div class="border-t border-gray-700 pt-2">
+            <div class="border-t border-gray-700 pt-2" onclick="event.stopPropagation()">
                 <div class="flex items-center justify-between">
                     <button onclick="toggleCompMuzzleloader('bullets',${b.id},${!!b.is_muzzleloader})"
                         class="text-[10px] font-bold px-2 py-0.5 rounded border cursor-pointer transition ${b.is_muzzleloader ? 'bg-amber-900/60 text-amber-400 border-amber-700 hover:bg-amber-900/40' : 'bg-gray-700/40 text-gray-500 border-gray-700 hover:text-amber-400'}">

@@ -51,6 +51,11 @@ async def scope_detail(request: Request):
     return templates.TemplateResponse("scope-detail.html", {"request": request, "user": request.state.user})
 
 
+@router.get("/bullet-detail.html", response_class=HTMLResponse)
+async def bullet_detail(request: Request):
+    return templates.TemplateResponse("bullet-detail.html", {"request": request, "user": request.state.user})
+
+
 @router.get("/admin/trash", response_class=HTMLResponse)
 async def admin_trash(request: Request):
     return templates.TemplateResponse("admin_trash.html", {"request": request, "user": request.state.user})

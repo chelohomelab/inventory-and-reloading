@@ -92,6 +92,31 @@ class DeductPayload(BaseModel):
     powder_charge_gr: Optional[float] = None
 
 
+class LoadDataPatch(BaseModel):
+    source: Optional[str] = None
+    caliber: Optional[str] = None
+    coal: Optional[float] = None
+    primer: Optional[str] = None
+    case_type: Optional[str] = None
+    case_capacity_gr: Optional[float] = None
+    barrel_length: Optional[str] = None
+    barrel_twist: Optional[str] = None
+    barrel_desc: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class LoadDataEntryPayload(BaseModel):
+    powder_name: str
+    charge_min: Optional[float] = None
+    charge_max: Optional[float] = None
+    velocity_min: Optional[int] = None
+    velocity_max: Optional[int] = None
+    load_density_min: Optional[float] = None
+    load_density_max: Optional[float] = None
+    is_max_load: Optional[bool] = False
+    is_most_accurate: Optional[bool] = False
+
+
 class SettingsPatch(BaseModel):
     low_stock_powder_lbs: Optional[str] = None
     low_stock_primers: Optional[str] = None

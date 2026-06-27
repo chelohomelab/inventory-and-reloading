@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from sqlalchemy.orm import Session
 
 import database as models
-from dependencies import get_db, save_uploaded_file, cleanup_item_images
-from schemas import PowderPatch, PrimerPatch, BulletComponentPatch, CasingPatch, DeductPayload
+from dependencies import get_db, save_uploaded_file, save_uploaded_document, cleanup_item_images, delete_uploaded_file
+from schemas import PowderPatch, PrimerPatch, BulletComponentPatch, CasingPatch, DeductPayload, LoadDataPatch, LoadDataEntryPayload
 from routers.barcode import upsert_upc_cache
 
 router = APIRouter()
@@ -33,7 +33,9 @@ def _bullet_dict(b: models.BulletInventory) -> dict:
             "qty_open": getattr(b, "qty_open", 0) or 0,
             "price_paid": b.price_paid, "notes": b.notes,
             "image_path": b.image_path, "image_path_2": b.image_path_2,
-            "is_muzzleloader": getattr(b, "is_muzzleloader", False) or False}
+            "is_muzzleloader": getattr(b, "is_muzzleloader", False) or False,
+            "datasheet_path": getattr(b, "datasheet_path", None),
+            "load_data_count": len(getattr(b, "load_data_sets", None) or [])}
 
 def _casing_dict(c: models.CasingInventory) -> dict:
     label = "New" if c.times_fired == 0 else f"{c.times_fired}x Fired"
@@ -203,6 +205,104 @@ def list_bullet_components(muzzleloader: bool = Query(False), db: Session = Depe
         q = q.filter(models.BulletInventory.is_muzzleloader == True)
     return [_bullet_dict(b) for b in q.all()]
 
+@router.get("/components/bullets/{item_id}")
+def get_bullet_component(item_id: int, db: Session = Depends(get_db)):
+    b = db.query(models.BulletInventory).filter(models.BulletInventory.id == item_id).first()
+    if not b:
+        raise HTTPException(404, "Bullet not found")
+    result = _bullet_dict(b)
+    result["load_data"] = []
+    for ld in (b.load_data_sets or []):
+        result["load_data"].append({
+            "id": ld.id, "source": ld.source, "caliber": ld.caliber,
+            "coal": ld.coal, "primer": ld.primer, "case_type": ld.case_type,
+            "case_capacity_gr": ld.case_capacity_gr, "barrel_length": ld.barrel_length,
+            "barrel_twist": ld.barrel_twist, "barrel_desc": ld.barrel_desc, "notes": ld.notes,
+            "entries": [{
+                "id": e.id, "powder_name": e.powder_name,
+                "charge_min": e.charge_min, "charge_max": e.charge_max,
+                "velocity_min": e.velocity_min, "velocity_max": e.velocity_max,
+                "load_density_min": e.load_density_min, "load_density_max": e.load_density_max,
+                "is_max_load": e.is_max_load, "is_most_accurate": e.is_most_accurate,
+            } for e in ld.entries]
+        })
+    return result
+
+
+@router.post("/components/bullets/{item_id}/upload-datasheet/")
+async def upload_bullet_datasheet(item_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    b = db.query(models.BulletInventory).filter(models.BulletInventory.id == item_id).first()
+    if not b: raise HTTPException(404, "Not found")
+    if b.datasheet_path:
+        delete_uploaded_file(b.datasheet_path)
+    path = await save_uploaded_document(file, "loaddata")
+    b.datasheet_path = path
+    db.commit()
+    return _bullet_dict(b)
+
+
+@router.delete("/components/bullets/{item_id}/datasheet/")
+def delete_bullet_datasheet(item_id: int, db: Session = Depends(get_db)):
+    b = db.query(models.BulletInventory).filter(models.BulletInventory.id == item_id).first()
+    if not b: raise HTTPException(404, "Not found")
+    delete_uploaded_file(b.datasheet_path)
+    b.datasheet_path = None
+    db.commit()
+    return _bullet_dict(b)
+
+
+@router.post("/components/bullets/{item_id}/load-data/")
+def add_load_data(item_id: int, payload: LoadDataPatch, db: Session = Depends(get_db)):
+    b = db.query(models.BulletInventory).filter(models.BulletInventory.id == item_id).first()
+    if not b: raise HTTPException(404, "Bullet not found")
+    ld = models.LoadData(bullet_id=item_id, **payload.dict(exclude_unset=True))
+    db.add(ld)
+    db.commit()
+    db.refresh(ld)
+    return {"id": ld.id, "entries": []}
+
+
+@router.patch("/components/bullets/{item_id}/load-data/{ld_id}")
+def patch_load_data(item_id: int, ld_id: int, payload: LoadDataPatch, db: Session = Depends(get_db)):
+    ld = db.query(models.LoadData).filter(models.LoadData.id == ld_id, models.LoadData.bullet_id == item_id).first()
+    if not ld: raise HTTPException(404, "Load data not found")
+    for k, v in payload.dict(exclude_unset=True).items():
+        setattr(ld, k, v)
+    db.commit()
+    return {"ok": True}
+
+
+@router.delete("/components/bullets/{item_id}/load-data/{ld_id}")
+def delete_load_data(item_id: int, ld_id: int, db: Session = Depends(get_db)):
+    ld = db.query(models.LoadData).filter(models.LoadData.id == ld_id, models.LoadData.bullet_id == item_id).first()
+    if not ld: raise HTTPException(404, "Not found")
+    db.delete(ld)
+    db.commit()
+    return {"deleted": ld_id}
+
+
+@router.post("/components/bullets/{item_id}/load-data/{ld_id}/entries/")
+def add_load_data_entry(item_id: int, ld_id: int, payload: LoadDataEntryPayload, db: Session = Depends(get_db)):
+    ld = db.query(models.LoadData).filter(models.LoadData.id == ld_id, models.LoadData.bullet_id == item_id).first()
+    if not ld: raise HTTPException(404, "Load data not found")
+    entry = models.LoadDataEntry(load_data_id=ld_id, **payload.dict())
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return {"id": entry.id}
+
+
+@router.delete("/components/bullets/{item_id}/load-data/{ld_id}/entries/{entry_id}")
+def delete_load_data_entry(item_id: int, ld_id: int, entry_id: int, db: Session = Depends(get_db)):
+    e = db.query(models.LoadDataEntry).filter(
+        models.LoadDataEntry.id == entry_id, models.LoadDataEntry.load_data_id == ld_id
+    ).first()
+    if not e: raise HTTPException(404, "Entry not found")
+    db.delete(e)
+    db.commit()
+    return {"deleted": entry_id}
+
+
 @router.post("/components/bullets/")
 async def add_bullet_component(
     brand: str = Form(...), caliber: str = Form(...),
@@ -247,6 +347,7 @@ def delete_bullet_component(item_id: int, db: Session = Depends(get_db)):
     b = db.query(models.BulletInventory).filter(models.BulletInventory.id == item_id).first()
     if not b: raise HTTPException(404, "Not found")
     cleanup_item_images(b)
+    delete_uploaded_file(getattr(b, 'datasheet_path', None))
     upc = getattr(b, 'upc', None)
     db.delete(b); db.commit()
     if upc:
