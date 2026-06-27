@@ -812,20 +812,48 @@ function makePhotoGallery(uid, emoji, img1, img2, fit = 'contain') {
         return `<div class="w-full h-48 bg-gray-950 overflow-hidden"><img src="${photos[0]}" class="w-full h-full object-${fit}"></div>`;
     }
     return `
-    <div class="w-full h-48 bg-gray-950 overflow-hidden relative">
+    <div class="w-full h-48 bg-gray-950 overflow-hidden relative group/gal" data-uid="${uid}" data-photos='${JSON.stringify(photos)}' data-idx="0"
+         ontouchstart="_gTouchStart(event)" ontouchend="_gTouchEnd(event,'${uid}')">
         <img id="gimg-${uid}" src="${photos[0]}" class="w-full h-full object-${fit}">
+        <button onclick="event.stopPropagation(); galleryNav('${uid}',-1)"
+            class="absolute left-1 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 hover:bg-black/80 rounded-full text-white text-sm flex items-center justify-center cursor-pointer opacity-0 group-hover/gal:opacity-100 transition-opacity">&lsaquo;</button>
+        <button onclick="event.stopPropagation(); galleryNav('${uid}',1)"
+            class="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/50 hover:bg-black/80 rounded-full text-white text-sm flex items-center justify-center cursor-pointer opacity-0 group-hover/gal:opacity-100 transition-opacity">&rsaquo;</button>
         <div class="absolute bottom-2 right-2 flex gap-1.5">
-            <button onclick="event.stopPropagation(); gallerySw('${uid}','${photos[0]}',0)" id="gdot-${uid}-0"
-                class="w-2.5 h-2.5 rounded-full bg-white shadow cursor-pointer border border-gray-400 transition"></button>
-            <button onclick="event.stopPropagation(); gallerySw('${uid}','${photos[1]}',1)" id="gdot-${uid}-1"
-                class="w-2.5 h-2.5 rounded-full bg-white/40 shadow cursor-pointer border border-gray-400 transition"></button>
+            <span id="gdot-${uid}-0" class="w-2 h-2 rounded-full bg-white shadow border border-gray-400"></span>
+            <span id="gdot-${uid}-1" class="w-2 h-2 rounded-full bg-white/40 shadow border border-gray-400"></span>
         </div>
     </div>`;
+}
+
+let _gTouchX = 0;
+function _gTouchStart(e) { _gTouchX = e.touches[0].clientX; }
+function _gTouchEnd(e, uid) {
+    const dx = e.changedTouches[0].clientX - _gTouchX;
+    if (Math.abs(dx) > 40) { galleryNav(uid, dx < 0 ? 1 : -1); }
+}
+
+function galleryNav(uid, dir) {
+    const wrap = document.querySelector(`[data-uid="${uid}"]`);
+    if (!wrap) return;
+    const photos = JSON.parse(wrap.dataset.photos);
+    let idx = parseInt(wrap.dataset.idx) + dir;
+    if (idx < 0) idx = photos.length - 1;
+    if (idx >= photos.length) idx = 0;
+    wrap.dataset.idx = idx;
+    const img = document.getElementById(`gimg-${uid}`);
+    if (img) img.src = photos[idx];
+    photos.forEach((_, i) => {
+        const d = document.getElementById(`gdot-${uid}-${i}`);
+        if (d) { d.classList.toggle('bg-white', i === idx); d.classList.toggle('bg-white/40', i !== idx); }
+    });
 }
 
 function gallerySw(uid, src, idx) {
     const img = document.getElementById(`gimg-${uid}`);
     if (img) img.src = src;
+    const wrap = document.querySelector(`[data-uid="${uid}"]`);
+    if (wrap) wrap.dataset.idx = idx;
     [0,1].forEach(i => {
         const d = document.getElementById(`gdot-${uid}-${i}`);
         if (d) { d.classList.toggle('bg-white', i === idx); d.classList.toggle('bg-white/40', i !== idx); }
