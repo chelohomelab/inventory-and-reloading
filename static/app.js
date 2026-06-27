@@ -1187,7 +1187,7 @@ function renderBulletsGrouped(bullets, container, lowThreshold = 100) {
                 <span class="text-xs text-gray-200 font-semibold">${items.length} variant${items.length !== 1 ? 's' : ''}</span>
                 <div class="flex-1 border-t border-gray-700/60"></div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 ${items.map(b => renderBulletCard(b, lowThreshold)).join('')}
             </div>
         </div>`
